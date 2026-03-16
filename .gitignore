@@ -1,0 +1,38 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+build/
+*.egg
+
+# Node / Frontend
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+dist/
+.cache/
+
+# Environment
+.env
+
+# Dev server runtime artifacts
+.dev-pids
+logs/
+
+# config.js is committed with empty defaults; setup.ps1 overwrites for local dev
+# (local dev changes to this file are expected and should not be committed)
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

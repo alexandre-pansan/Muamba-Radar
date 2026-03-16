@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git config --global user.email)",
+      "Bash(claude config list)",
+      "Bash(claude auth status)",
+      "Bash(cat \"/c/Users/alexp/.claude/ide/\"*)",
+      "Bash(xargs grep -l \"email\\\\|account\\\\|user\\\\|login\\\\|auth\\\\|token\")",
+      "Bash(powershell -Command \"Get-Process | Where-Object { $_Name -match ''python|uvicorn'' } | Select-Object Id, Name, CommandLine | Format-List\")",
+      "Bash(powershell -Command \"Get-Process python* | Select-Object Id, Name | Format-Table -AutoSize\")",
+      "Bash(powershell -ExecutionPolicy Bypass -File \"c:/Users/alexp/project/price sourcerer/scripts/start-dev.ps1\")",
+      "Bash(powershell -Command \"Get-Content ''c:/Users/alexp/project/price sourcerer/logs/backend.log'' -Tail 5 2>&1; Get-Content ''c:/Users/alexp/project/price sourcerer/logs/backend.err.log'' -Tail 5 2>&1\")",
+      "Read(//c/Users/alexp/.claude/plans/**)"
+    ]
+  }
+}

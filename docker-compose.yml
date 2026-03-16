@@ -1,0 +1,58 @@
+services:
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       mamu
+      POSTGRES_USER:     postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test:         ["CMD-SHELL", "pg_isready -U postgres"]
+      interval:     5s
+      timeout:      5s
+      retries:      10
+      start_period: 5s
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL:       postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/mamu
+      CORS_ORIGINS:       ${CORS_ORIGINS:-*}
+      FX_PYG_PER_BRL:     ${FX_PYG_PER_BRL:-1428.57}
+      FX_BRL_PER_USD:     ${FX_BRL_PER_USD:-5.0}
+      CACHE_TTL_MINUTES:  ${CACHE_TTL_MINUTES:-30}
+      JWT_SECRET:         ${JWT_SECRET:?Set JWT_SECRET in .env}
+      JWT_EXPIRE_MINUTES: ${JWT_EXPIRE_MINUTES:-10080}
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:         ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval:     10s
+      timeout:      5s
+      retries:      5
+      start_period: 15s
+    # Port 8000 is NOT exposed on VPS — nginx proxies to it internally.
+    # Uncomment below only for local dev debugging:
+    # ports:
+    #   - "8000:8000"
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    environment:
+      # Empty = nginx proxies /compare /auth /etc → backend automatically.
+      # Set to a full URL only if the API is on a different domain.
+      MUAMBA_API_URL: ${MUAMBA_API_URL:-}
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  pgdata:
