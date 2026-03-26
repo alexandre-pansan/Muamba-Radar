@@ -121,6 +121,8 @@ class TokenResponse(BaseModel):
 
 
 class UserResponse(BaseModel):
+    model_config = {"from_attributes": True}
+
     id: int
     email: str
     username: str | None = None

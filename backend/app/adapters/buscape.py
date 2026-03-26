@@ -24,6 +24,7 @@ from bs4 import BeautifulSoup
 
 from app.adapters.base import SourceAdapter
 from app.schemas import RawOfferModel
+from app.services.normalization import matches_query
 
 log = logging.getLogger("muambaradar.adapters")
 
@@ -40,31 +41,10 @@ _HEADERS = {
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
 }
 
-_STOP_TOKENS = {"de", "da", "do", "e", "com", "para", "pro", "max", "mini", "plus"}
-
-
 # ── helpers ────────────────────────────────────────────────────────────────────
 
 def _norm(text: str) -> str:
     return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9\s]", " ", text.lower())).strip()
-
-
-def _tokens(query: str) -> list[str]:
-    s = re.sub(r"(\d+)\s*(gb|tb)\b", r"\1 \2", _norm(query))
-    return [t for t in s.split() if len(t) >= 2 and t not in _STOP_TOKENS]
-
-
-def _is_relevant(query: str, title: str) -> bool:
-    q = _tokens(query)
-    if not q:
-        return True
-    t = set(_norm(title).split())
-    if len(q) <= 2:
-        required = len(q)          # all tokens must appear for short queries
-    else:
-        required = max(2, int(len(q) * 0.6 + 0.5))
-    hits = sum(1 for tok in q if tok in t)
-    return hits >= required
 
 
 def _parse_brl(value: Any) -> float | None:
@@ -211,7 +191,7 @@ def _extract_url(product: dict) -> str | None:
 def _name_from_url(url: str) -> str | None:
     """Extract a human-readable product name from a Buscapé URL slug.
 
-    e.g. /perfume/lattafa-yara-edp-100ml  →  'lattafa yara edp 100ml'
+    e.g. /perfume/lattafa-yara-edp-100ml-12345678  →  'Lattafa Yara EDP 100ml'
     """
     path = urlsplit(url).path.rstrip("/")
     slug = path.split("/")[-1]          # last segment
@@ -220,7 +200,12 @@ def _name_from_url(url: str) -> str | None:
     # drop trailing numeric IDs like -12345678
     slug = re.sub(r"-\d{5,}$", "", slug)
     name = slug.replace("-", " ").strip()
-    return name.title() if len(name) > 5 else None
+    if len(name) <= 5:
+        return None
+    # Capitalise each word; uppercase known abbreviations
+    _UPPER = {"edp", "edt", "edc", "ml", "gb", "tb"}
+    words = [w.upper() if w in _UPPER else w.capitalize() for w in name.split()]
+    return " ".join(words)
 
 
 def _product_to_offer(product: dict, query: str) -> RawOfferModel | None:
@@ -235,13 +220,14 @@ def _product_to_offer(product: dict, query: str) -> RawOfferModel | None:
         name = ""
     name = name.strip()
 
-    # If name is too short (just a brand), try to get it from the URL slug
-    if len(name) < 10:
-        url_candidate = _extract_url(product)
-        if url_candidate:
-            name = _name_from_url(url_candidate) or name
+    # Always compare API name with URL slug — prefer the more informative one
+    url_candidate = _extract_url(product)
+    if url_candidate:
+        slug_name = _name_from_url(url_candidate)
+        if slug_name and len(slug_name) > len(name):
+            name = slug_name
 
-    if not name or not _is_relevant(query, name):
+    if not name or not matches_query(query,name):
         return None
 
     # Price: try several common keys
@@ -289,16 +275,16 @@ def _offers_from_product(product: dict, query: str) -> list[RawOfferModel]:
         name = ""
     name = name.strip()
 
-    if len(name) < 10:
-        url_candidate = _extract_url(product)
-        if url_candidate:
-            name = _name_from_url(url_candidate) or name
+    # Always compare API name with URL slug — prefer the more informative one
+    base_url = _extract_url(product) or _BASE
+    slug_name = _name_from_url(base_url)
+    if slug_name and len(slug_name) > len(name):
+        name = slug_name
 
-    if not name or not _is_relevant(query, name):
+    if not name or not matches_query(query, name):
         return []
 
     image_url = _extract_image(product)
-    base_url  = _extract_url(product) or _BASE
     now = datetime.now(UTC)
 
     # ── try to expand per-store offers ────────────────────────────────────────
@@ -438,7 +424,7 @@ def _from_html(soup: BeautifulSoup, query: str) -> list[RawOfferModel]:
             or card.select_one("[class*='name']")
         )
         title = title_el.get_text(" ", strip=True) if title_el else ""
-        if not title or not _is_relevant(query, title):
+        if not title or not matches_query(query,title):
             continue
 
         # Price

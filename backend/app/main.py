@@ -549,6 +549,48 @@ def trigger_refresh_cache(
     return {"status": "started", "unique_queries": count}
 
 
+@app.get("/admin/users", response_model=list[UserResponse])
+def admin_list_users(
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> list[UserResponse]:
+    users = db.query(User).order_by(User.created_at.desc()).all()
+    return [UserResponse.model_validate(u) for u in users]
+
+
+@app.delete("/admin/users/{user_id}")
+def admin_delete_user(
+    user_id: int,
+    current_admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> dict:
+    if user_id == current_admin.id:
+        raise HTTPException(status_code=400, detail="Cannot delete your own account")
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    db.delete(user)
+    db.commit()
+    return {"status": "deleted"}
+
+
+@app.patch("/admin/users/{user_id}/toggle-admin", response_model=UserResponse)
+def admin_toggle_admin(
+    user_id: int,
+    current_admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> UserResponse:
+    if user_id == current_admin.id:
+        raise HTTPException(status_code=400, detail="Cannot change your own admin status")
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.is_admin = not user.is_admin
+    db.commit()
+    db.refresh(user)
+    return UserResponse.model_validate(user)
+
+
 @app.post("/admin/test-search", response_model=AdminTestSearchResponse)
 def admin_test_search(
     body: AdminTestSearchRequest,

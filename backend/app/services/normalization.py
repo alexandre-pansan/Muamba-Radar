@@ -75,9 +75,30 @@ def is_refurbished_or_used(title: str) -> bool:
     return any(re.search(pattern, normalized) for pattern in EXCLUDED_CONDITION_PATTERNS)
 
 
+# Accessory keywords: if these appear in the title but NOT in the query,
+# the result is an accessory for the product — not the product itself.
+_ACCESSORY_PATTERNS = re.compile(
+    r"\b(controle|control|joy.?con|joystick|gamepad|"
+    r"cabo|carregador|dock|base|suporte|stand|"
+    r"capa|case|bolsa|bag|sleeve|cover|skin|"
+    r"pel[ií]cula|protetor|protector|tempered|vidro|"
+    r"headset|fone|earphone|earbuds|headphone|"
+    r"bateria|battery|power\s*bank|"
+    r"mouse|teclado|keyboard|webcam|"
+    r"adapt[ae]dor|hub|leitor|reader)\b"
+)
+
+
 def matches_query(query: str, title: str) -> bool:
     query_tokens = tokenize(query)
     if not query_tokens:
+        return False
+
+    norm_query = normalize_text(query)
+    norm_title = normalize_text(title)
+
+    # Reject accessories not mentioned in the query.
+    if _ACCESSORY_PATTERNS.search(norm_title) and not _ACCESSORY_PATTERNS.search(norm_query):
         return False
 
     title_tokens = set(tokenize(title))

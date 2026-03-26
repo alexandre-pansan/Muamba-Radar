@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { useI18n } from '../i18n.jsx'
 import LoadingScene from './LoadingScene.jsx'
 import { detectCategory } from '../loadingTexts.js'
@@ -11,6 +11,7 @@ import {
   familyDisplayName,
   formatMoney,
   sourceDomain,
+  detectProductType,
 } from '../utils.js'
 
 function FlatTable({ groups, marginPct, t, onOpenOffers }) {
@@ -87,6 +88,10 @@ export default function ResultsArea({
   onOpenOffers,
 }) {
   const { t } = useI18n()
+  const [typeFilter, setTypeFilter] = useState(null)
+
+  // Reset filter when results change
+  useEffect(() => { setTypeFilter(null) }, [lastQuery])
 
   const showClear = Boolean(lastData)
   const showRetry = status?.isError && lastQuery != null
@@ -94,6 +99,28 @@ export default function ResultsArea({
   const sorted = lastData?.groups
     ? sortGroups(lastData.groups, groupOrder, targetMargin)
     : []
+
+  function groupType(g) {
+    const candidates = [
+      familyDisplayName(g),
+      g.canonical_name,
+      ...(g.offers || []).map(o => o.title).filter(Boolean),
+    ]
+    return candidates.reduce((found, name) => found || detectProductType(name), null)
+  }
+
+  // Detect types present in results — check canonical name + raw offer titles
+  const typeMap = {}
+  sorted.forEach(g => {
+    const type = groupType(g)
+    if (type) typeMap[type] = (typeMap[type] || 0) + 1
+  })
+  const types = Object.entries(typeMap).sort((a, b) => b[1] - a[1])
+  const showTypeFilter = types.length >= 1
+
+  const displayed = typeFilter
+    ? sorted.filter(g => groupType(g) === typeFilter)
+    : sorted
 
   return (
     <div className="content-area">
@@ -145,34 +172,49 @@ export default function ResultsArea({
         </div>
       </div>
 
-      {(() => {
-        if (isLoading || sorted.length < 3) return null
-        const missingBr = sorted.filter(g => !g.offers.some(o => o.country === 'br')).length
-        if (missingBr / sorted.length < 0.5) return null
-        return (
-          <div className="category-notice">
-            <span className="category-notice-icon">🚧</span>
-            <div className="category-notice-body">
-              <span className="category-notice-title">{t('notice.perfume_title')}</span>
-              <span className="category-notice-text">{t('notice.perfume')}</span>
-            </div>
+      {!isLoading && showTypeFilter && (
+        <div className="type-filter-bar">
+          <button
+            className={`type-chip${!typeFilter ? ' is-active' : ''}`}
+            onClick={() => setTypeFilter(null)}
+          >
+            Todos <span className="type-chip-count">{sorted.length}</span>
+          </button>
+          {types.map(([type, count]) => (
+            <button
+              key={type}
+              className={`type-chip${typeFilter === type ? ' is-active' : ''}`}
+              onClick={() => setTypeFilter(t => t === type ? null : type)}
+            >
+              {type} <span className="type-chip-count">{count}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {!isLoading && sorted.length > 0 && detectCategory(lastQuery) === 'perfume' && (
+        <div className="category-notice">
+          <span className="category-notice-icon">🚧</span>
+          <div className="category-notice-body">
+            <span className="category-notice-title">{t('notice.perfume_title')}</span>
+            <span className="category-notice-text">{t('notice.perfume')}</span>
           </div>
-        )
-      })()}
+        </div>
+      )}
 
       <section className={`results${isLoading ? ' is-loading' : ''}`}>
         {isLoading ? (
           <LoadingScene images={featuredImages} query={lastQuery || ''} />
-        ) : viewMode === 'table' && sorted.length > 0 ? (
+        ) : viewMode === 'table' && displayed.length > 0 ? (
           <FlatTable
-            groups={sorted}
+            groups={displayed}
             marginPct={targetMargin}
             t={t}
             onOpenOffers={onOpenOffers}
           />
-        ) : viewMode === 'card' && sorted.length > 0 ? (
+        ) : viewMode === 'card' && displayed.length > 0 ? (
           <div className="product-grid">
-            {sorted.map((group, i) => (
+            {displayed.map((group, i) => (
               <ProductCard
                 key={group.product_key || i}
                 group={group}

@@ -132,7 +132,10 @@ export async function apiFetchFeaturedImages() {
 }
 
 export async function apiRefreshCache() {
-  const res = await fetch(`${getApiBase()}/admin/refresh-cache`, { method: 'POST' })
+  const res = await fetch(`${getApiBase()}/admin/refresh-cache`, {
+    method: 'POST',
+    headers: authHeaders(),
+  })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   return res.json()
 }
@@ -140,6 +143,38 @@ export async function apiRefreshCache() {
 export async function apiFetchSources() {
   const res = await fetch(`${getApiBase()}/sources`)
   if (!res.ok) return []
+  return res.json()
+}
+
+export async function apiAdminListUsers() {
+  const res = await fetch(`${getApiBase()}/admin/users`, {
+    headers: authHeaders(),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
+export async function apiAdminDeleteUser(userId) {
+  const res = await fetch(`${getApiBase()}/admin/users/${userId}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  })
+  if (!res.ok) {
+    const text = await res.text()
+    throw new Error(`HTTP ${res.status}: ${text}`)
+  }
+  return res.json()
+}
+
+export async function apiAdminToggleAdmin(userId) {
+  const res = await fetch(`${getApiBase()}/admin/users/${userId}/toggle-admin`, {
+    method: 'PATCH',
+    headers: authHeaders(),
+  })
+  if (!res.ok) {
+    const text = await res.text()
+    throw new Error(`HTTP ${res.status}: ${text}`)
+  }
   return res.json()
 }
 

@@ -5,7 +5,7 @@ import Sidebar from './components/Sidebar.jsx'
 import ResultsArea from './components/ResultsArea.jsx'
 import AuthModal from './components/AuthModal.jsx'
 import UserConfigModal from './components/UserConfigModal.jsx'
-import AdminModal from './components/AdminModal.jsx'
+import AdminPage from './components/AdminPage.jsx'
 import OffersDialog from './components/OffersDialog.jsx'
 import {
   getToken, setToken, clearToken,
@@ -60,7 +60,25 @@ function AppInner() {
   const [authModalOpen, setAuthModalOpen] = useState(false)
   const [authModalTab, setAuthModalTab] = useState('login')
   const [userConfigOpen, setUserConfigOpen] = useState(false)
-  const [adminModalOpen, setAdminModalOpen] = useState(false)
+
+  // Page routing
+  const [page, setPage] = useState(() => window.location.pathname === '/admin' ? 'admin' : 'home')
+
+  useEffect(() => {
+    const handler = () => setPage(window.location.pathname === '/admin' ? 'admin' : 'home')
+    window.addEventListener('popstate', handler)
+    return () => window.removeEventListener('popstate', handler)
+  }, [])
+
+  function goAdmin() {
+    history.pushState(null, '', '/admin')
+    setPage('admin')
+  }
+
+  function goHome() {
+    history.pushState(null, '', '/')
+    setPage('home')
+  }
 
   // Sidebar mobile open
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -265,12 +283,16 @@ function AppInner() {
         onOpenAuth={openAuthModal}
         onLogout={handleLogout}
         onOpenSettings={() => setUserConfigOpen(true)}
-        onOpenAdmin={() => setAdminModalOpen(true)}
+        onOpenAdmin={goAdmin}
         onToggleSidebar={() => setSidebarOpen(o => !o)}
         theme={theme}
         onToggleTheme={toggleTheme}
       />
 
+      {page === 'admin' ? (
+        <AdminPage onBack={goHome} />
+      ) : (
+      <>
       {sidebarOpen && (
         <div
           className="sidebar-overlay"
@@ -345,11 +367,6 @@ function AppInner() {
         }}
       />
 
-      <AdminModal
-        open={adminModalOpen}
-        onClose={() => setAdminModalOpen(false)}
-      />
-
       {offersGroup && (
         <OffersDialog
           group={offersGroup.group}
@@ -357,6 +374,9 @@ function AppInner() {
           config={offersGroup.config}
           onClose={closeOffersDialog}
         />
+      )}
+
+      </>
       )}
 
     </>

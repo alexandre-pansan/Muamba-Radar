@@ -82,6 +82,47 @@ export function formatModelName(name) {
     .replace(/\b\w+\b/g, w => exceptions[w] ?? (w[0].toUpperCase() + w.slice(1)))
 }
 
+// Rules are checked in order; first match wins.
+// Each entry: [pattern to match anywhere in title, label]
+// Patterns with ^ anchor take priority (more specific).
+const _TYPE_RULES = [
+  // Anchored (title starts with these — high confidence)
+  [/^(notebook|laptop)/i,                                   'Notebook'],
+  [/^(placa\s+de\s+v[ií]deo)/i,                            'Placa de Vídeo'],
+  [/^(placa\s+m[aã]e|motherboard)/i,                       'Placa-mãe'],
+  [/^(processador|processor)/i,                            'Processador'],
+  [/^(mem[oó]ria\s+ram|mem[oó]ria\s+ddr)/i,               'Memória RAM'],
+  [/^(ssd|hdd|disco\s+r[ií]gido)/i,                       'Armazenamento'],
+  [/^(fonte\s+de\s+alimenta|fonte\s+atx)/i,               'Fonte'],
+  [/^(gabinete)/i,                                         'Gabinete'],
+  [/^(smart\s*tv|tv\s+\d)/i,                              'TV'],
+  [/^(monitor)/i,                                          'Monitor'],
+  [/^(impressora)/i,                                       'Impressora'],
+  [/^(c[aâ]mera|câmera)/i,                               'Câmera'],
+  [/^(perfume|eau\s+de\s+(parfum|toilette)|edp\b|edt\b)/i,'Perfume'],
+  [/^(console|playstation|xbox|nintendo\s+switch)/i,       'Console'],
+  [/^(smartphone|celular)/i,                               'Smartphone'],
+  [/^(tablet|ipad)/i,                                      'Tablet'],
+  [/^(headset|headphone)/i,                                'Headset'],
+
+  // Anywhere in title (keyword-based — catches "Notebook Gamer MSI..." or "ASUS Notebook...")
+  [/\b(notebook|laptop)\b/i,                               'Notebook'],
+  [/\b(geforce|radeon)\s+rtx\b|\brtx\s+\d{4}\b|\bgtx\s+\d{4}\b/i, 'Placa de Vídeo'],
+  [/\b(intel\s+core\s+i[3579]|amd\s+ryzen\s+[357]|core\s+ultra)\b/i,'Processador'],
+  [/\biphone\b/i,                                          'Smartphone'],
+  [/\bipad\b/i,                                            'Tablet'],
+  [/\bplaystation\s*[345]\b|\bps\s*[345]\b|\bxbox\b|\bswitch\s*(oled|lite)?\b/i, 'Console'],
+]
+
+export function detectProductType(name) {
+  if (!name) return null
+  const n = name.trim()
+  for (const [pattern, label] of _TYPE_RULES) {
+    if (pattern.test(n)) return label
+  }
+  return null
+}
+
 export function buildConfigChip(group) {
   if (group.concentration || group.volume_ml) {
     return [group.concentration, group.volume_ml].filter(Boolean).join(' · ')

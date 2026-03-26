@@ -3,7 +3,7 @@
 export function detectCategory(query) {
   const q = (query || '').toLowerCase()
   if (/iphone|ipad|macbook|airpods|apple watch|mac mini|imac/.test(q))           return 'apple'
-  if (/perfume|colônia|cologne|fragrance|eau de|edp|edt|parfum|deo/.test(q))     return 'perfume'
+  if (/perfume|colônia|cologne|fragrance|eau de|edp|edt|parfum|deo|lattafa|dior sauvage|bleu de|acqua di|oud|musk|bvlgari|creed|chanel n|carolina herrera|armani|versace eros|paco rab|viktor.?rolf|marc jacobs daisy|givenchy|lancome|yves saint laurent|ysl|tom ford|coach floral|montblanc|thierry mugler|narciso|viktor/.test(q))     return 'perfume'
   if (/ps5|ps4|playstation|xbox|nintendo|switch|game boy|gameboy|console/.test(q)) return 'console'
   if (/notebook|laptop|dell|lenovo|asus rog|asus zeph|acer|chromebook/.test(q))  return 'notebook'
   if (/samsung galaxy|xiaomi|motorola|redmi|celular|smartphone/.test(q))          return 'smartphone'

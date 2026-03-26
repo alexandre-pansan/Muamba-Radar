@@ -9,29 +9,11 @@ from bs4 import BeautifulSoup, Tag
 
 from app.adapters.base import SourceAdapter
 from app.schemas import RawOfferModel
-
-STOP_TOKENS = {"de", "da", "do", "e", "com", "para", "pro", "max", "mini", "plus"}
+from app.services.normalization import matches_query
 
 
 def _normalize_text(value: str) -> str:
     return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9\s]", " ", value.lower())).strip()
-
-
-def _query_tokens(query: str) -> list[str]:
-    normalized = _normalize_text(query)
-    normalized = re.sub(r"(\d+)\s*(gb|tb)\b", r"\1 \2", normalized)
-    return [token for token in normalized.split() if len(token) >= 2 and token not in STOP_TOKENS]
-
-
-def _is_relevant(query: str, title: str) -> bool:
-    q_tokens = _query_tokens(query)
-    if not q_tokens:
-        return False
-
-    t_tokens = set(_normalize_text(title).split())
-    hits = sum(1 for token in q_tokens if token in t_tokens)
-    needed = max(2, int(len(q_tokens) * 0.5 + 0.5))
-    return hits >= needed
 
 
 def _parse_brl(value: str) -> float | None:
@@ -131,7 +113,7 @@ class MercadoLivreAdapter(SourceAdapter):
 
             title_el = item.select_one("h3") or item.select_one(".poly-component__title") or link
             title = title_el.get_text(" ", strip=True) if title_el else query
-            if not title or not _is_relevant(query, title):
+            if not title or not matches_query(query, title):
                 continue
 
             price_amount = _extract_price(item)

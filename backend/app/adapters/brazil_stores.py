@@ -19,28 +19,12 @@ from bs4 import BeautifulSoup
 
 from app.adapters.base import SourceAdapter
 from app.schemas import RawOfferModel
+from app.services.normalization import matches_query
 
 # ── shared helpers ─────────────────────────────────────────────────────────────
 
-_STOP_TOKENS = {"de", "da", "do", "e", "com", "para", "pro", "max", "mini", "plus"}
-
-
 def _norm(text: str) -> str:
     return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9\s]", " ", text.lower())).strip()
-
-
-def _tokens(query: str) -> list[str]:
-    s = re.sub(r"(\d+)\s*(gb|tb)\b", r"\1 \2", _norm(query))
-    return [t for t in s.split() if len(t) >= 2 and t not in _STOP_TOKENS]
-
-
-def _is_relevant(query: str, title: str) -> bool:
-    q = _tokens(query)
-    if not q:
-        return False
-    t = set(_norm(title).split())
-    hits = sum(1 for tok in q if tok in t)
-    return hits >= max(2, int(len(q) * 0.5 + 0.5))
 
 
 def _parse_brl(value: Any) -> float | None:
@@ -143,7 +127,7 @@ class AmericanasAdapter(SourceAdapter):
                 continue
 
             name = p.get("name") or p.get("title") or ""
-            if not name or not _is_relevant(query, name):
+            if not name or not matches_query(query,name):
                 continue
 
             # Price — try multiple paths
@@ -214,7 +198,7 @@ class AmericanasAdapter(SourceAdapter):
             card = a.find_parent(["article", "li", "section", "div"]) or a
             title_el = card.select_one("h2,h3,[class*='title'],[class*='name']") or a
             title = title_el.get_text(" ", strip=True) if title_el else ""
-            if not title or not _is_relevant(query, title):
+            if not title or not matches_query(query,title):
                 continue
 
             price_el = card.select_one("[class*='price'],[class*='preco'],[class*='valor']")
@@ -300,7 +284,7 @@ class CasasBahiaAdapter(SourceAdapter):
                 continue
 
             name = p.get("name") or p.get("title") or ""
-            if not name or not _is_relevant(query, name):
+            if not name or not matches_query(query,name):
                 continue
 
             price = (
@@ -366,7 +350,7 @@ class CasasBahiaAdapter(SourceAdapter):
             card = a.find_parent(["article", "li", "section", "div"]) or a
             title_el = card.select_one("h2,h3,[class*='title'],[class*='name']") or a
             title = title_el.get_text(" ", strip=True) if title_el else ""
-            if not title or not _is_relevant(query, title):
+            if not title or not matches_query(query,title):
                 continue
 
             price_el = card.select_one("[class*='price'],[class*='preco'],[class*='valor']")
