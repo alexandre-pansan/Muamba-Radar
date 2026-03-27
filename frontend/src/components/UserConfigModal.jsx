@@ -1,12 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useI18n } from '../i18n.jsx'
 import { apiUpdateMe, apiFetchUserSearches } from '../api.js'
+import { DEFAULT_RATES, mergeRates } from '../taxRates.js'
 
 export default function UserConfigModal({
   open,
   onClose,
   currentUser,
   currentPrefs,
+  savedTaxRates,
   onUserUpdate,
   onPrefChange,
   onSearchClick,
@@ -27,6 +29,9 @@ export default function UserConfigModal({
 
   const [userSearches, setUserSearches]     = useState([])
   const [searchesLoading, setSearchesLoading] = useState(false)
+
+  const [taxRates, setTaxRates]           = useState(() => mergeRates(savedTaxRates))
+  const [taxSaved, setTaxSaved]           = useState(false)
 
   useEffect(() => {
     const dialog = dialogRef.current
@@ -103,6 +108,21 @@ export default function UserConfigModal({
 
   async function handlePrefToggle(e) {
     await onPrefChange({ show_margin: e.target.checked })
+  }
+
+  async function handleTaxSave(e) {
+    e.preventDefault()
+    await onPrefChange({ tax_rates: taxRates })
+    setTaxSaved(true)
+    setTimeout(() => setTaxSaved(false), 2000)
+  }
+
+  async function handleTaxReset() {
+    const defaults = { ...DEFAULT_RATES }
+    setTaxRates(defaults)
+    await onPrefChange({ tax_rates: defaults })
+    setTaxSaved(true)
+    setTimeout(() => setTaxSaved(false), 2000)
   }
 
   return (
@@ -186,6 +206,51 @@ export default function UserConfigModal({
             onChange={handlePrefToggle}
           />
         </label>
+      </section>
+
+      {/* Tax rates section */}
+      <section className="ucm-section">
+        <h3 className="ucm-section-title">Taxas de Pagamento</h3>
+        <form className="ucm-form" onSubmit={handleTaxSave}>
+          <div className="tax-rates-grid">
+            {[
+              { key: 'credit_na_hora', label: 'Crédito — Na hora (%)', pct: true },
+              { key: 'credit_14d',     label: 'Crédito — 14 dias (%)',  pct: true },
+              { key: 'credit_30d',     label: 'Crédito — 30 dias (%)',  pct: true },
+              { key: 'pix',            label: 'Pix (%)',                pct: true },
+              { key: 'open_finance',   label: 'Open Finance (%)',        pct: true },
+              { key: 'mp_saldo',       label: 'Carteira Digital (%)',     pct: true },
+              { key: 'prepago',        label: 'Pré-pago (%)',            pct: true },
+              { key: 'linha_credito',  label: 'Linha de Crédito (%)',    pct: true },
+              { key: 'boleto_fixed',   label: 'Boleto (R$ fixo)',        pct: false },
+            ].map(({ key, label, pct }) => (
+              <label key={key} className="field tax-rate-field">
+                <span>{label}</span>
+                <input
+                  type="number"
+                  step={pct ? '0.01' : '0.01'}
+                  min="0"
+                  value={pct
+                    ? (taxRates[key] * 100).toFixed(2)
+                    : taxRates[key].toFixed(2)
+                  }
+                  onChange={e => {
+                    const v = parseFloat(e.target.value)
+                    if (!isNaN(v)) setTaxRates(prev => ({ ...prev, [key]: pct ? v / 100 : v }))
+                  }}
+                />
+              </label>
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+            <button type="submit" className="btn-save">
+              {taxSaved ? 'Salvo ✓' : 'Salvar taxas'}
+            </button>
+            <button type="button" className="btn-save btn-save-secondary" onClick={handleTaxReset}>
+              Restaurar padrões
+            </button>
+          </div>
+        </form>
       </section>
 
       {/* Recent searches section */}

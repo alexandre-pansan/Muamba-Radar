@@ -138,12 +138,12 @@ class UpdateProfileRequest(BaseModel):
 
 class UserPrefsModel(BaseModel):
     show_margin: bool = False
-    # future preference fields get added here
+    tax_rates: dict | None = None
 
 
 class UpdatePrefsRequest(BaseModel):
     show_margin: bool | None = None
-    # future fields: add nullable versions here
+    tax_rates: dict | None = None
 
 
 class UserSearchItem(BaseModel):

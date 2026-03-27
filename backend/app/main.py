@@ -313,7 +313,7 @@ def get_prefs(
     prefs = db.get(UserPrefs, current_user.id)
     if not prefs:
         return UserPrefsModel()
-    return UserPrefsModel(show_margin=prefs.show_margin)
+    return UserPrefsModel(show_margin=prefs.show_margin, tax_rates=prefs.tax_rates)
 
 
 @app.patch("/auth/me/prefs", response_model=UserPrefsModel)
@@ -328,8 +328,10 @@ def update_prefs(
         db.add(prefs)
     if body.show_margin is not None:
         prefs.show_margin = body.show_margin
+    if body.tax_rates is not None:
+        prefs.tax_rates = body.tax_rates
     db.commit()
-    return UserPrefsModel(show_margin=prefs.show_margin)
+    return UserPrefsModel(show_margin=prefs.show_margin, tax_rates=prefs.tax_rates)
 
 
 @app.get("/auth/me/searches", response_model=list[UserSearchItem])

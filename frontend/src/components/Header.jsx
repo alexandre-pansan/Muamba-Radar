@@ -1,19 +1,89 @@
-import React from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useI18n } from '../i18n.jsx'
+
+function UserDropdown({
+  currentUser, onOpenSettings, onOpenCalc, onOpenAdmin, onLogout, onClose,
+  theme, onToggleTheme, locale, setLocale,
+}) {
+  const ref = useRef(null)
+
+  useEffect(() => {
+    function handler(e) {
+      if (ref.current && !ref.current.contains(e.target)) onClose()
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [onClose])
+
+  const items = [
+    { icon: '⚙', label: 'Configurações', action: onOpenSettings },
+    { icon: '💰', label: 'Calculadora de Taxas', action: onOpenCalc },
+    ...(currentUser?.is_admin ? [{ icon: '🔧', label: 'Dev Tools', action: onOpenAdmin }] : []),
+    { divider: true },
+    { icon: '↩', label: 'Sair', action: onLogout, danger: true },
+  ]
+
+  return (
+    <div ref={ref} className="user-dropdown">
+      <div className="user-dropdown-header">
+        <div className="user-dropdown-name">{currentUser.name || currentUser.email}</div>
+        <div className="user-dropdown-email">{currentUser.email}</div>
+      </div>
+      <div className="user-dropdown-divider" />
+
+      {items.map((item, i) => item.divider
+        ? <div key={i} className="user-dropdown-divider" />
+        : (
+          <button
+            key={i}
+            className={`user-dropdown-item${item.danger ? ' danger' : ''}`}
+            onClick={() => { item.action(); onClose() }}
+          >
+            <span className="user-dropdown-item-icon">{item.icon}</span>
+            {item.label}
+          </button>
+        )
+      )}
+
+      {/* Theme + Language — always in dropdown */}
+      <div className="user-dropdown-divider" />
+      <div className="user-dropdown-mobile-extras">
+        <button
+          className="user-dropdown-item"
+          onClick={() => { onToggleTheme(); onClose() }}
+        >
+          <span className="user-dropdown-item-icon">{theme === 'dark' ? '☀' : '☾'}</span>
+          {theme === 'dark' ? 'Tema claro' : 'Tema escuro'}
+        </button>
+        <div className="dropdown-lang-row">
+          {['en', 'pt', 'es'].map(lang => (
+            <button
+              key={lang}
+              className={`dropdown-lang-btn${locale === lang ? ' is-active' : ''}`}
+              onClick={() => { setLocale(lang); onClose() }}
+            >
+              {lang.toUpperCase()}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default function Header({
   currentUser,
   onOpenAuth,
   onLogout,
   onOpenSettings,
+  onOpenCalc,
   onOpenAdmin,
   onToggleSidebar,
   theme,
   onToggleTheme,
 }) {
   const { locale, setLocale, t } = useI18n()
-
-  const display = currentUser ? (currentUser.name || currentUser.email) : null
+  const [dropdownOpen, setDropdownOpen] = useState(false)
 
   return (
     <header className="topbar">
@@ -29,78 +99,53 @@ export default function Header({
       </button>
 
       <a className="topbar-brand" href="/" aria-label="MuambaRadar — início">
-        <img
-          src="/logo_text.png"
-          alt="MuambaRadar"
-          className="topbar-logo"
-        />
+        {/* Full logo on desktop, compact icon on mobile */}
+        <img src="/logo_text.png"    alt="MuambaRadar" className="topbar-logo topbar-logo-full" />
+        <img src="/logo_compact.png" alt="MuambaRadar" className="topbar-logo topbar-logo-compact" />
       </a>
 
       <div className="topbar-right">
         <div className="auth-bar">
           {currentUser ? (
-            <>
-              <span className="auth-greeting">
-                {t('auth.greeting')} <strong>{display}</strong>
-              </span>
-              {currentUser.is_admin && (
-                <button
-                  className="btn-inline admin-link"
-                  type="button"
-                  onClick={onOpenAdmin}
-                >
-                  Dev Tools
-                </button>
+            <div className="user-menu-wrap">
+              <button
+                className="user-menu-trigger"
+                type="button"
+                onClick={() => setDropdownOpen(o => !o)}
+              >
+                <span className="user-menu-avatar">
+                  {(currentUser.name || currentUser.email)[0].toUpperCase()}
+                </span>
+                <span className="user-menu-name">
+                  {t('auth.greeting')} <strong>{currentUser.name || currentUser.email}</strong>
+                </span>
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" style={{ opacity: 0.5, flexShrink: 0 }}>
+                  <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+                </svg>
+              </button>
+
+              {dropdownOpen && (
+                <UserDropdown
+                  currentUser={currentUser}
+                  onOpenSettings={onOpenSettings}
+                  onOpenCalc={onOpenCalc}
+                  onOpenAdmin={onOpenAdmin}
+                  onLogout={onLogout}
+                  onClose={() => setDropdownOpen(false)}
+                  theme={theme}
+                  onToggleTheme={onToggleTheme}
+                  locale={locale}
+                  setLocale={setLocale}
+                />
               )}
-              <button
-                className="btn-inline auth-settings-btn"
-                type="button"
-                title={t('auth.settings')}
-                onClick={onOpenSettings}
-              >
-                &#9881;
-              </button>
-              <button
-                className="btn-inline"
-                type="button"
-                onClick={onLogout}
-              >
-                {t('auth.logout')}
-              </button>
-            </>
+            </div>
           ) : (
-            <button
-              className="btn-inline"
-              type="button"
-              onClick={() => onOpenAuth('login')}
-            >
+            <button className="btn-inline" type="button" onClick={() => onOpenAuth('login')}>
               {t('auth.login_register')}
             </button>
           )}
         </div>
 
-        <button
-          className="icon-btn theme-toggle"
-          type="button"
-          title={theme === 'dark' ? 'Tema claro' : 'Tema escuro'}
-          onClick={onToggleTheme}
-          aria-label="Toggle theme"
-        >
-          {theme === 'dark' ? '☀' : '☾'}
-        </button>
-
-        <div className="lang-switch" aria-label="Language">
-          {['en', 'pt', 'es'].map(lang => (
-            <button
-              key={lang}
-              className={`lang-btn${locale === lang ? ' is-active' : ''}`}
-              type="button"
-              onClick={() => setLocale(lang)}
-            >
-              {lang.toUpperCase()}
-            </button>
-          ))}
-        </div>
       </div>
     </header>
   )

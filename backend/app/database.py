@@ -74,6 +74,13 @@ def init_db() -> None:
         except Exception:
             conn.rollback()
 
+        # Add tax_rates JSONB column to user_prefs
+        try:
+            conn.execute(text("ALTER TABLE user_prefs ADD COLUMN tax_rates JSONB"))
+            conn.commit()
+        except Exception:
+            conn.rollback()
+
     # ── Seed admin user ───────────────────────────────────────────────────────
     from datetime import datetime, timezone
     from app.auth import hash_password

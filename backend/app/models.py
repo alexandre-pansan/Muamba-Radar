@@ -77,6 +77,7 @@ class UserPrefs(Base):
 
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), primary_key=True)
     show_margin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    tax_rates: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
 
 class UserSearch(Base):

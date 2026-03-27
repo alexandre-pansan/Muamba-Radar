@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calculadora de Taxas — Mercado Pago</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f0f0f0;
+      color: #333;
+      min-height: 100vh;
+    }
+
+    .header {
+      background: #FFE600;
+      padding: 18px 20px;
+      text-align: center;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    }
+    .header h1 { font-size: 18px; font-weight: 800; letter-spacing: -0.3px; }
+
+    .container { max-width: 560px; margin: 0 auto; padding: 16px; }
+
+    /* ── Input card ─────────────────────────────────────────────── */
+    .input-card {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+    }
+    .input-label { font-size: 12px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+    .value-row {
+      display: flex;
+      align-items: center;
+      border: 2px solid #eee;
+      border-radius: 10px;
+      padding: 12px 16px;
+      transition: border-color 0.2s;
+    }
+    .value-row:focus-within { border-color: #FFE600; }
+    .currency { font-size: 20px; font-weight: 700; color: #999; margin-right: 6px; }
+    .value-row input {
+      border: none;
+      outline: none;
+      font-size: 28px;
+      font-weight: 800;
+      width: 100%;
+      color: #111;
+    }
+    .value-row input::placeholder { color: #ccc; }
+
+    .mode-toggle {
+      display: flex;
+      background: #f5f5f5;
+      border-radius: 10px;
+      padding: 4px;
+      margin-top: 14px;
+    }
+    .mode-btn {
+      flex: 1;
+      padding: 10px 8px;
+      border: none;
+      background: none;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      color: #666;
+      transition: all 0.18s;
+    }
+    .mode-btn.active {
+      background: white;
+      color: #111;
+      font-weight: 700;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.12);
+    }
+
+    /* ── Section title ──────────────────────────────────────────── */
+    .section-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin: 20px 0 10px;
+    }
+
+    /* ── Method card ────────────────────────────────────────────── */
+    .method-card {
+      background: white;
+      border-radius: 16px;
+      padding: 0 20px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+      overflow: hidden;
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 0 12px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .card-title { font-size: 16px; font-weight: 800; }
+    .timing-chip {
+      font-size: 11px;
+      font-weight: 600;
+      background: #f5f5f5;
+      color: #666;
+      padding: 4px 10px;
+      border-radius: 20px;
+    }
+
+    /* ── Row inside card ──────────────────────────────────────────── */
+    .item-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid #f5f5f5;
+    }
+    .item-row:last-child { border-bottom: none; }
+    .item-left { line-height: 1.4; }
+    .item-label { font-size: 15px; font-weight: 600; }
+    .item-fee { font-size: 11px; color: #bbb; }
+    .item-right { text-align: right; line-height: 1.4; }
+    .item-charge { font-size: 16px; font-weight: 800; }
+    .item-total { font-size: 11px; color: #aaa; }
+    .item-receive { font-size: 12px; color: #22aa66; font-weight: 600; }
+
+    /* ── Timing selector for credit ──────────────────────────────── */
+    .timing-selector {
+      display: flex;
+      gap: 8px;
+      padding: 12px 0;
+      border-bottom: 1px solid #f0f0f0;
+      flex-wrap: wrap;
+    }
+    .timing-btn {
+      padding: 6px 14px;
+      border: 1.5px solid #e0e0e0;
+      border-radius: 20px;
+      background: white;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      color: #666;
+      transition: all 0.15s;
+    }
+    .timing-btn.active {
+      border-color: #333;
+      background: #333;
+      color: white;
+    }
+
+    /* ── Highlight bars ───────────────────────────────────────────── */
+    .pix-card    { border-left: 4px solid #00cc88; }
+    .of-card     { border-left: 4px solid #4e9eff; }
+    .credit-card { border-left: 4px solid #a78bfa; }
+
+    /* ── Empty state ──────────────────────────────────────────────── */
+    .empty {
+      text-align: center;
+      color: #bbb;
+      padding: 50px 20px;
+      font-size: 15px;
+    }
+    .empty span { font-size: 36px; display: block; margin-bottom: 12px; }
+
+    .spacer { height: 40px; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>💰 Calculadora de Taxas — Mercado Pago</h1>
+</div>
+
+<div class="container">
+
+  <div class="input-card">
+    <div class="input-label">Valor</div>
+    <div class="value-row">
+      <span class="currency">R$</span>
+      <input type="number" id="amount" placeholder="0,00" step="0.01" min="0" oninput="recalc()">
+    </div>
+
+    <div class="mode-toggle">
+      <button class="mode-btn active" id="btn-charge" onclick="setMode('charge')">Vou cobrar este valor</button>
+      <button class="mode-btn"        id="btn-receive" onclick="setMode('receive')">Quero receber este valor</button>
+    </div>
+  </div>
+
+  <div id="results">
+    <div class="empty">
+      <span>🧮</span>
+      Digite um valor para ver todas as opções
+    </div>
+  </div>
+
+</div>
+
+<script>
+  /* ── State ──────────────────────────────────────────────────────── */
+  let mode          = 'charge';   // 'charge' | 'receive'
+  let creditTiming  = 'na-hora';  // 'na-hora' | '14-dias' | '30-dias'
+
+  /* ── Fee table ──────────────────────────────────────────────────── */
+  const CREDIT_FEES = { 'na-hora': 0.0498, '14-dias': 0.0449, '30-dias': 0.0398 };
+  const CREDIT_LABELS = { 'na-hora': 'Na hora', '14-dias': '14 dias', '30-dias': '30 dias' };
+
+  const INSTALLMENT_FEES = [
+    { max: 1, fee: 0.0000, label: '1x' },
+    { max: 6, fee: 0.0498, label: '2x a 6x — 4,98% por parcela' },
+    { max: 12, fee: 0.0498, label: '7x a 12x — 4,98% por parcela' },
+  ];
+
+  const INSTALLMENT_MULTIPLIERS = {
+    1: 1.0000,
+    2: 931.94/850,
+    3: 945.45/850,
+    4: 946.56/850,
+    5: 971.65/850,
+    6: 971.70/850,
+    7: 992.11/850,
+    8: 992.24/850,
+    9: 1017.36/850,
+    10: 1025.50/850,
+    11: 1025.64/850,
+    12: 1037.88/850,
+  };
+
+  function getInstallmentFee(n) {
+    return INSTALLMENT_FEES.find(entry => n <= entry.max).fee;
+  }
+
+  function getInstallmentLabel(n) {
+    return INSTALLMENT_FEES.find(entry => n <= entry.max).label;
+  }
+
+  const OTHER = [
+    { key: 'pix',    name: 'Pix',               icon: '⚡', fee: 0.0099, timing: 'Na hora',  cls: 'pix-card' },
+    { key: 'of',     name: 'Open Finance',       icon: '🏦', fee: 0.0000, timing: 'Na hora',  cls: 'of-card'  },
+    { key: 'mp',     name: 'Saldo Mercado Pago', icon: '💛', fee: 0.0499, timing: 'Na hora',  cls: ''         },
+    { key: 'pre',    name: 'Cartão Pré-pago',    icon: '💳', fee: 0.0499, timing: 'Na hora',  cls: ''         },
+    { key: 'lc',     name: 'Linha de Crédito',   icon: '📋', fee: 0.0499, timing: 'Na hora',  cls: ''         },
+    { key: 'boleto', name: 'Boleto',             icon: '🎫', fee: null,   timing: '3 dias',   cls: '',
+                     fixed: 3.49 },
+  ];
+
+  /* ── Helpers ────────────────────────────────────────────────────── */
+  const fmt = v =>
+    'R$ ' + v.toFixed(2)
+              .replace('.', ',')
+              .replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+
+  const pct = f => (f * 100).toFixed(2).replace('.', ',') + '%';
+
+  function ceilCents(value) {
+    return Math.ceil(value * 100) / 100;
+  }
+
+  function calc(value, fee) {
+    if (mode === 'charge') {
+      return { customer: value, merchant: value * (1 - fee) };
+    } else {
+      const customer = value / (1 - fee);
+      return { customer, merchant: value };
+    }
+  }
+
+  function calcBoleto(value, fixed) {
+    if (mode === 'charge') return { customer: value,          merchant: value - fixed };
+    else                    return { customer: value + fixed, merchant: value        };
+  }
+
+  /* ── UI helpers ─────────────────────────────────────────────────── */
+  function setMode(m) {
+    mode = m;
+    document.getElementById('btn-charge').classList.toggle('active',  m === 'charge');
+    document.getElementById('btn-receive').classList.toggle('active', m === 'receive');
+    recalc();
+  }
+
+  function setCreditTiming(t) {
+    creditTiming = t;
+    document.querySelectorAll('.timing-btn').forEach(b =>
+      b.classList.toggle('active', b.dataset.t === t));
+    recalc();
+  }
+
+  /* ── Main render ────────────────────────────────────────────────── */
+  function recalc() {
+    const amount  = parseFloat(document.getElementById('amount').value);
+    const results = document.getElementById('results');
+
+    if (!amount || amount <= 0) {
+      results.innerHTML = `<div class="empty"><span>🧮</span>Digite um valor para ver todas as opções</div>`;
+      return;
+    }
+
+    const cFee = CREDIT_FEES[creditTiming];
+
+    /* ── Credit installments ── */
+    const installments = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+
+    let creditRows = installments.map(n => {
+      const installmentFee = n === 1 ? 0 : getInstallmentFee(n);
+
+      const merchantReceive = mode === 'charge'
+        ? amount * (1 - cFee)
+        : amount;
+
+      const baseCustomerAmount = mode === 'charge'
+        ? amount
+        : amount / (1 - cFee);
+
+      const multiplier = INSTALLMENT_MULTIPLIERS[n] || Math.pow(1 + installmentFee, n);
+      const totalCustomerAmount = ceilCents(baseCustomerAmount * multiplier);
+      const perInstallmentCustomer = ceilCents(totalCustomerAmount / n);
+      const extraForCustomer = ceilCents(totalCustomerAmount - baseCustomerAmount);
+
+      const label = n === 1 ? 'À vista' : `${n}x`;
+      const installmentLabel = n === 1 ? 'Sem parcelamento' : getInstallmentLabel(n);
+
+      return `
+        <div class="item-row">
+          <div class="item-left">
+            <div class="item-label">${label}</div>
+            <div class="item-fee">${pct(cFee)} adiantamento (minha taxa) · ${installmentLabel}</div>
+          </div>
+          <div class="item-right">
+            <div class="item-charge">${fmt(perInstallmentCustomer)} ${n > 1 ? 'por parcela' : ''}</div>
+            ${n > 1 ? `<div class="item-total">Total no cartão: ${fmt(totalCustomerAmount)}</div>` : ''}
+            ${n > 1 ? `<div class="item-total">Acréscimo cliente: ${fmt(extraForCustomer)}</div>` : ''}
+            <div class="item-receive">Você recebe: ${fmt(merchantReceive)}</div>
+          </div>
+        </div>`;
+    }).join('');
+
+    /* ── Other methods ── */
+    let otherCards = OTHER.map(m => {
+      let chargeVal, receiveVal, feeText;
+
+      if (m.fixed != null) {
+        const r = calcBoleto(amount, m.fixed);
+        chargeVal  = r.customer;
+        receiveVal = r.merchant;
+        feeText    = `R$ ${m.fixed.toFixed(2).replace('.', ',')} fixo`;
+      } else {
+        const r = calc(amount, m.fee);
+        chargeVal  = r.customer;
+        receiveVal = r.merchant;
+        feeText    = m.fee === 0 ? 'Sem taxa' : pct(m.fee);
+      }
+
+      return `
+        <div class="method-card ${m.cls}">
+          <div class="card-header">
+            <div class="card-title">${m.icon} ${m.name}</div>
+            <div class="timing-chip">${m.timing} · ${feeText}</div>
+          </div>
+          <div class="item-row" style="border:none">
+            <div class="item-left">
+              <div class="item-label">Valor cobrado</div>
+            </div>
+            <div class="item-right">
+              <div class="item-charge">${fmt(chargeVal)}</div>
+              <div class="item-receive">Você recebe: ${fmt(receiveVal)}</div>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+
+    results.innerHTML = `
+      <div class="section-title">💳 Cartão de Crédito</div>
+
+      <div class="method-card credit-card">
+        <div class="card-header">
+          <div class="card-title">💳 Cartão de Crédito</div>
+          <div class="timing-chip">Receber: ${CREDIT_LABELS[creditTiming]}</div>
+        </div>
+
+        <div class="timing-selector">
+          <button class="timing-btn ${creditTiming === 'na-hora'  ? 'active' : ''}" data-t="na-hora"  onclick="setCreditTiming('na-hora')">Na hora — 4,98%</button>
+          <button class="timing-btn ${creditTiming === '14-dias'  ? 'active' : ''}" data-t="14-dias"  onclick="setCreditTiming('14-dias')">14 dias — 4,49%</button>
+          <button class="timing-btn ${creditTiming === '30-dias'  ? 'active' : ''}" data-t="30-dias"  onclick="setCreditTiming('30-dias')">30 dias — 3,98%</button>
+        </div>
+
+        ${creditRows}
+      </div>
+
+      <div class="section-title">💸 Outros métodos</div>
+      ${otherCards}
+      <div class="spacer"></div>
+    `;
+  }
+
+  recalc();
+</script>
+</body>
+</html>

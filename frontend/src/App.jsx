@@ -6,6 +6,7 @@ import ResultsArea from './components/ResultsArea.jsx'
 import AuthModal from './components/AuthModal.jsx'
 import UserConfigModal from './components/UserConfigModal.jsx'
 import AdminPage from './components/AdminPage.jsx'
+import TaxCalculator from './components/TaxCalculator.jsx'
 import OffersDialog from './components/OffersDialog.jsx'
 import {
   getToken, setToken, clearToken,
@@ -60,6 +61,7 @@ function AppInner() {
   const [authModalOpen, setAuthModalOpen] = useState(false)
   const [authModalTab, setAuthModalTab] = useState('login')
   const [userConfigOpen, setUserConfigOpen] = useState(false)
+  const [taxCalcOpen, setTaxCalcOpen] = useState(false)
 
   // Page routing
   const [page, setPage] = useState(() => window.location.pathname === '/admin' ? 'admin' : 'home')
@@ -284,6 +286,7 @@ function AppInner() {
         onLogout={handleLogout}
         onOpenSettings={() => setUserConfigOpen(true)}
         onOpenAdmin={goAdmin}
+        onOpenCalc={() => setTaxCalcOpen(true)}
         onToggleSidebar={() => setSidebarOpen(o => !o)}
         theme={theme}
         onToggleTheme={toggleTheme}
@@ -357,6 +360,7 @@ function AppInner() {
         open={userConfigOpen}
         onClose={() => setUserConfigOpen(false)}
         currentUser={currentUser}
+        savedTaxRates={currentPrefs?.tax_rates}
         currentPrefs={currentPrefs}
         onUserUpdate={handleUserUpdate}
         onPrefChange={handlePrefChange}
@@ -365,6 +369,12 @@ function AppInner() {
           setQuery(q)
           runCompare(q)
         }}
+      />
+
+      <TaxCalculator
+        open={taxCalcOpen}
+        onClose={() => setTaxCalcOpen(false)}
+        savedRates={currentPrefs?.tax_rates}
       />
 
       {offersGroup && (
