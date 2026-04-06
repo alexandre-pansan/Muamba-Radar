@@ -158,6 +158,7 @@ class AdminAdapterResult(BaseModel):
     country: str
     raw_count: int
     filtered_count: int
+    raw_offers: list[dict] = []
     error: str | None = None
     timing_ms: float
     sample_offers: list[dict]
@@ -166,6 +167,7 @@ class AdminAdapterResult(BaseModel):
 class AdminTestSearchRequest(BaseModel):
     query: str
     adapter_ids: list[str] = []  # empty = run all
+    raw: bool = False  # if True, skip post-adapter filtering and show all offers
 
 
 class AdminTestSearchResponse(BaseModel):

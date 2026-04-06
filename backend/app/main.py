@@ -623,6 +623,9 @@ def admin_test_search(
             r for r in raw_offers
             if not is_refurbished_or_used(r.title) and matches_query(query_norm, r.title)
         ]
+        def to_dict(o):
+            return {"title": o.title, "price": o.price_amount, "currency": o.price_currency, "url": o.url}
+
         results.append(AdminAdapterResult(
             adapter_id=adapter.source_id,
             country=adapter.country,
@@ -630,10 +633,8 @@ def admin_test_search(
             filtered_count=len(filtered),
             error=error,
             timing_ms=timing_ms,
-            sample_offers=[
-                {"title": o.title, "price": o.price_amount, "currency": o.price_currency, "url": o.url}
-                for o in filtered[:5]
-            ],
+            sample_offers=[to_dict(o) for o in filtered],
+            raw_offers=[to_dict(o) for o in raw_offers],
         ))
 
     return AdminTestSearchResponse(

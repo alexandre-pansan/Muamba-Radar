@@ -178,11 +178,11 @@ export async function apiAdminToggleAdmin(userId) {
   return res.json()
 }
 
-export async function apiTestSearch(query, adapterIds) {
+export async function apiTestSearch(query, adapterIds, raw = false) {
   const res = await fetch(`${getApiBase()}/admin/test-search`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
-    body: JSON.stringify({ query, adapter_ids: adapterIds }),
+    body: JSON.stringify({ query, adapter_ids: adapterIds, raw }),
   })
   if (!res.ok) {
     const text = await res.text()

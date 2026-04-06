@@ -148,9 +148,13 @@ export default function ResultsArea({
               value={groupOrder}
               onChange={e => onGroupOrderChange(e.target.value)}
             >
-              <option value="estimated_asc">{t('toolbar.order_sell_asc')}</option>
-              <option value="estimated_desc">{t('toolbar.order_sell_desc')}</option>
-              <option value="default">{t('toolbar.order_best')}</option>
+              <option value="default">Relevância</option>
+              <option value="estimated_asc">Venda ↑ Menor</option>
+              <option value="estimated_desc">Venda ↓ Maior</option>
+              <option value="py_asc">PY ↑ Menor</option>
+              <option value="py_desc">PY ↓ Maior</option>
+              <option value="name_asc">Nome A→Z</option>
+              <option value="name_desc">Nome Z→A</option>
             </select>
           </div>
           <div className="view-switch">

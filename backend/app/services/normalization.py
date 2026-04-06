@@ -56,6 +56,9 @@ def normalize_text(value: str) -> str:
 def _expand_storage_tokens(value: str) -> str:
     # Split "128gb" -> "128 gb" and "1tb" -> "1 tb" to improve matching.
     value = re.sub(r"(\d+)\s*(gb|tb)\b", r"\1 \2", value)
+    # Split GPU/CPU model strings: "rtx5070" -> "rtx 5070", "rx6700" -> "rx 6700"
+    # Only applies to 3-5 digit numbers attached to letters (avoids short codes like "g16").
+    value = re.sub(r"\b([a-z]+)(\d{3,5})\b", r"\1 \2", value)
     return value
 
 

@@ -47,19 +47,62 @@ export function estimatedSellForGroup(group, marginPct) {
   )
 }
 
+function hasBothCountries(group) {
+  const countries = new Set((group.offers || []).map(o => o.country?.toLowerCase()))
+  return countries.has('py') && countries.has('br')
+}
+
 export function sortGroups(groups, groupOrder, marginPct) {
-  if (groupOrder === 'default') return groups
   const indexed = groups.map((group, idx) => ({
-    group, idx, estimate: estimatedSellForGroup(group, marginPct),
+    group,
+    idx,
+    both: hasBothCountries(group) ? 0 : 1,   // 0 = both countries, 1 = single
+    estimate: estimatedSellForGroup(group, marginPct),
+    pyPrice: cheapestByCountry(group.offers, 'py')?.price?.amount_brl ?? null,
+    name: familyDisplayName(group).toLowerCase(),
   }))
+
   indexed.sort((a, b) => {
-    if (a.estimate == null && b.estimate == null) return a.idx - b.idx
-    if (a.estimate == null) return 1
-    if (b.estimate == null) return -1
-    return groupOrder === 'estimated_desc'
-      ? b.estimate - a.estimate
-      : a.estimate - b.estimate
+    // Primary: groups with both countries always come first
+    if (a.both !== b.both) return a.both - b.both
+
+    // Secondary: user-selected sort within each tier
+    switch (groupOrder) {
+      case 'estimated_asc':
+        if (a.estimate == null && b.estimate == null) return a.idx - b.idx
+        if (a.estimate == null) return 1
+        if (b.estimate == null) return -1
+        return a.estimate - b.estimate
+
+      case 'estimated_desc':
+        if (a.estimate == null && b.estimate == null) return a.idx - b.idx
+        if (a.estimate == null) return 1
+        if (b.estimate == null) return -1
+        return b.estimate - a.estimate
+
+      case 'py_asc':
+        if (a.pyPrice == null && b.pyPrice == null) return a.idx - b.idx
+        if (a.pyPrice == null) return 1
+        if (b.pyPrice == null) return -1
+        return a.pyPrice - b.pyPrice
+
+      case 'py_desc':
+        if (a.pyPrice == null && b.pyPrice == null) return a.idx - b.idx
+        if (a.pyPrice == null) return 1
+        if (b.pyPrice == null) return -1
+        return b.pyPrice - a.pyPrice
+
+      case 'name_asc':
+        return a.name.localeCompare(b.name)
+
+      case 'name_desc':
+        return b.name.localeCompare(a.name)
+
+      default: // 'default' — keep original order within tier
+        return a.idx - b.idx
+    }
   })
+
   return indexed.map(e => e.group)
 }
 

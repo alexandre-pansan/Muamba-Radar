@@ -10,63 +10,121 @@ import {
 
 // ── Shared ───────────────────────────────────────────────────────────────────
 
+const PREVIEW_COUNT = 3
+
+function RawOffersModal({ adapter, onClose }) {
+  return (
+    <div className="raw-modal-backdrop" onClick={onClose}>
+      <div className="raw-modal" onClick={e => e.stopPropagation()}>
+        <div className="raw-modal-header">
+          <span className="raw-modal-title">
+            Raw — <strong>{adapter.adapter_id}</strong>
+            <span className={`adapter-card-country ${adapter.country}`} style={{ marginLeft: 8 }}>
+              {adapter.country.toUpperCase()}
+            </span>
+          </span>
+          <span className="raw-modal-count">{adapter.raw_offers.length} itens</span>
+          <button className="raw-modal-close" onClick={onClose}>✕</button>
+        </div>
+        <div className="raw-modal-body">
+          {adapter.raw_offers.map((o, i) => (
+            <div key={i} className={`adapter-offer ${adapter.sample_offers.some(f => f.title === o.title) ? '' : 'offer-filtered-out'}`}>
+              <span className="adapter-offer-idx">{i + 1}</span>
+              <span className="adapter-offer-title" title={o.title}>{o.title}</span>
+              <span className="adapter-offer-price">
+                {o.currency} {o.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              </span>
+              <a href={o.url} target="_blank" rel="noopener noreferrer" className="adapter-offer-link">↗</a>
+            </div>
+          ))}
+        </div>
+        <div className="raw-modal-footer">
+          <span className="raw-modal-legend">
+            <span className="legend-dot legend-kept" /> Passou no filtro ({adapter.filtered_count})
+            &nbsp;&nbsp;
+            <span className="legend-dot legend-cut" /> Cortado ({adapter.raw_count - adapter.filtered_count})
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function AdminAdapterCard({ adapter }) {
-  const timingColor =
-    adapter.timing_ms > 5000 ? 'var(--danger)' : adapter.timing_ms > 2000 ? 'var(--warning)' : 'var(--muted)'
-  const borderColor = adapter.error ? 'var(--danger-border)' : adapter.filtered_count > 0 ? 'var(--success-border)' : 'var(--line)'
+  const [expanded, setExpanded] = useState(false)
+  const [showRaw, setShowRaw] = useState(false)
+
+  const timingClass =
+    adapter.timing_ms > 5000 ? 'timing--slow' : adapter.timing_ms > 2000 ? 'timing--mid' : 'timing--ok'
+  const cardClass =
+    adapter.error ? 'adapter-card adapter-card--error'
+    : adapter.filtered_count > 0 ? 'adapter-card adapter-card--success'
+    : 'adapter-card'
+
+  const offers = adapter.sample_offers
+  const visible = expanded ? offers : offers.slice(0, PREVIEW_COUNT)
+  const hidden  = offers.length - PREVIEW_COUNT
 
   return (
-    <div style={{
-      background: 'var(--card)', border: `1px solid ${borderColor}`,
-      borderRadius: '8px', overflow: 'hidden',
-    }}>
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: '10px',
-        padding: '10px 14px', background: 'var(--card-bg)',
-        borderBottom: '1px solid var(--line)',
-      }}>
-        <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--ink)' }}>{adapter.adapter_id}</span>
-        <span style={{
-          fontSize: 11, padding: '1px 7px', borderRadius: 10, fontWeight: 600,
-          ...(adapter.country === 'br'
-            ? { background: 'var(--br-bg)', color: 'var(--success)', border: '1px solid var(--br-border)' }
-            : { background: 'var(--py-bg)', color: 'var(--info)',    border: '1px solid var(--py-border)' }),
-        }}>
-          {adapter.country.toUpperCase()}
+    <div className={cardClass}>
+      {showRaw && <RawOffersModal adapter={adapter} onClose={() => setShowRaw(false)} />}
+      <div className="adapter-card-head" onClick={() => offers.length && setExpanded(e => !e)}>
+        <span className="adapter-card-name">{adapter.adapter_id}</span>
+        <span className={`adapter-card-country ${adapter.country}`}>{adapter.country.toUpperCase()}</span>
+        <span className={`adapter-card-timing ${timingClass}`}>{adapter.timing_ms}ms</span>
+        <span className="adapter-card-stats-inline">
+          <button
+            className="adapter-stat-btn"
+            onClick={e => { e.stopPropagation(); setShowRaw(true) }}
+            title="Ver todos os itens raw"
+          >
+            Raw <strong>{adapter.raw_count}</strong>
+          </button>
+          <span className="adapter-stat">Filtrado <strong className="text-success">{adapter.filtered_count}</strong></span>
         </span>
-        <span style={{ marginLeft: 'auto', fontSize: 12, color: timingColor }}>{adapter.timing_ms}ms</span>
-      </div>
-      <div style={{ padding: '10px 14px' }}>
-        <div style={{ display: 'flex', gap: 12, marginBottom: 8 }}>
-          <span style={{ fontSize: 12, color: 'var(--muted)' }}>Raw <strong style={{ color: 'var(--text)' }}>{adapter.raw_count}</strong></span>
-          <span style={{ fontSize: 12, color: 'var(--muted)' }}>Filtered <strong style={{ color: 'var(--success)' }}>{adapter.filtered_count}</strong></span>
-        </div>
-        {adapter.error && (
-          <div style={{
-            background: 'var(--danger-bg)', border: '1px solid var(--danger-border)', borderRadius: 5,
-            padding: '8px 10px', fontFamily: 'monospace', fontSize: 12,
-            color: 'var(--danger)', wordBreak: 'break-all', marginBottom: 8,
-          }}>{adapter.error}</div>
+        {offers.length > 0 && (
+          <span className="adapter-card-chevron">{expanded ? '▲' : '▼'}</span>
         )}
-        {adapter.sample_offers.length > 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            {adapter.sample_offers.map((o, i) => (
-              <div key={i} style={{
-                display: 'flex', alignItems: 'baseline', gap: 10,
-                padding: '5px 8px', background: 'var(--card-bg)', borderRadius: 5, fontSize: 12,
-              }}>
-                <span style={{ flex: 1, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={o.title}>{o.title}</span>
-                <span style={{ whiteSpace: 'nowrap', fontWeight: 600, color: 'var(--success)' }}>
+      </div>
+
+      {(expanded || offers.length <= PREVIEW_COUNT) && offers.length > 0 && (
+        <div className="adapter-card-body">
+          {adapter.error && <div className="adapter-card-error">{adapter.error}</div>}
+          <div className="adapter-card-offers">
+            {visible.map((o, i) => (
+              <div key={i} className="adapter-offer">
+                <span className="adapter-offer-idx">{i + 1}</span>
+                <span className="adapter-offer-title" title={o.title}>{o.title}</span>
+                <span className="adapter-offer-price">
                   {o.currency} {o.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </span>
-                <a href={o.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--info)', textDecoration: 'none', fontSize: 11 }}>↗</a>
+                <a href={o.url} target="_blank" rel="noopener noreferrer" className="adapter-offer-link">↗</a>
               </div>
             ))}
           </div>
-        ) : !adapter.error ? (
-          <p style={{ color: 'var(--muted)', fontSize: 13, fontStyle: 'italic' }}>No results passed the filter.</p>
-        ) : null}
-      </div>
+          {!expanded && hidden > 0 && (
+            <button className="adapter-show-more" onClick={() => setExpanded(true)}>
+              Ver mais {hidden} resultado{hidden !== 1 ? 's' : ''} ▼
+            </button>
+          )}
+          {expanded && offers.length > PREVIEW_COUNT && (
+            <button className="adapter-show-more" onClick={() => setExpanded(false)}>
+              Recolher ▲
+            </button>
+          )}
+        </div>
+      )}
+
+      {!expanded && offers.length === 0 && !adapter.error && (
+        <div className="adapter-card-body">
+          <p className="adapter-card-empty">Nenhum resultado.</p>
+        </div>
+      )}
+      {!expanded && adapter.error && (
+        <div className="adapter-card-body">
+          <div className="adapter-card-error">{adapter.error}</div>
+        </div>
+      )}
     </div>
   )
 }
@@ -118,84 +176,56 @@ function UsersTab() {
     }
   }
 
-  if (loading) return <p style={{ color: 'var(--muted)', padding: 24 }}>Carregando...</p>
-  if (error) return <p style={{ color: 'var(--danger)', padding: 24 }}>{error}</p>
+  if (loading) return <p className="admin-tab-loading">Carregando...</p>
+  if (error)   return <p className="admin-tab-error">{error}</p>
 
   return (
-    <div style={{ padding: 24 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-        <h2 style={{ fontSize: 16, color: 'var(--ink)', fontWeight: 600 }}>Usuários</h2>
-        <span style={{
-          background: 'var(--card-bg)', border: '1px solid var(--line)',
-          borderRadius: 20, padding: '2px 10px', fontSize: 12, color: 'var(--muted)',
-        }}>{users.length}</span>
-        <button
-          onClick={loadUsers}
-          style={{
-            marginLeft: 'auto', background: 'var(--card-bg)', border: '1px solid var(--line)',
-            color: 'var(--muted)', padding: '5px 12px', borderRadius: 6,
-            fontSize: 12, cursor: 'pointer',
-          }}
-        >
-          Atualizar
-        </button>
+    <div className="admin-tab-body">
+      <div className="admin-tab-toolbar">
+        <h2 className="admin-section-title">Usuários</h2>
+        <span className="admin-count-badge">{users.length}</span>
+        <button className="admin-ghost-btn" onClick={loadUsers}>Atualizar</button>
       </div>
 
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+      <div className="admin-table-wrap">
+        <table className="admin-table">
           <thead>
-            <tr style={{ borderBottom: '1px solid var(--line)' }}>
-              <th className="col-id" style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--muted)', fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px' }}>ID</th>
-              <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--muted)', fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Email</th>
-              <th className="col-name" style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--muted)', fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Nome</th>
-              <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--muted)', fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Admin</th>
-              <th className="col-date" style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--muted)', fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Criado em</th>
-              <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--muted)', fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Ações</th>
+            <tr>
+              <th className="col-id">ID</th>
+              <th>Email</th>
+              <th className="col-name">Nome</th>
+              <th>Admin</th>
+              <th className="col-date">Criado em</th>
+              <th>Ações</th>
             </tr>
           </thead>
           <tbody>
             {users.map(user => (
-              <tr key={user.id} style={{ borderBottom: '1px solid var(--line)' }}>
-                <td className="col-id" style={{ padding: '10px 12px', color: 'var(--muted)' }}>#{user.id}</td>
-                <td style={{ padding: '10px 12px', color: 'var(--ink)', wordBreak: 'break-all' }}>{user.email}</td>
-                <td className="col-name" style={{ padding: '10px 12px', color: 'var(--text)' }}>{user.name || '—'}</td>
-                <td style={{ padding: '10px 12px' }}>
-                  {user.is_admin ? (
-                    <span style={{
-                      background: 'var(--danger)', color: '#fff',
-                      fontSize: 10, fontWeight: 700,
-                      padding: '2px 7px', borderRadius: 4,
-                      textTransform: 'uppercase', letterSpacing: '0.5px',
-                    }}>Admin</span>
-                  ) : (
-                    <span style={{ color: 'var(--muted)' }}>—</span>
-                  )}
+              <tr key={user.id}>
+                <td className="col-id td-muted">#{user.id}</td>
+                <td className="td-email">{user.email}</td>
+                <td className="col-name td-muted">{user.name || '—'}</td>
+                <td>
+                  {user.is_admin
+                    ? <span className="admin-role-badge">Admin</span>
+                    : <span className="td-muted">—</span>}
                 </td>
-                <td className="col-date" style={{ padding: '10px 12px', color: 'var(--muted)', whiteSpace: 'nowrap' }}>
+                <td className="col-date td-muted td-nowrap">
                   {new Date(user.created_at).toLocaleDateString('pt-BR')}
                 </td>
-                <td style={{ padding: '10px 12px' }}>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                <td>
+                  <div className="admin-actions">
                     <button
                       disabled={busy === user.id}
                       onClick={() => handleToggleAdmin(user)}
-                      style={{
-                        background: 'var(--card-bg)', border: '1px solid var(--line)',
-                        color: user.is_admin ? 'var(--warning)' : 'var(--info)',
-                        padding: '4px 8px', borderRadius: 5,
-                        fontSize: 11, cursor: 'pointer', whiteSpace: 'nowrap',
-                      }}
+                      className={`admin-action-btn ${user.is_admin ? 'is-demote' : 'is-promote'}`}
                     >
                       {user.is_admin ? '−admin' : '+admin'}
                     </button>
                     <button
                       disabled={busy === user.id}
                       onClick={() => handleDelete(user)}
-                      style={{
-                        background: 'var(--danger-bg)', border: '1px solid var(--danger-border)',
-                        color: 'var(--danger)', padding: '4px 8px', borderRadius: 5,
-                        fontSize: 11, cursor: 'pointer',
-                      }}
+                      className="admin-action-btn is-delete"
                     >
                       🗑
                     </button>
@@ -217,6 +247,7 @@ function DevToolsTab() {
   const [adapters, setAdapters] = useState([])
   const [checked, setChecked] = useState({})
   const [running, setRunning] = useState(false)
+  const [rawMode, setRawMode] = useState(false)
   const [results, setResults] = useState(null)
   const [error, setError] = useState('')
   const [totalRaw, setTotalRaw] = useState(null)
@@ -250,7 +281,7 @@ function DevToolsTab() {
     setTotalRaw(null)
     setTotalFiltered(null)
     try {
-      const data = await apiTestSearch(q, selected)
+      const data = await apiTestSearch(q, selected, rawMode)
       setTotalRaw(data.total_raw)
       setTotalFiltered(data.total_filtered)
       setResults([...data.adapters].sort((a, b) => {
@@ -269,74 +300,71 @@ function DevToolsTab() {
   adapters.forEach(a => { if (byCountry[a.country]) byCountry[a.country].push(a) })
 
   if (loadError) return (
-    <div style={{ padding: 32, color: 'var(--danger)' }}>
+    <div className="dev-tools-load-error">
       <strong>Backend inacessível:</strong> {loadError}
-      <p style={{ color: 'var(--muted)', marginTop: 8, fontSize: 13 }}>Verifique se o backend está rodando em localhost:8000</p>
+      <p>Verifique se o backend está rodando em localhost:8000</p>
     </div>
   )
 
   return (
-    <div className="dev-tools-grid" style={{ display: 'grid', gridTemplateColumns: '260px 1fr', height: '100%', overflow: 'hidden' }}>
-      {/* Left */}
-      <div style={{ borderRight: '1px solid var(--line)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <div style={{ padding: 16, borderBottom: '1px solid var(--line)' }}>
-          <p style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--muted)', marginBottom: 10 }}>Test Search</p>
+    <div className="dev-tools-grid">
+      {/* Left panel */}
+      <div className="dev-tools-left">
+        <div className="dev-tools-section">
+          <p className="dev-tools-label">Test Search</p>
           <input
+            className="dev-tools-input"
             type="text"
             placeholder="ex: iphone 15 128gb"
             value={testQuery}
             onChange={e => setTestQuery(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleRun()}
-            style={{
-              width: '100%', background: 'var(--card-bg)', border: '1px solid var(--line)',
-              color: 'var(--ink)', padding: '8px 10px', borderRadius: 6,
-              fontSize: 14, marginBottom: 8, outline: 'none', boxSizing: 'border-box',
-            }}
           />
           <button
+            className={`dev-tools-run-btn${running ? ' is-running' : ''}`}
             onClick={handleRun}
             disabled={running}
-            style={{
-              width: '100%', background: running ? 'var(--line)' : 'var(--info)',
-              color: '#fff', border: 'none', padding: '9px', borderRadius: 6,
-              fontSize: 14, fontWeight: 600, cursor: running ? 'default' : 'pointer',
-              opacity: running ? 0.7 : 1,
-            }}
           >
             {running ? 'Rodando…' : 'Rodar busca'}
           </button>
+          <label className="dev-tools-raw-toggle">
+            <input
+              type="checkbox"
+              className="dev-tools-checkbox"
+              checked={rawMode}
+              onChange={e => setRawMode(e.target.checked)}
+            />
+            Modo raw (sem filtro)
+          </label>
         </div>
 
-        <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--line)' }}>
-          <p style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--muted)', marginBottom: 8 }}>Adapters</p>
-          <div style={{ display: 'flex', gap: 6 }}>
+        <div className="dev-tools-section">
+          <p className="dev-tools-label">Adapters</p>
+          <div className="dev-tools-toggle-row">
             {['Todos', 'Nenhum'].map((label, i) => (
-              <button key={label} onClick={() => toggleAll(i === 0)} style={{
-                flex: 1, background: 'var(--card-bg)', border: '1px solid var(--line)',
-                color: 'var(--muted)', padding: '4px', borderRadius: 5, fontSize: 11, cursor: 'pointer',
-              }}>{label}</button>
+              <button key={label} className="dev-tools-toggle-btn" onClick={() => toggleAll(i === 0)}>
+                {label}
+              </button>
             ))}
           </div>
         </div>
 
-        <div style={{ overflowY: 'auto', flex: 1, padding: '8px 16px' }}>
+        <div className="dev-tools-adapters">
           {Object.entries(byCountry).map(([country, group]) => {
             if (!group.length) return null
             return (
               <React.Fragment key={country}>
-                <p style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--text-muted)', margin: '10px 0 6px' }}>
-                  {country === 'br' ? 'Brasil' : 'Paraguai'}
-                </p>
+                <p className="dev-tools-country-label">{country === 'br' ? 'Brasil' : 'Paraguai'}</p>
                 {group.map(a => (
-                  <label key={a.source} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 6px', borderRadius: 5, cursor: 'pointer' }}>
-                    <input type="checkbox" checked={!!checked[a.source]} onChange={() => setChecked(prev => ({ ...prev, [a.source]: !prev[a.source] }))} style={{ accentColor: 'var(--info)' }} />
-                    <span style={{ color: 'var(--text)', fontSize: 13 }}>{a.source}</span>
-                    <span style={{
-                      marginLeft: 'auto', fontSize: 11, padding: '1px 6px', borderRadius: 10, fontWeight: 600,
-                      ...(country === 'br'
-                        ? { background: 'var(--br-bg)', color: 'var(--success)', border: '1px solid var(--br-border)' }
-                        : { background: 'var(--py-bg)', color: 'var(--info)',    border: '1px solid var(--py-border)' }),
-                    }}>{country.toUpperCase()}</span>
+                  <label key={a.source} className="dev-tools-adapter-row">
+                    <input
+                      type="checkbox"
+                      className="dev-tools-checkbox"
+                      checked={!!checked[a.source]}
+                      onChange={() => setChecked(prev => ({ ...prev, [a.source]: !prev[a.source] }))}
+                    />
+                    <span className="dev-tools-adapter-name">{a.source}</span>
+                    <span className={`adapter-card-country ${country}`}>{country.toUpperCase()}</span>
                   </label>
                 ))}
               </React.Fragment>
@@ -345,29 +373,21 @@ function DevToolsTab() {
         </div>
       </div>
 
-      {/* Right */}
-      <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 12 }}>
-          <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted)' }}>Resultados</p>
+      {/* Right panel */}
+      <div className="dev-tools-right">
+        <div className="dev-tools-results-header">
+          <p className="dev-tools-results-title">Resultados</p>
           {totalRaw != null && (
-            <span style={{ background: 'var(--card-bg)', border: '1px solid var(--line)', borderRadius: 6, padding: '3px 10px', fontSize: 12, color: 'var(--muted)' }}>
-              Raw <strong style={{ color: 'var(--ink)' }}>{totalRaw}</strong>
-            </span>
+            <span className="dev-tools-stat">Raw <strong>{totalRaw}</strong></span>
           )}
           {totalFiltered != null && (
-            <span style={{ background: 'var(--card-bg)', border: '1px solid var(--line)', borderRadius: 6, padding: '3px 10px', fontSize: 12, color: 'var(--muted)' }}>
-              Filtrado <strong style={{ color: 'var(--success)' }}>{totalFiltered}</strong>
-            </span>
+            <span className="dev-tools-stat">Filtrado <strong className="text-success">{totalFiltered}</strong></span>
           )}
         </div>
-        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {error && (
-            <div style={{ background: 'var(--danger-bg)', border: '1px solid var(--danger-border)', borderRadius: 5, padding: '8px 10px', fontFamily: 'monospace', fontSize: 12, color: 'var(--danger)' }}>{error}</div>
-          )}
+        <div className="dev-tools-results-body">
+          {error && <div className="admin-error-box">{error}</div>}
           {!results && !error && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--muted)', fontSize: 15 }}>
-              Rode uma busca para ver os resultados por adapter
-            </div>
+            <div className="dev-tools-empty">Rode uma busca para ver os resultados por adapter</div>
           )}
           {results && results.map((adapter, i) => <AdminAdapterCard key={i} adapter={adapter} />)}
         </div>
@@ -396,31 +416,20 @@ function CacheTab() {
   }
 
   return (
-    <div style={{ padding: 32, maxWidth: 500 }}>
-      <h2 style={{ fontSize: 16, color: 'var(--ink)', fontWeight: 600, marginBottom: 8 }}>Cache de Buscas</h2>
-      <p style={{ color: 'var(--muted)', fontSize: 13, marginBottom: 24, lineHeight: 1.6 }}>
+    <div className="admin-cache">
+      <h2 className="admin-section-title">Cache de Buscas</h2>
+      <p className="admin-cache-desc">
         Re-executa todas as buscas salvas no cache em background, atualizando os preços. Pode demorar alguns minutos.
       </p>
       <button
+        className={`dev-tools-run-btn${running ? ' is-running' : ''}`}
         onClick={handleRefresh}
         disabled={running}
-        style={{
-          background: running ? 'var(--line)' : 'var(--info)',
-          color: '#fff', border: 'none', padding: '10px 20px', borderRadius: 7,
-          fontSize: 14, fontWeight: 600, cursor: running ? 'default' : 'pointer',
-          opacity: running ? 0.7 : 1,
-        }}
       >
         {running ? 'Iniciando…' : 'Atualizar cache agora'}
       </button>
       {status && (
-        <div style={{
-          marginTop: 16, padding: '10px 14px', borderRadius: 7,
-          background: status.ok ? 'var(--success-bg)' : 'var(--danger-bg)',
-          border: `1px solid ${status.ok ? 'var(--success-border)' : 'var(--danger-border)'}`,
-          color: status.ok ? 'var(--success)' : 'var(--danger)',
-          fontSize: 13,
-        }}>{status.text}</div>
+        <div className={`admin-status-box ${status.ok ? 'is-ok' : 'is-error'}`}>{status.text}</div>
       )}
     </div>
   )
@@ -429,76 +438,38 @@ function CacheTab() {
 // ── Main AdminPage ────────────────────────────────────────────────────────────
 
 const TABS = [
-  { id: 'users', label: 'Usuários' },
+  { id: 'users',    label: 'Usuários'  },
   { id: 'devtools', label: 'Dev Tools' },
-  { id: 'cache', label: 'Cache' },
+  { id: 'cache',    label: 'Cache'     },
 ]
 
 export default function AdminPage({ onBack }) {
   const [tab, setTab] = useState('users')
 
   return (
-    <div style={{
-      display: 'flex', flexDirection: 'column',
-      height: 'calc(100vh - var(--topbar-h, 52px))',
-      marginTop: 'var(--topbar-h, 52px)',
-      background: 'var(--card-bg)', color: 'var(--ink)',
-      fontFamily: "'Segoe UI', system-ui, sans-serif", fontSize: 14,
-      overflow: 'hidden', maxWidth: '100vw',
-    }}>
-      {/* Page header */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 16,
-        padding: '0 24px', borderBottom: '1px solid var(--line)',
-        background: 'var(--card)', flexShrink: 0,
-      }}>
-        <button
-          onClick={onBack}
-          style={{
-            background: 'var(--card-bg)', border: '1px solid var(--line)',
-            color: 'var(--text)', cursor: 'pointer', fontSize: 12,
-            padding: '5px 12px', borderRadius: 6,
-            display: 'flex', alignItems: 'center', gap: 6,
-            fontWeight: 500, transition: 'background 0.15s',
-          }}
-        >
-          &#8592; Voltar
-        </button>
-        <div style={{ width: 1, height: 20, background: 'var(--line)' }} />
-        <span style={{ fontWeight: 700, fontSize: 15 }}>Admin</span>
-        <span style={{
-          background: 'var(--danger)', color: '#fff',
-          fontSize: 10, fontWeight: 700,
-          padding: '2px 6px', borderRadius: 4,
-          textTransform: 'uppercase', letterSpacing: 1,
-        }}>restricted</span>
-
-        {/* Tabs */}
-        <div style={{ display: 'flex', gap: 0, marginLeft: 16 }}>
+    <div className="admin-page">
+      <div className="admin-header">
+        <button className="admin-back-btn" onClick={onBack}>&#8592; Voltar</button>
+        <div className="admin-header-sep" />
+        <span className="admin-header-title">Admin</span>
+        <span className="admin-restricted-badge">restricted</span>
+        <nav className="admin-tabs">
           {TABS.map(t => (
             <button
               key={t.id}
+              className={`admin-tab${tab === t.id ? ' is-active' : ''}`}
               onClick={() => setTab(t.id)}
-              style={{
-                background: 'none', border: 'none',
-                borderBottom: `2px solid ${tab === t.id ? 'var(--info)' : 'transparent'}`,
-                color: tab === t.id ? 'var(--info)' : 'var(--muted)',
-                padding: '16px 18px', cursor: 'pointer',
-                fontSize: 13, fontWeight: tab === t.id ? 600 : 400,
-                transition: 'all 0.15s',
-              }}
             >
               {t.label}
             </button>
           ))}
-        </div>
+        </nav>
       </div>
 
-      {/* Tab content */}
-      <div style={{ flex: 1, overflow: 'hidden' }}>
-        {tab === 'users' && <UsersTab />}
+      <div className="admin-tab-content">
+        {tab === 'users'    && <UsersTab />}
         {tab === 'devtools' && <DevToolsTab />}
-        {tab === 'cache' && <CacheTab />}
+        {tab === 'cache'    && <CacheTab />}
       </div>
     </div>
   )
