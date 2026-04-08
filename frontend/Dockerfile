@@ -14,6 +14,6 @@ RUN chmod +x /docker-entrypoint.sh
 # MAMU_API_URL — leave empty to use nginx proxy (recommended).
 # Set to a full URL (e.g. https://api.myhost.com) only when
 # the API is served from a different domain.
-ENV MAMU_API_URL=""
+ENV MUAMBA_API_URL=""
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
