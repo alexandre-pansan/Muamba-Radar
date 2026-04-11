@@ -86,7 +86,12 @@ export default function ProductCard({ group, marginPct, showMargin, idx, onOpenO
               )}
             </div>
           )}
-          <button className="expand-btn" type="button" onClick={handleExpand}>
+          <button
+            className="expand-btn"
+            type="button"
+            aria-label={`Ver ${group.offers.length} oferta${group.offers.length !== 1 ? 's' : ''}`}
+            onClick={handleExpand}
+          >
             &#x25BE; {group.offers.length}
           </button>
         </div>

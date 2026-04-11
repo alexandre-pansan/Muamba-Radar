@@ -4,6 +4,35 @@ import re
 
 from app.schemas import OfferModel
 from app.services.normalization import expand_gaming_aliases, normalize_text, slugify
+from app.services.product_lut import lookup as lut_lookup, lookup_perfume as lut_perfume
+
+# Gaming brands — brand+model shortcut is unreliable for these; let specific patterns handle them
+_GAMING_BRANDS = frozenset({"sony", "microsoft", "nintendo", "valve", "sega"})
+
+# Proper capitalisation for display names derived from normalised keys
+_DISPLAY_OVERRIDES: dict[str, str] = {
+    "playstation": "PlayStation",
+    "xbox": "Xbox",
+    "nintendo": "Nintendo",
+    "switch": "Switch",
+    "logitech": "Logitech",
+    "thrustmaster": "Thrustmaster",
+    "fanatec": "Fanatec",
+    "hori": "Hori",
+    "vr2": "VR2",
+    "vr": "VR",
+    "oled": "OLED",
+    "slim": "Slim",
+    "pro": "Pro",
+    "lite": "Lite",
+    "portal": "Portal",
+    "move": "Move",
+}
+
+
+def _gaming_display_name(base_model: str) -> str:
+    """Title-case a normalised base_model string with brand/product overrides."""
+    return " ".join(_DISPLAY_OVERRIDES.get(w, w.title()) for w in base_model.split())
 
 COLOR_MAP = {
     "black": "black",
@@ -145,7 +174,13 @@ def _is_perfume_offer(offer: OfferModel) -> bool:
 
 def _perfume_name_key(offer: OfferModel, query: str) -> str:
     text = normalize_text(offer.title)
-    # Strip volume and concentration markers so they don't end up in the family key
+
+    # LUT first — gives stable key for known fragrances
+    lut = lut_perfume(text)
+    if lut:
+        return lut.key
+
+    # Fallback: strip volume/concentration markers then extract by query tokens
     text = re.sub(r"\b(\d{2,4})\s?ml\b", " ", text)
     text = re.sub(r"\b(edp|edt|edc)\b", " ", text)
     text = re.sub(r"\belixir\b", " ", text)
@@ -160,7 +195,6 @@ def _perfume_name_key(offer: OfferModel, query: str) -> str:
         return " ".join(from_query[:3])
 
     tokens = [token for token in text.split() if token not in PERFUME_STOPWORDS]
-    # Keep first meaningful chunk as perfume family/name.
     return " ".join(tokens[:5]) if tokens else "perfume"
 
 
@@ -168,6 +202,11 @@ def _base_model_key(offer: OfferModel) -> str:
     text = normalize_text(offer.title)
     # Normalize gaming aliases so "ps5" and "playstation 5" produce the same key
     text = expand_gaming_aliases(text)
+
+    # LUT takes priority over all heuristics — returns stable key if matched
+    lut_entry = lut_lookup(text)
+    if lut_entry:
+        return lut_entry.key
 
     # Detect critical variant suffixes present in the title (must never be merged)
     # Use a meaningful order (pro before max, etc.) rather than alphabetical
@@ -177,7 +216,8 @@ def _base_model_key(offer: OfferModel) -> str:
         key=lambda s: _SUFFIX_ORDER.get(s, 99),
     )
 
-    if offer.brand and offer.model:
+    # For non-gaming brands, brand+model shortcut is reliable
+    if offer.brand and offer.model and offer.brand.lower() not in _GAMING_BRANDS:
         base = normalize_text(f"{offer.brand} {offer.model}")
         return f"{base} {' '.join(variants)}" if variants else base
 
@@ -187,7 +227,20 @@ def _base_model_key(offer: OfferModel) -> str:
         suffix = iphone_match.group(2) or ""
         return normalize_text(f"apple iphone {number} {suffix}".strip())
 
-    # PlayStation (after alias expansion "ps5" → "playstation 5")
+    # PlayStation Portal (must come before generic ps number match)
+    if re.search(r"\bplaystation\s+portal\b", text):
+        return "playstation portal"
+
+    # PlayStation VR2 / VR
+    vr_match = re.search(r"\bplaystation\s+(vr2?)\b", text)
+    if vr_match:
+        return normalize_text(f"playstation {vr_match.group(1)}")
+
+    # PlayStation Move
+    if re.search(r"\bplaystation\s+move\b", text):
+        return "playstation move"
+
+    # PlayStation numbered console (after alias expansion "ps5" → "playstation 5")
     ps_match = re.search(r"\bplaystation\s+(\d)\b", text)
     if ps_match:
         number = ps_match.group(1)
@@ -198,7 +251,7 @@ def _base_model_key(offer: OfferModel) -> str:
     xbox_series = re.search(r"\bxbox\s+series\s+([xs])\b", text)
     if xbox_series:
         letter = xbox_series.group(1)
-        suffix_str = " ".join(v for v in variants if v not in {"pro"})  # series x/s already specific
+        suffix_str = " ".join(v for v in variants if v not in {"pro"})
         return normalize_text(f"xbox series {letter} {suffix_str}".strip())
 
     # Xbox One (X/S/base)
@@ -212,6 +265,14 @@ def _base_model_key(offer: OfferModel) -> str:
     if switch_match:
         suffix_str = " ".join(variants)
         return normalize_text(f"nintendo switch {suffix_str}".strip())
+
+    # Volante / racing wheel — keep brand + product type
+    volante_match = re.search(r"\b(volante|racing\s+wheel|steering\s+wheel)\b", text)
+    if volante_match:
+        wheel_brand = next((b for b in ("logitech", "thrustmaster", "fanatec", "hori") if b in text), None)
+        model_code = re.search(r"\b(g\d{2,3}|t\d{3}|t-?\d{3}|csl|dd\s*pro)\b", text)
+        parts = [wheel_brand or "", model_code.group(1) if model_code else "", "volante"]
+        return normalize_text(" ".join(p for p in parts if p).strip())
 
     text = re.sub(r"\b\d{1,4}\s?(gb|tb)\b", " ", text)
     text = re.sub(r"\bram\b", " ", text)
@@ -227,18 +288,30 @@ def _base_model_key(offer: OfferModel) -> str:
 def _canonical_name(base_model: str, storage: str | None, ram: str | None, offers: list[OfferModel]) -> str:
     sample = min(offers, key=lambda offer: len(offer.title))
 
-    if sample.brand and sample.model:
-        name = f"{sample.brand} {sample.model}"
+    # LUT gives the authoritative display name when available
+    lut_entry = lut_lookup(expand_gaming_aliases(normalize_text(sample.title)))
+    if lut_entry:
+        name = lut_entry.display
     else:
-        name = sample.title
+        brand_norm = (sample.brand or "").lower()
+        if sample.brand and sample.model and brand_norm not in _GAMING_BRANDS:
+            name = f"{sample.brand} {sample.model}"
+        else:
+            name = _gaming_display_name(base_model)
 
     details = [detail.upper() for detail in (storage, ram) if detail]
     return f"{name} ({', '.join(details)})" if details else name
 
 
 def _canonical_perfume_name(name_key: str, concentration: str | None, volume_ml: str | None, offers: list[OfferModel]) -> str:
-    # Use the cleaned name_key as base (already stripped of ml/concentration)
-    base = name_key.title()
+    # LUT gives authoritative "Brand Fragrance" display name
+    sample = min(offers, key=lambda o: len(o.title))
+    lut = lut_perfume(normalize_text(sample.title))
+    if lut:
+        base = f"{lut.brand} {lut.fragrance}"
+    else:
+        base = name_key.title()
+
     details: list[str] = []
     if concentration:
         details.append(concentration)

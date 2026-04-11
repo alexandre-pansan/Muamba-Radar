@@ -17,6 +17,7 @@ export default function OffersDialog({ group, name, config, onClose }) {
     const dialog = dialogRef.current
     if (dialog && !dialog.open) {
       dialog.showModal()
+      setTimeout(() => dialog.querySelector('button')?.focus(), 50)
     }
   }, [])
 
@@ -37,20 +38,20 @@ export default function OffersDialog({ group, name, config, onClose }) {
   return (
     <dialog
       ref={dialogRef}
-      className="offers-dialog"
+      className="modal modal-xl"
       onClick={handleBackdropClick}
       onClose={onClose}
     >
-      <div className="od-header">
+      <div className="modal-header">
         <div className="od-title-wrap">
           <span className="od-name">{name}</span>
           {config && <span className="od-chip">{config}</span>}
         </div>
-        <button className="od-close" aria-label="Close" onClick={handleClose}>
+        <button className="modal-close" type="button" aria-label="Fechar" onClick={handleClose}>
           &times;
         </button>
       </div>
-      <div className="od-body">
+      <div className="modal-body">
         <table className="offers-inner">
           <thead>
             <tr>

@@ -15,7 +15,7 @@ from app.adapters.registry import get_adapters
 from app.auth import create_access_token, get_current_user, get_current_user_optional, hash_password, require_admin, verify_password
 from app.config import settings
 from app.database import SessionLocal, get_db, init_db
-from app.models import ProductOffer, SearchCache, User, UserPrefs, UserSearch
+from app.models import AccessLog, ProductOffer, SearchCache, User, UserPrefs, UserSearch
 from app.schemas import (
     # CompareByImageResponseModel,  # image detection deferred
     CompareResponseModel,
@@ -77,6 +77,29 @@ async def log_requests(request: Request, call_next):
     )
     if cache_tag:
         log.debug("  Cache: %s", cache_header)
+
+    # Persistir log no banco (Marco Civil art. 15 — 6 meses)
+    # Ignorar health check e rotas de assets para não poluir
+    if not request.url.path.startswith("/static") and request.url.path != "/health":
+        ip = request.headers.get("x-forwarded-for", request.client.host if request.client else None)
+        if ip:
+            ip = ip.split(",")[0].strip()
+        try:
+            db = SessionLocal()
+            db.add(AccessLog(
+                created_at=datetime.now(timezone.utc),
+                method=request.method,
+                path=request.url.path,
+                status_code=response.status_code,
+                ip=ip,
+                user_id=None,  # sem decodificar JWT no middleware por performance
+            ))
+            db.commit()
+        except Exception:
+            pass
+        finally:
+            db.close()
+
     return response
 
 
@@ -215,6 +238,15 @@ def list_sources() -> list[SourceInfoModel]:
     return [adapter.info() for adapter in get_adapters()]
 
 
+# ── FX rate ───────────────────────────────────────────────────────────────────
+
+@app.get("/fx")
+def fx_rate() -> dict:
+    """Return the current USD→BRL rate fetched from comprasparaguai.com.br."""
+    from app.services.fx import get_brl_per_usd
+    return {"brl_per_usd": get_brl_per_usd()}
+
+
 # ── Featured images (for loading scene) ───────────────────────────────────────
 
 @app.get("/featured-images")
@@ -332,6 +364,51 @@ def update_prefs(
         prefs.tax_rates = body.tax_rates
     db.commit()
     return UserPrefsModel(show_margin=prefs.show_margin, tax_rates=prefs.tax_rates)
+
+
+@app.get("/auth/me/export")
+def export_account(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """LGPD art. 18 — portabilidade de dados. Retorna todos os dados pessoais do titular em JSON."""
+    prefs = db.get(UserPrefs, current_user.id)
+    searches = (
+        db.query(UserSearch)
+        .filter(UserSearch.user_id == current_user.id)
+        .order_by(UserSearch.searched_at.desc())
+        .all()
+    )
+    return {
+        "exported_at": datetime.now(timezone.utc).isoformat(),
+        "user": {
+            "id": current_user.id,
+            "email": current_user.email,
+            "username": current_user.username,
+            "name": current_user.name,
+            "created_at": current_user.created_at.isoformat() if current_user.created_at else None,
+        },
+        "preferences": {
+            "show_margin": prefs.show_margin if prefs else False,
+            "tax_rates": prefs.tax_rates if prefs else None,
+        },
+        "search_history": [
+            {"query": s.query, "searched_at": s.searched_at.isoformat()}
+            for s in searches
+        ],
+    }
+
+
+@app.delete("/auth/me", status_code=status.HTTP_204_NO_CONTENT)
+def delete_account(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> None:
+    """LGPD art. 18 — direito à exclusão. Apaga todos os dados pessoais do titular."""
+    db.query(UserSearch).filter(UserSearch.user_id == current_user.id).delete()
+    db.query(UserPrefs).filter(UserPrefs.user_id == current_user.id).delete()
+    db.delete(current_user)
+    db.commit()
 
 
 @app.get("/auth/me/searches", response_model=list[UserSearchItem])

@@ -3,10 +3,11 @@ import { mergeRates } from '../taxRates.js'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const INSTALLMENT_MULTIPLIERS = {
-  1: 1.0000, 2: 931.94/850,  3: 945.45/850,  4: 946.56/850,
-  5: 971.65/850, 6: 971.70/850, 7: 992.11/850, 8: 992.24/850,
-  9: 1017.36/850, 10: 1025.50/850, 11: 1025.64/850, 12: 1037.88/850,
+// Compound-interest multiplier: total = P * installmentMultiplier(n, r)
+function installmentMultiplier(n, r) {
+  if (n === 1 || r === 0) return 1
+  const factor = Math.pow(1 + r, n)
+  return n * r * factor / (factor - 1)
 }
 
 const CREDIT_LABELS = { 'na-hora': 'Na hora', '14-dias': '14 dias', '30-dias': '30 dias' }
@@ -57,7 +58,7 @@ function Row({ label, sub, right, receive, last }) {
       </div>
       <div style={{ textAlign: 'right' }}>
         <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)' }}>{right}</div>
-        {receive && <div style={{ fontSize: 10, color: '#22aa66', fontWeight: 600, marginTop: 1 }}>{receive}</div>}
+        {receive && <div style={{ fontSize: 10, color: 'var(--success)', fontWeight: 600, marginTop: 1 }}>{receive}</div>}
       </div>
     </div>
   )
@@ -111,17 +112,18 @@ export default function TaxCalculator({ open, onClose, savedRates }) {
   const creditRows = hasValue ? [1,2,3,4,5,6,7,8,9,10,11,12].map(n => {
     const merchantReceive = mode === 'charge' ? value * (1 - cFee) : value
     const baseCustomer    = mode === 'charge' ? value : value / (1 - cFee)
-    const total           = ceil(baseCustomer * (INSTALLMENT_MULTIPLIERS[n] || 1))
+    const instRate        = n === 1 ? 0 : (rates[`installment_${n}x`] ?? 0)
+    const total           = ceil(baseCustomer * installmentMultiplier(n, instRate))
     const perInstallment  = ceil(total / n)
     const extra           = ceil(total - baseCustomer)
     const subParts        = [`${pct(cFee)} taxa`]
-    if (n > 1) subParts.push(`Total: ${fmt(total)}`, `Acréscimo: ${fmt(extra)}`)
+    if (n > 1) subParts.push(`${pct(instRate)} a.m.`, `Total: ${fmt(total)}`, `Acréscimo: ${fmt(extra)}`)
     return { n, label: n === 1 ? 'À vista' : `${n}x`, sub: subParts.join(' · '), right: n === 1 ? fmt(perInstallment) : `${n}x ${fmt(perInstallment)}`, receive: `Você recebe: ${fmt(merchantReceive)}` }
   }) : []
 
   const otherMethods = [
-    { key: 'pix',   name: '⚡ Pix',               accent: '#00cc88', fee: rates.pix,           timing: 'Na hora' },
-    { key: 'of',    name: '🏦 Open Finance',       accent: '#4e9eff', fee: rates.open_finance,  timing: 'Na hora' },
+    { key: 'pix',   name: '⚡ Pix',               accent: 'var(--success)', fee: rates.pix,           timing: 'Na hora' },
+    { key: 'of',    name: '🏦 Open Finance',       accent: 'var(--info)',    fee: rates.open_finance,  timing: 'Na hora' },
     { key: 'mp',    name: '💛 Carteira Digital',    accent: null,      fee: rates.mp_saldo,      timing: 'Na hora' },
     { key: 'pre',   name: '💳 Cartão Pré-pago',    accent: null,      fee: rates.prepago,       timing: 'Na hora' },
     { key: 'lc',    name: '📋 Linha de Crédito',   accent: null,      fee: rates.linha_credito, timing: 'Na hora' },
@@ -130,9 +132,9 @@ export default function TaxCalculator({ open, onClose, savedRates }) {
 
   return (
     <div className="tax-calc-panel" style={{
-      position: 'fixed', left: pos.x, top: pos.y, width: 440,
+      position: 'fixed', left: pos.x, top: pos.y, width: 'min(440px, calc(100vw - 32px))',
       background: 'var(--card)', border: '1px solid var(--line)',
-      borderRadius: 12, boxShadow: '0 12px 48px rgba(0,0,0,0.35)',
+      borderRadius: 12, boxShadow: 'var(--shadow-lg)',
       zIndex: 500, display: 'flex', flexDirection: 'column',
       maxHeight: 'calc(100vh - 100px)', overflow: 'hidden',
       userSelect: dragging.current ? 'none' : 'auto',
@@ -144,10 +146,10 @@ export default function TaxCalculator({ open, onClose, savedRates }) {
       >
         <span style={{ fontSize: 16 }}>💰</span>
         <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)', flex: 1 }}>Calculadora de Taxas</span>
-        <button onClick={() => setMinimized(m => !m)} title={minimized ? 'Expandir' : 'Minimizar'} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 16, lineHeight: 1, padding: '0 2px' }}>
+        <button onClick={() => setMinimized(m => !m)} aria-label={minimized ? 'Expandir calculadora' : 'Minimizar calculadora'} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 16, lineHeight: 1, padding: '0 2px' }}>
           {minimized ? '□' : '—'}
         </button>
-        <button onClick={onClose} title="Fechar" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 18, lineHeight: 1, padding: '0 2px' }}>×</button>
+        <button onClick={onClose} aria-label="Fechar calculadora" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 18, lineHeight: 1, padding: '0 2px' }}>×</button>
       </div>
 
       {!minimized && (
@@ -155,10 +157,7 @@ export default function TaxCalculator({ open, onClose, savedRates }) {
           {/* Amount input */}
           <div style={{ background: 'var(--card-bg)', border: '1px solid var(--line)', borderRadius: 10, padding: '12px 14px', marginBottom: 10 }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>Valor</div>
-            <div style={{ display: 'flex', alignItems: 'center', border: '2px solid var(--line)', borderRadius: 8, padding: '8px 12px' }}
-              onFocusCapture={e => e.currentTarget.style.borderColor = 'var(--accent)'}
-              onBlurCapture={e => e.currentTarget.style.borderColor = 'var(--line)'}
-            >
+            <div className="tax-input-wrap" style={{ display: 'flex', alignItems: 'center', borderRadius: 8, padding: '8px 12px' }}>
               <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--muted)', marginRight: 6 }}>R$</span>
               <input
                 type="number" placeholder="0,00" step="0.01" min="0"

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useI18n } from '../i18n.jsx'
-import { apiUpdateMe, apiFetchUserSearches } from '../api.js'
+import { apiUpdateMe, apiFetchUserSearches, getApiBase, getToken } from '../api.js'
 import { DEFAULT_RATES, mergeRates } from '../taxRates.js'
 
 export default function UserConfigModal({
@@ -34,10 +34,46 @@ export default function UserConfigModal({
   const [taxSaved, setTaxSaved]           = useState(false)
 
   useEffect(() => {
+    setTaxRates(mergeRates(savedTaxRates))
+  }, [savedTaxRates])
+
+  const [deleteConfirm, setDeleteConfirm] = useState(false)
+  const [deleteError, setDeleteError]     = useState('')
+
+  async function handleExportData() {
+    const res = await fetch(`${getApiBase()}/auth/me/export`, {
+      headers: { Authorization: `Bearer ${getToken()}` },
+    })
+    if (!res.ok) return
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'muambaradar-meus-dados.json'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  async function handleDeleteAccount() {
+    setDeleteError('')
+    try {
+      const res = await fetch(`${getApiBase()}/auth/me`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${getToken()}` },
+      })
+      if (!res.ok) throw new Error('Falha ao excluir conta.')
+      window.location.reload()
+    } catch (err) {
+      setDeleteError(err.message)
+    }
+  }
+
+  useEffect(() => {
     const dialog = dialogRef.current
     if (!dialog) return
     if (open && !dialog.open) {
       dialog.showModal()
+      setTimeout(() => dialogRef.current?.querySelector('input')?.focus(), 50)
       // Pre-populate
       setProfileName(currentUser?.name || '')
       setProfileError('')
@@ -128,16 +164,17 @@ export default function UserConfigModal({
   return (
     <dialog
       ref={dialogRef}
-      className="user-config-modal"
+      className="modal modal-lg"
       onClick={handleBackdropClick}
       onClose={onClose}
     >
-      <div className="ucm-header">
-        <h2 className="ucm-title">{t('config.title')}</h2>
-        <button className="ucm-close" aria-label="Close" onClick={onClose}>
+      <div className="modal-header">
+        <h2 className="modal-title">{t('config.title')}</h2>
+        <button className="modal-close" type="button" aria-label="Fechar" onClick={onClose}>
           &times;
         </button>
       </div>
+      <div className="modal-body">
 
       {/* Profile section */}
       <section className="ucm-section">
@@ -202,6 +239,7 @@ export default function UserConfigModal({
             type="checkbox"
             className="pref-toggle"
             role="switch"
+            aria-checked={currentPrefs?.show_margin ?? false}
             checked={currentPrefs?.show_margin ?? false}
             onChange={handlePrefToggle}
           />
@@ -212,28 +250,27 @@ export default function UserConfigModal({
       <section className="ucm-section">
         <h3 className="ucm-section-title">Taxas de Pagamento</h3>
         <form className="ucm-form" onSubmit={handleTaxSave}>
+
+          <p className="ucm-subsection-label">Métodos de pagamento</p>
           <div className="tax-rates-grid">
             {[
               { key: 'credit_na_hora', label: 'Crédito — Na hora (%)', pct: true },
-              { key: 'credit_14d',     label: 'Crédito — 14 dias (%)',  pct: true },
-              { key: 'credit_30d',     label: 'Crédito — 30 dias (%)',  pct: true },
-              { key: 'pix',            label: 'Pix (%)',                pct: true },
-              { key: 'open_finance',   label: 'Open Finance (%)',        pct: true },
-              { key: 'mp_saldo',       label: 'Carteira Digital (%)',     pct: true },
-              { key: 'prepago',        label: 'Pré-pago (%)',            pct: true },
-              { key: 'linha_credito',  label: 'Linha de Crédito (%)',    pct: true },
-              { key: 'boleto_fixed',   label: 'Boleto (R$ fixo)',        pct: false },
+              { key: 'credit_14d',     label: 'Crédito — 14 dias (%)', pct: true },
+              { key: 'credit_30d',     label: 'Crédito — 30 dias (%)', pct: true },
+              { key: 'pix',            label: 'Pix (%)',               pct: true },
+              { key: 'open_finance',   label: 'Open Finance (%)',       pct: true },
+              { key: 'mp_saldo',       label: 'Carteira Digital (%)',   pct: true },
+              { key: 'prepago',        label: 'Pré-pago (%)',           pct: true },
+              { key: 'linha_credito',  label: 'Linha de Crédito (%)',   pct: true },
+              { key: 'boleto_fixed',   label: 'Boleto (R$ fixo)',       pct: false },
             ].map(({ key, label, pct }) => (
               <label key={key} className="field tax-rate-field">
                 <span>{label}</span>
                 <input
                   type="number"
-                  step={pct ? '0.01' : '0.01'}
+                  step="0.01"
                   min="0"
-                  value={pct
-                    ? (taxRates[key] * 100).toFixed(2)
-                    : taxRates[key].toFixed(2)
-                  }
+                  value={pct ? ((taxRates[key] ?? 0) * 100).toFixed(2) : (taxRates[key] ?? 0).toFixed(2)}
                   onChange={e => {
                     const v = parseFloat(e.target.value)
                     if (!isNaN(v)) setTaxRates(prev => ({ ...prev, [key]: pct ? v / 100 : v }))
@@ -242,7 +279,30 @@ export default function UserConfigModal({
               </label>
             ))}
           </div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+
+          <p className="ucm-subsection-label">Juros de parcelamento (% a.m.)</p>
+          <div className="tax-rates-grid">
+            {[2,3,4,5,6,7,8,9,10,11,12].map(n => {
+              const key = `installment_${n}x`
+              return (
+                <label key={key} className="field tax-rate-field">
+                  <span>{n}x</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={((taxRates[key] ?? 0) * 100).toFixed(2)}
+                    onChange={e => {
+                      const v = parseFloat(e.target.value)
+                      if (!isNaN(v)) setTaxRates(prev => ({ ...prev, [key]: v / 100 }))
+                    }}
+                  />
+                </label>
+              )
+            })}
+          </div>
+
+          <div className="btn-row">
             <button type="submit" className="btn-save">
               {taxSaved ? 'Salvo ✓' : 'Salvar taxas'}
             </button>
@@ -266,7 +326,10 @@ export default function UserConfigModal({
               <li
                 key={i}
                 className="ucm-search-item"
+                role="button"
+                tabIndex={0}
                 onClick={() => onSearchClick(s.query)}
+                onKeyDown={e => e.key === 'Enter' && onSearchClick(s.query)}
               >
                 {s.query}
               </li>
@@ -274,6 +337,38 @@ export default function UserConfigModal({
           )}
         </ul>
       </section>
+
+      {/* Privacy / LGPD section */}
+      <section className="ucm-section ucm-privacy-section">
+        <h3 className="ucm-section-title">Privacidade (LGPD)</h3>
+        <p className="ucm-privacy-desc">
+          Você tem direito de exportar seus dados ou excluir permanentemente sua conta e todos os dados pessoais associados.
+        </p>
+        <div className="ucm-privacy-actions">
+          <button type="button" className="btn-save btn-save-secondary" onClick={handleExportData}>
+            <span aria-hidden="true">⬇</span> Exportar meus dados (JSON)
+          </button>
+          {!deleteConfirm ? (
+            <button type="button" className="btn-delete" onClick={() => setDeleteConfirm(true)}>
+              Excluir minha conta
+            </button>
+          ) : (
+            <div className="ucm-delete-confirm">
+              <span>Tem certeza? Esta ação é irreversível.</span>
+              <div className="btn-row">
+                <button type="button" className="btn-delete" onClick={handleDeleteAccount}>
+                  Sim, excluir tudo
+                </button>
+                <button type="button" className="btn-save btn-save-secondary" onClick={() => setDeleteConfirm(false)}>
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          )}
+          {deleteError && <p className="ucm-error">{deleteError}</p>}
+        </div>
+      </section>
+      </div>
     </dialog>
   )
 }

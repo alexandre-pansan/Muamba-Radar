@@ -144,6 +144,8 @@ const _TYPE_RULES = [
   [/^(c[aâ]mera|câmera)/i,                               'Câmera'],
   [/^(perfume|eau\s+de\s+(parfum|toilette)|edp\b|edt\b)/i,'Perfume'],
   [/^(console|playstation|xbox|nintendo\s+switch)/i,       'Console'],
+  [/^(controle|gamepad|joystick|dualsense|dualshock|joy.con)/i, 'Controle'],
+  [/^(jogo|game\b|juego)\b/i,                              'Jogo'],
   [/^(smartphone|celular)/i,                               'Smartphone'],
   [/^(tablet|ipad)/i,                                      'Tablet'],
   [/^(headset|headphone)/i,                                'Headset'],
@@ -155,6 +157,8 @@ const _TYPE_RULES = [
   [/\biphone\b/i,                                          'Smartphone'],
   [/\bipad\b/i,                                            'Tablet'],
   [/\bplaystation\s*[345]\b|\bps\s*[345]\b|\bxbox\b|\bswitch\s*(oled|lite)?\b/i, 'Console'],
+  [/\b(dualsense|dualshock|joy.con|controle\s+(ps|xbox|nintendo))/i, 'Controle'],
+  [/\b(jogo\s+|game\s+).*(ps[345]|xbox|switch|nintendo)/i, 'Jogo'],
 ]
 
 export function detectProductType(name) {

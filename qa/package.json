@@ -1,0 +1,18 @@
+{
+  "name": "muamba-radar-qa",
+  "version": "1.0.0",
+  "description": "Cypress E2E test suite for Muamba Radar",
+  "private": true,
+  "scripts": {
+    "cy:open": "cypress open --config-file cypress.config.js",
+    "cy:run": "cypress run --config-file cypress.config.js",
+    "cy:run:headed": "cypress run --headed --config-file cypress.config.js",
+    "cy:run:auth": "cypress run --spec 'cypress/e2e/auth.cy.js' --config-file cypress.config.js",
+    "cy:run:search": "cypress run --spec 'cypress/e2e/search.cy.js' --config-file cypress.config.js",
+    "cy:run:modals": "cypress run --spec 'cypress/e2e/modals.cy.js' --config-file cypress.config.js",
+    "cy:run:user-config": "cypress run --spec 'cypress/e2e/user-config.cy.js' --config-file cypress.config.js"
+  },
+  "devDependencies": {
+    "cypress": "^13.13.0"
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "searchQuery": "iphone 15",
+  "emptyQuery": "xyzproductdoesnotexist99999",
+  "mockCompareResponse": {
+    "query": "iphone 15",
+    "generated_at": "2026-04-10T12:00:00Z",
+    "groups": [
+      {
+        "product_key": "iphone-15-128gb",
+        "family_key": "iphone-15",
+        "canonical_name": "Apple iPhone 15 128GB",
+        "match_confidence": 0.97,
+        "product_image_url": null,
+        "concentration": null,
+        "volume_ml": null,
+        "cheapest": {
+          "overall_offer_id": "comprasparaguai-iphone-15-128gb-3500000",
+          "py_offer_id": "comprasparaguai-iphone-15-128gb-3500000",
+          "br_offer_id": "americanas-iphone-15-128gb-4200"
+        },
+        "offers": [
+          {
+            "offer_id": "comprasparaguai-iphone-15-128gb-3500000",
+            "source": "comprasparaguai",
+            "country": "py",
+            "store": "ComprasParaguai",
+            "title": "iPhone 15 128GB Black",
+            "brand": "Apple",
+            "model": "iPhone 15",
+            "image_url": null,
+            "price": {
+              "amount": 3500000,
+              "currency": "PYG",
+              "amount_brl": 2450.00,
+              "fx_rate_used": 5.0,
+              "fx_rate_timestamp": "2026-04-10T12:00:00Z"
+            },
+            "url": "https://www.comprasparaguai.com.br/produto/iphone-15-128gb",
+            "captured_at": "2026-04-10T11:00:00Z"
+          },
+          {
+            "offer_id": "americanas-iphone-15-128gb-4200",
+            "source": "americanas",
+            "country": "br",
+            "store": "Americanas",
+            "title": "Apple iPhone 15 128GB",
+            "brand": "Apple",
+            "model": "iPhone 15",
+            "image_url": null,
+            "price": {
+              "amount": 4200.00,
+              "currency": "BRL",
+              "amount_brl": 4200.00,
+              "fx_rate_used": 5.0,
+              "fx_rate_timestamp": "2026-04-10T12:00:00Z"
+            },
+            "url": "https://www.americanas.com.br/produto/iphone-15",
+            "captured_at": "2026-04-10T11:00:00Z"
+          }
+        ],
+        "preview_offers": []
+      },
+      {
+        "product_key": "iphone-15-256gb",
+        "family_key": "iphone-15",
+        "canonical_name": "Apple iPhone 15 256GB",
+        "match_confidence": 0.95,
+        "product_image_url": null,
+        "concentration": null,
+        "volume_ml": null,
+        "cheapest": {
+          "overall_offer_id": "comprasparaguai-iphone-15-256gb-4200000",
+          "py_offer_id": "comprasparaguai-iphone-15-256gb-4200000",
+          "br_offer_id": null
+        },
+        "offers": [
+          {
+            "offer_id": "comprasparaguai-iphone-15-256gb-4200000",
+            "source": "comprasparaguai",
+            "country": "py",
+            "store": "ComprasParaguai",
+            "title": "iPhone 15 256GB Blue",
+            "brand": "Apple",
+            "model": "iPhone 15",
+            "image_url": null,
+            "price": {
+              "amount": 4200000,
+              "currency": "PYG",
+              "amount_brl": 2940.00,
+              "fx_rate_used": 5.0,
+              "fx_rate_timestamp": "2026-04-10T12:00:00Z"
+            },
+            "url": "https://www.comprasparaguai.com.br/produto/iphone-15-256gb",
+            "captured_at": "2026-04-10T11:00:00Z"
+          }
+        ],
+        "preview_offers": []
+      }
+    ]
+  },
+  "mockEmptyResponse": {
+    "query": "xyzproductdoesnotexist99999",
+    "generated_at": "2026-04-10T12:00:00Z",
+    "groups": []
+  }
+}

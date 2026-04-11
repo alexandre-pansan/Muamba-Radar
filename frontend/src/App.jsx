@@ -6,6 +6,8 @@ import ResultsArea from './components/ResultsArea.jsx'
 import AuthModal from './components/AuthModal.jsx'
 import UserConfigModal from './components/UserConfigModal.jsx'
 import AdminPage from './components/AdminPage.jsx'
+import PrivacyPage from './components/PrivacyPage.jsx'
+import TermsPage from './components/TermsPage.jsx'
 import TaxCalculator from './components/TaxCalculator.jsx'
 import OffersDialog from './components/OffersDialog.jsx'
 import {
@@ -64,10 +66,15 @@ function AppInner() {
   const [taxCalcOpen, setTaxCalcOpen] = useState(false)
 
   // Page routing
-  const [page, setPage] = useState(() => window.location.pathname === '/admin' ? 'admin' : 'home')
+  const getPage = () => {
+    const p = window.location.pathname
+    if (p === '/admin') return 'admin'
+    return 'home'
+  }
+  const [page, setPage] = useState(getPage)
 
   useEffect(() => {
-    const handler = () => setPage(window.location.pathname === '/admin' ? 'admin' : 'home')
+    const handler = () => setPage(getPage())
     window.addEventListener('popstate', handler)
     return () => window.removeEventListener('popstate', handler)
   }, [])
@@ -81,6 +88,9 @@ function AppInner() {
     history.pushState(null, '', '/')
     setPage('home')
   }
+
+  // Legal modals
+  const [legalModal, setLegalModal] = useState(null) // 'privacy' | 'terms' | null
 
   // Sidebar mobile open
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -290,6 +300,7 @@ function AppInner() {
         onToggleSidebar={() => setSidebarOpen(o => !o)}
         theme={theme}
         onToggleTheme={toggleTheme}
+        onGoHome={goHome}
       />
 
       {page === 'admin' ? (
@@ -338,11 +349,13 @@ function AppInner() {
             onOpenOffers={openOffersDialog}
           />
           <footer className="app-footer">
-            <span>© {new Date().getFullYear()} MuambaRadar — Comparador de Preços PY &amp; BR</span>
+            <span>© {new Date().getFullYear()} MuambaRadar — Comparador de preços informativo. Não vendemos produtos.</span>
             <span className="app-footer-sep">·</span>
-            <span>Todos os direitos reservados</span>
+            <span>Importações do Paraguai sujeitas à Receita Federal (isenção até USD 500/viagem).</span>
             <span className="app-footer-sep">·</span>
-            <span>Os preços são coletados em tempo real e podem variar</span>
+            <button className="app-footer-link" onClick={() => setLegalModal('privacy')}>Privacidade</button>
+            <span className="app-footer-sep">·</span>
+            <button className="app-footer-link" onClick={() => setLegalModal('terms')}>Termos de Uso</button>
           </footer>
         </div>
       </div>
@@ -354,6 +367,7 @@ function AppInner() {
         onClose={() => setAuthModalOpen(false)}
         onLoginSuccess={handleLoginSuccess}
         onRegisterSuccess={handleRegisterSuccess}
+        onOpenLegal={setLegalModal}
       />
 
       <UserConfigModal
@@ -385,6 +399,9 @@ function AppInner() {
           onClose={closeOffersDialog}
         />
       )}
+
+      <PrivacyPage open={legalModal === 'privacy'} onClose={() => setLegalModal(null)} />
+      <TermsPage   open={legalModal === 'terms'}   onClose={() => setLegalModal(null)} />
 
       </>
       )}

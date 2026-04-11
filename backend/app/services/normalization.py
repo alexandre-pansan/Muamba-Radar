@@ -3,18 +3,27 @@ from __future__ import annotations
 import re
 import unicodedata
 
-KNOWN_BRANDS = ("apple", "samsung", "xiaomi", "asus", "lenovo", "acer", "nvidia", "amd", "sony", "microsoft", "nintendo", "valve", "sega")
+KNOWN_BRANDS = ("apple", "samsung", "xiaomi", "asus", "lenovo", "acer", "nvidia", "amd", "sony", "microsoft", "nintendo", "valve", "sega", "logitech", "thrustmaster", "fanatec", "hori")
 
 # Gaming abbreviation expansions — applied before tokenization so "ps5" and
 # "playstation 5" produce identical token sets and numeric guards work correctly.
 _ALIAS_EXPANSIONS: list[tuple[re.Pattern[str], str]] = [
-    (re.compile(r"\bps\s*5\b"), "playstation 5"),
-    (re.compile(r"\bps\s*4\b"), "playstation 4"),
-    (re.compile(r"\bps\s*3\b"), "playstation 3"),
-    (re.compile(r"\bps\s*2\b"), "playstation 2"),
-    (re.compile(r"\bxsx\b"), "xbox series x"),
-    (re.compile(r"\bxss\b"), "xbox series s"),
+    (re.compile(r"\bps\s*5\b"),            "playstation 5"),
+    (re.compile(r"\bps\s*4\b"),            "playstation 4"),
+    (re.compile(r"\bps\s*3\b"),            "playstation 3"),
+    (re.compile(r"\bps\s*2\b"),            "playstation 2"),
+    (re.compile(r"\bps\s*portal\b"),       "playstation portal"),
+    (re.compile(r"\bps\s*vr\s*2\b|\bpsvr\s*2\b"), "playstation vr2"),
+    (re.compile(r"\bps\s*vr\b|\bpsvr\b"), "playstation vr"),
+    (re.compile(r"\bps\s*move\b"),         "playstation move"),
+    (re.compile(r"\bxsx\b"),               "xbox series x"),
+    (re.compile(r"\bxss\b"),               "xbox series s"),
 ]
+
+# Platform/console names that should never be treated as a product model
+_PLATFORM_TOKENS = frozenset({
+    "ps5", "ps4", "ps3", "ps2", "playstation", "xbox", "switch", "nintendo",
+})
 
 
 def expand_gaming_aliases(text: str) -> str:
@@ -130,5 +139,9 @@ def extract_brand_model(title: str) -> tuple[str | None, str | None]:
 
     model_match = re.search(r"([a-z]+\s?\d{1,4}[a-z0-9\-]*)", normalized)
     model = model_match.group(1) if model_match else None
+
+    # Reject platform names and pure numeric SKUs as model identifiers
+    if model and (model.lower() in _PLATFORM_TOKENS or re.match(r"^\d+$", model)):
+        model = None
 
     return (brand.title() if brand else None, model.upper() if model else None)

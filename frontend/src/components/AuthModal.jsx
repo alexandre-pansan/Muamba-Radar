@@ -9,6 +9,7 @@ export default function AuthModal({
   onClose,
   onLoginSuccess,
   onRegisterSuccess,
+  onOpenLegal,
 }) {
   const { t } = useI18n()
   const dialogRef = useRef(null)
@@ -18,18 +19,20 @@ export default function AuthModal({
   const [loginError, setLoginError]           = useState('')
   const [loginLoading, setLoginLoading]       = useState(false)
 
-  const [regUsername, setRegUsername] = useState('')
-  const [regName, setRegName]         = useState('')
-  const [regEmail, setRegEmail]       = useState('')
-  const [regPassword, setRegPassword] = useState('')
-  const [regError, setRegError]       = useState('')
-  const [regLoading, setRegLoading]   = useState(false)
+  const [regUsername, setRegUsername]   = useState('')
+  const [regName, setRegName]           = useState('')
+  const [regEmail, setRegEmail]         = useState('')
+  const [regPassword, setRegPassword]   = useState('')
+  const [regAccepted, setRegAccepted]   = useState(false)
+  const [regError, setRegError]         = useState('')
+  const [regLoading, setRegLoading]     = useState(false)
 
   useEffect(() => {
     const dialog = dialogRef.current
     if (!dialog) return
     if (open && !dialog.open) {
       dialog.showModal()
+      setTimeout(() => dialog.querySelector('input')?.focus(), 50)
     } else if (!open && dialog.open) {
       dialog.close()
     }
@@ -65,6 +68,10 @@ export default function AuthModal({
 
   async function handleRegisterSubmit(e) {
     e.preventDefault()
+    if (!regAccepted) {
+      setRegError('Você precisa aceitar a Política de Privacidade e os Termos de Uso para continuar.')
+      return
+    }
     setRegError('')
     setRegLoading(true)
     try {
@@ -78,6 +85,7 @@ export default function AuthModal({
       setRegName('')
       setRegEmail('')
       setRegPassword('')
+      setRegAccepted(false)
       onRegisterSuccess(access_token)
     } catch (err) {
       setRegError(err.message || t('auth.register_failed'))
@@ -89,32 +97,36 @@ export default function AuthModal({
   return (
     <dialog
       ref={dialogRef}
-      className="auth-modal"
+      className="modal modal-sm"
       onClick={handleBackdropClick}
       onClose={onClose}
     >
-      <button
-        className="auth-modal-close"
-        aria-label="Close"
-        onClick={onClose}
-      >
-        &times;
-      </button>
-
-      <div className="auth-tabs">
+      <div className="modal-header">
+        <nav className="auth-tabs">
+          <button
+            className={`auth-tab${tab === 'login' ? ' is-active' : ''}`}
+            onClick={() => handleTabChange('login')}
+          >
+            {t('auth.login')}
+          </button>
+          <button
+            className={`auth-tab${tab === 'register' ? ' is-active' : ''}`}
+            onClick={() => handleTabChange('register')}
+          >
+            {t('auth.register')}
+          </button>
+        </nav>
         <button
-          className={`auth-tab${tab === 'login' ? ' is-active' : ''}`}
-          onClick={() => handleTabChange('login')}
+          className="modal-close"
+          type="button"
+          aria-label="Fechar"
+          onClick={onClose}
         >
-          {t('auth.login')}
-        </button>
-        <button
-          className={`auth-tab${tab === 'register' ? ' is-active' : ''}`}
-          onClick={() => handleTabChange('register')}
-        >
-          {t('auth.register')}
+          &times;
         </button>
       </div>
+
+      <div className="modal-body">
 
       {tab === 'login' && (
         <form className="auth-form" onSubmit={handleLoginSubmit}>
@@ -194,12 +206,33 @@ export default function AuthModal({
               onChange={e => setRegPassword(e.target.value)}
             />
           </label>
+          <label className="auth-consent">
+            <input
+              type="checkbox"
+              checked={regAccepted}
+              onChange={e => setRegAccepted(e.target.checked)}
+            />
+            <span>
+              Li e aceito a{' '}
+              {onOpenLegal
+                ? <button type="button" className="btn-inline-link" onClick={() => onOpenLegal('privacy')}>Política de Privacidade</button>
+                : <a href="/privacidade" target="_blank" rel="noopener noreferrer">Política de Privacidade</a>
+              }
+              {' '}e os{' '}
+              {onOpenLegal
+                ? <button type="button" className="btn-inline-link" onClick={() => onOpenLegal('terms')}>Termos de Uso</button>
+                : <a href="/termos" target="_blank" rel="noopener noreferrer">Termos de Uso</a>
+              }.
+            </span>
+          </label>
           {regError && <p className="auth-error">{regError}</p>}
-          <button type="submit" className="compare-btn" disabled={regLoading}>
+          <button type="submit" className="compare-btn" disabled={regLoading || !regAccepted}>
             {regLoading ? '\u2026' : t('auth.create')}
           </button>
         </form>
       )}
+
+      </div>
     </dialog>
   )
 }

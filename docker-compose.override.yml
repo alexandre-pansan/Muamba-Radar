@@ -1,0 +1,9 @@
+# Local dev overrides — not used on VPS
+services:
+  frontend:
+    ports:
+      - "3000:80"
+
+  backend:
+    ports:
+      - "8000:8000"

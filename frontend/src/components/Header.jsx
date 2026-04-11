@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useI18n } from '../i18n.jsx'
+import { apiFetchFxRate } from '../api.js'
 
 function UserDropdown({
   currentUser, onOpenSettings, onOpenCalc, onOpenAdmin, onLogout, onClose,
@@ -81,9 +82,15 @@ export default function Header({
   onToggleSidebar,
   theme,
   onToggleTheme,
+  onGoHome,
 }) {
   const { locale, setLocale, t } = useI18n()
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [fxRate, setFxRate] = useState(null)
+
+  useEffect(() => {
+    apiFetchFxRate().then(rate => { if (rate) setFxRate(rate) })
+  }, [])
 
   return (
     <header className="topbar">
@@ -98,19 +105,29 @@ export default function Header({
         </svg>
       </button>
 
-      <a className="topbar-brand" href="/" aria-label="MuambaRadar — início">
+      <a className="topbar-brand" href="/" aria-label="MuambaRadar — início"
+        onClick={onGoHome ? (e) => { e.preventDefault(); onGoHome() } : undefined}
+      >
         {/* Full logo on desktop, compact icon on mobile */}
         <img src="/logo_text.png"    alt="MuambaRadar" className="topbar-logo topbar-logo-full" />
         <img src="/logo_compact.png" alt="MuambaRadar" className="topbar-logo topbar-logo-compact" />
       </a>
 
       <div className="topbar-right">
+        {fxRate && (
+          <span className="topbar-fx-rate" title="Cotação USD → BRL (comprasparaguai.com.br)">
+            <span className="topbar-fx-label">Cotação do dólar:</span>
+            <span className="topbar-fx-value">R$ {fxRate.toFixed(2)}</span>
+          </span>
+        )}
         <div className="auth-bar">
           {currentUser ? (
             <div className="user-menu-wrap">
               <button
                 className="user-menu-trigger"
                 type="button"
+                aria-expanded={dropdownOpen}
+                aria-haspopup="menu"
                 onClick={() => setDropdownOpen(o => !o)}
               >
                 <span className="user-menu-avatar">

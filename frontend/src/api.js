@@ -123,6 +123,17 @@ export async function apiFetchSuggestions(q) {
   return res.json()
 }
 
+export async function apiFetchFxRate() {
+  try {
+    const res = await fetch(`${getApiBase()}/fx`)
+    if (res.ok) {
+      const data = await res.json()
+      return data.brl_per_usd
+    }
+  } catch (_) {}
+  return null
+}
+
 export async function apiFetchFeaturedImages() {
   try {
     const res = await fetch(`${getApiBase()}/featured-images`)

@@ -189,7 +189,10 @@ export default function Sidebar({
               <li
                 key={i}
                 className="recent-item"
+                role="button"
+                tabIndex={0}
                 onClick={() => onRecentClick(q)}
+                onKeyDown={e => e.key === 'Enter' && onRecentClick(q)}
               >
                 {q}
               </li>

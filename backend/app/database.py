@@ -81,6 +81,15 @@ def init_db() -> None:
         except Exception:
             conn.rollback()
 
+        # Purge access_logs older than 6 months (Marco Civil max retention = 6 months)
+        try:
+            conn.execute(text(
+                "DELETE FROM access_logs WHERE created_at < NOW() - INTERVAL '6 months'"
+            ))
+            conn.commit()
+        except Exception:
+            conn.rollback()  # table may not exist yet on first boot — Base.metadata.create_all handles it
+
     # ── Seed admin user ───────────────────────────────────────────────────────
     from datetime import datetime, timezone
     from app.auth import hash_password

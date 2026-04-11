@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, Text, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, SmallInteger, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -91,4 +91,21 @@ class UserSearch(Base):
 
     __table_args__ = (
         Index("ix_user_searches_user_time", "user_id", "searched_at"),
+    )
+
+
+class AccessLog(Base):
+    """HTTP access log — Marco Civil art. 15 exige 6 meses de retenção."""
+    __tablename__ = "access_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    method: Mapped[str] = mapped_column(Text, nullable=False)
+    path: Mapped[str] = mapped_column(Text, nullable=False)
+    status_code: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    ip: Mapped[str | None] = mapped_column(Text, nullable=True)
+    user_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+    __table_args__ = (
+        Index("ix_access_logs_created_at", "created_at"),
     )

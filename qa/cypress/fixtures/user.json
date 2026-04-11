@@ -1,0 +1,15 @@
+{
+  "valid": {
+    "username": "qa_testuser",
+    "name": "QA Test User",
+    "email": "qa_testuser@example.com",
+    "password": "qapassword123"
+  },
+  "login": {
+    "identifier": "qa_testuser@example.com",
+    "password": "qapassword123"
+  },
+  "updated": {
+    "name": "QA Updated Name"
+  }
+}

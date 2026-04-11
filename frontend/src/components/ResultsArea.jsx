@@ -60,7 +60,16 @@ function FlatTable({ groups, marginPct, t, onOpenOffers }) {
                 </td>
                 <td><strong className="ft-sell">{sell != null ? formatMoney(sell, 'BRL') : '—'}</strong></td>
                 <td>{margin != null ? <span className="margin-tag">+{margin}%</span> : '—'}</td>
-                <td className="ft-count">{group.offers.length}</td>
+                <td className="ft-count">
+                  <button
+                    className="ft-offers-btn"
+                    type="button"
+                    onClick={() => onOpenOffers(group, name, config)}
+                    aria-label={`Ver ${group.offers.length} oferta${group.offers.length !== 1 ? 's' : ''} de ${name}`}
+                  >
+                    {group.offers.length}
+                  </button>
+                </td>
               </tr>
             )
           })}
@@ -229,8 +238,32 @@ export default function ResultsArea({
               />
             ))}
           </div>
+        ) : !isLoading && displayed.length === 0 && lastData != null ? (
+          <div className="empty-state">
+            <p>Nenhum produto encontrado para "{lastQuery}".</p>
+            <p className="empty-state-hint">Tente buscar por marca, modelo ou tipo de produto.</p>
+            <button type="button" onClick={onClear}>Limpar busca</button>
+          </div>
         ) : null}
       </section>
+
+      {!isLoading && displayed.length > 0 && (() => {
+        const allOffers = displayed.flatMap(g => g.offers || [])
+        const fxRate = allOffers[0]?.price?.fx_rate_used
+        const oldestCapture = allOffers.reduce((oldest, o) => {
+          if (!o.captured_at) return oldest
+          return !oldest || o.captured_at < oldest ? o.captured_at : oldest
+        }, null)
+        const capturedDate = oldestCapture
+          ? new Date(oldestCapture).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+          : null
+        if (!capturedDate && !fxRate) return null
+        const parts = [
+          capturedDate && `Capturado em ${capturedDate}`,
+          fxRate && `USD ≈ R$ ${fxRate.toFixed(2)}`,
+        ].filter(Boolean).join(' · ')
+        return <p className="results-capture-info">{parts}</p>
+      })()}
     </div>
   )
 }
