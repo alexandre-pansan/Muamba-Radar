@@ -98,9 +98,10 @@ export default function ResultsArea({
 }) {
   const { t } = useI18n()
   const [typeFilter, setTypeFilter] = useState(null)
+  const [concFilter, setConcFilter] = useState(null)
 
   // Reset filter when results change
-  useEffect(() => { setTypeFilter(null) }, [lastQuery])
+  useEffect(() => { setTypeFilter(null); setConcFilter(null) }, [lastQuery])
 
   const showClear = Boolean(lastData)
   const showRetry = status?.isError && lastQuery != null
@@ -127,9 +128,21 @@ export default function ResultsArea({
   const types = Object.entries(typeMap).sort((a, b) => b[1] - a[1])
   const showTypeFilter = types.length >= 1
 
-  const displayed = typeFilter
+  const typeFiltered = typeFilter
     ? sorted.filter(g => groupType(g) === typeFilter)
     : sorted
+
+  // Concentration sub-filter (perfumes only)
+  const concMap = {}
+  typeFiltered.forEach(g => {
+    if (g.concentration) concMap[g.concentration] = (concMap[g.concentration] || 0) + 1
+  })
+  const concentrations = Object.entries(concMap).sort((a, b) => b[1] - a[1])
+  const showConcFilter = concentrations.length >= 2
+
+  const displayed = concFilter
+    ? typeFiltered.filter(g => g.concentration === concFilter)
+    : typeFiltered
 
   return (
     <div className="content-area">
@@ -197,9 +210,29 @@ export default function ResultsArea({
             <button
               key={type}
               className={`type-chip${typeFilter === type ? ' is-active' : ''}`}
-              onClick={() => setTypeFilter(t => t === type ? null : type)}
+              onClick={() => { setTypeFilter(t => t === type ? null : type); setConcFilter(null) }}
             >
               {type} <span className="type-chip-count">{count}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {!isLoading && showConcFilter && (
+        <div className="type-filter-bar type-filter-bar--sub">
+          <button
+            className={`type-chip${!concFilter ? ' is-active' : ''}`}
+            onClick={() => setConcFilter(null)}
+          >
+            Todos <span className="type-chip-count">{typeFiltered.length}</span>
+          </button>
+          {concentrations.map(([conc, count]) => (
+            <button
+              key={conc}
+              className={`type-chip${concFilter === conc ? ' is-active' : ''}`}
+              onClick={() => setConcFilter(c => c === conc ? null : conc)}
+            >
+              {conc} <span className="type-chip-count">{count}</span>
             </button>
           ))}
         </div>

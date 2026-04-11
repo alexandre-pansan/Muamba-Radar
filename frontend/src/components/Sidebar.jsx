@@ -25,6 +25,7 @@ export default function Sidebar({
   recentSearches,
   onRecentClick,
   currentUser,
+  onDonate,
 }) {
   const { t } = useI18n()
   const [suggestions, setSuggestions] = useState([])
@@ -199,6 +200,15 @@ export default function Sidebar({
             ))
           )}
         </ul>
+      </div>
+
+      <div className="sb-donate">
+        <p className="sb-donate-text">
+          Está gostando? Nos ajude a manter este comparador vivo ☕
+        </p>
+        <button className="sb-donate-btn" onClick={onDonate}>
+          Doe agora
+        </button>
       </div>
 
     </aside>

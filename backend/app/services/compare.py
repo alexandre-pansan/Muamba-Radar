@@ -5,6 +5,7 @@ from collections import Counter
 from datetime import UTC, datetime
 
 from app.adapters.base import SourceAdapter
+from app.database import SessionLocal
 
 log = logging.getLogger("muambaradar.adapters")
 from app.adapters.registry import get_adapters
@@ -161,6 +162,32 @@ def scrape_offers(query: str, country: CountryFilter) -> list[OfferModel]:
         return _collect_offers(normalized_query, country)
 
 
+def _log_lut_misses(misses: list[tuple[str, str, str]]) -> None:
+    """Upsert LUT-miss entries — fire-and-forget, never raises."""
+    if not misses:
+        return
+    try:
+        from app.models import UnknownProduct  # local import avoids circular deps
+        now = datetime.now(UTC)
+        db = SessionLocal()
+        try:
+            for title_norm, query, category in misses:
+                existing = db.query(UnknownProduct).filter_by(title_norm=title_norm, category=category).first()
+                if existing:
+                    existing.hit_count += 1
+                    existing.last_seen = now
+                else:
+                    db.add(UnknownProduct(
+                        title_norm=title_norm, query=query, category=category,
+                        hit_count=1, first_seen=now, last_seen=now,
+                    ))
+            db.commit()
+        finally:
+            db.close()
+    except Exception:
+        log.debug("_log_lut_misses failed", exc_info=True)
+
+
 def build_response_from_offers(
     query: str,
     offers: list[OfferModel],
@@ -169,7 +196,8 @@ def build_response_from_offers(
 ) -> CompareResponseModel:
     """Group a pre-collected list of offers into the compare response."""
     normalized_query = normalize_text(query)
-    grouped = group_offers(normalized_query, offers)
+    grouped, lut_misses = group_offers(normalized_query, offers)
+    _log_lut_misses(lut_misses)
 
     groups: list[ProductGroupModel] = []
     for product_key, family_key, canonical_name, confidence, group_offers_list, concentration, volume_ml in grouped:

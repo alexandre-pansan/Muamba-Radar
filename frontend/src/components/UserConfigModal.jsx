@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useI18n } from '../i18n.jsx'
-import { apiUpdateMe, apiFetchUserSearches, getApiBase, getToken } from '../api.js'
+import { apiUpdateMe, apiFetchUserSearches, getApiBase, getToken, apiBumpBetaNotice } from '../api.js'
 import { DEFAULT_RATES, mergeRates } from '../taxRates.js'
 
 export default function UserConfigModal({
@@ -146,6 +146,31 @@ export default function UserConfigModal({
     await onPrefChange({ show_margin: e.target.checked })
   }
 
+  async function handleReenableBetaNotice() {
+    await onPrefChange({ hide_beta_notice: false })
+    // Clear all versioned localStorage keys so it shows again
+    Object.keys(localStorage)
+      .filter(k => k.startsWith('muamba_beta_dismissed_v'))
+      .forEach(k => localStorage.removeItem(k))
+  }
+
+  const [bumpingBeta, setBumpingBeta] = useState(false)
+  const [bumpedBeta, setBumpedBeta]   = useState(false)
+  async function handleBumpBetaNotice() {
+    setBumpingBeta(true)
+    try {
+      await apiBumpBetaNotice()
+      // Clear own localStorage so the modal shows for self too
+      Object.keys(localStorage)
+        .filter(k => k.startsWith('muamba_beta_dismissed_v'))
+        .forEach(k => localStorage.removeItem(k))
+      await onPrefChange({ hide_beta_notice: false })
+      setBumpedBeta(true)
+      setTimeout(() => setBumpedBeta(false), 3000)
+    } catch (_) {}
+    setBumpingBeta(false)
+  }
+
   async function handleTaxSave(e) {
     e.preventDefault()
     await onPrefChange({ tax_rates: taxRates })
@@ -245,6 +270,27 @@ export default function UserConfigModal({
           />
         </label>
       </section>
+
+      {currentUser?.is_admin && (
+        <section className="ucm-section">
+          <h3 className="ucm-section-title">Aviso Beta</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <button className="btn-inline btn-muted" onClick={handleReenableBetaNotice}>
+              Re-habilitar para mim
+            </button>
+            <button
+              className="btn-inline"
+              onClick={handleBumpBetaNotice}
+              disabled={bumpingBeta}
+            >
+              {bumpedBeta ? 'Enviado para todos ✓' : bumpingBeta ? 'Aguarde…' : 'Forçar para todos os usuários'}
+            </button>
+            <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--muted)' }}>
+              "Forçar para todos" incrementa a versão global — ignora o "Não mostrar mais" de todos.
+            </p>
+          </div>
+        </section>
+      )}
 
       {/* Tax rates section */}
       <section className="ucm-section">

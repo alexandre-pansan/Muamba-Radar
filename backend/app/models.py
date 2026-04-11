@@ -77,6 +77,7 @@ class UserPrefs(Base):
 
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), primary_key=True)
     show_margin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    hide_beta_notice: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     tax_rates: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
 
@@ -108,4 +109,30 @@ class AccessLog(Base):
 
     __table_args__ = (
         Index("ix_access_logs_created_at", "created_at"),
+    )
+
+
+class GlobalConfig(Base):
+    """Single-row table for app-wide settings managed by admins."""
+    __tablename__ = "global_config"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    beta_notice_version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+
+
+class UnknownProduct(Base):
+    """Títulos que não bateram na LUT — alimenta a fila de novos produtos a catalogar."""
+    __tablename__ = "unknown_products"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    title_norm: Mapped[str] = mapped_column(Text, nullable=False)
+    query: Mapped[str] = mapped_column(Text, nullable=False)
+    category: Mapped[str] = mapped_column(Text, nullable=False)  # "perfume", "gaming", etc.
+    hit_count: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    first_seen: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    last_seen: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("title_norm", "category", name="uq_unknown_products_title_category"),
+        Index("ix_unknown_products_category_hits", "category", "hit_count"),
     )

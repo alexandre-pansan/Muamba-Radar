@@ -138,11 +138,13 @@ class UpdateProfileRequest(BaseModel):
 
 class UserPrefsModel(BaseModel):
     show_margin: bool = False
+    hide_beta_notice: bool = False
     tax_rates: dict | None = None
 
 
 class UpdatePrefsRequest(BaseModel):
     show_margin: bool | None = None
+    hide_beta_notice: bool | None = None
     tax_rates: dict | None = None
 
 

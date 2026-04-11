@@ -74,6 +74,18 @@ PERFUME_HINTS = (
     "edc",
     "cologne",
     "elixir",
+    "body splash",
+    "body mist",
+    "splash corporal",
+    "oleo corporal",
+    "óleo corporal",
+    "oil concentrated",
+    "oil concentrado",
+    "oleo concentrado",
+    "óleo concentrado",
+    "body lotion",
+    "loção corporal",
+    "locao corporal",
 )
 
 PERFUME_STOPWORDS = {
@@ -149,6 +161,15 @@ def _extract_volume_ml(title: str) -> str | None:
 
 def _extract_perfume_concentration(title: str) -> str | None:
     text = normalize_text(title)
+    # Body/skincare formats — check before parfum keywords
+    if re.search(r"\boleo\s+corporal\b|\boleo\s+concentrado\b|oil\s+concentrat", text):
+        return "Body Oil"
+    if re.search(r"\bbody\s+splash\b|\bsplash\s+corporal\b", text):
+        return "Body Splash"
+    if re.search(r"\bbody\s+mist\b", text):
+        return "Body Mist"
+    if re.search(r"\bbody\s+lotion\b|\blocao\s+corporal\b", text):
+        return "Body Lotion"
     # Check most-specific multi-word phrases first
     if "extrait de parfum" in text or re.search(r"\bextrait\b", text):
         return "Extrait"
@@ -322,16 +343,25 @@ def _canonical_perfume_name(name_key: str, concentration: str | None, volume_ml:
 
 def group_offers(
     query: str, offers: list[OfferModel]
-) -> list[tuple[str, str, str, float, list[OfferModel], str | None, str | None]]:
-    """Return list of (product_key, family_key, canonical_name, confidence, offers, concentration, volume_ml).
-    concentration/volume_ml are non-None only for perfume groups.
+) -> tuple[list[tuple[str, str, str, float, list[OfferModel], str | None, str | None]], list[tuple[str, str, str]]]:
+    """Return (groups, lut_misses).
+    groups: list of (product_key, family_key, canonical_name, confidence, offers, concentration, volume_ml).
+    lut_misses: list of (title_norm, query, category) for offers that didn't match any LUT entry.
     """
     grouped: dict[tuple[str, str, str | None, str | None], list[OfferModel]] = {}
+    lut_misses: list[tuple[str, str, str]] = []
 
     for offer in offers:
         if _is_perfume_offer(offer):
+            text_norm = normalize_text(offer.title)
+            if not lut_perfume(text_norm):
+                lut_misses.append((text_norm, query, "perfume"))
             perfume_name = _perfume_name_key(offer, query)
             concentration = _extract_perfume_concentration(offer.title)
+            if concentration is None:
+                lut_entry = lut_perfume(normalize_text(offer.title))
+                if lut_entry and lut_entry.concentration:
+                    concentration = lut_entry.concentration
             volume_ml = _extract_volume_ml(offer.title)
             key = ("perfume", perfume_name, volume_ml, concentration)
             grouped.setdefault(key, []).append(offer)
@@ -359,4 +389,4 @@ def group_offers(
             product_key = slugify(f"{base} {storage or ''}")
             response.append((product_key, base, canonical_name, 1.0, grouped_offers, None, None))
 
-    return response
+    return response, lut_misses

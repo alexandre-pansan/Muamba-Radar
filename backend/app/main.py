@@ -231,6 +231,13 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
+@app.get("/config")
+def get_config(db: Session = Depends(get_db)) -> dict:
+    from app.models import GlobalConfig
+    cfg = db.get(GlobalConfig, 1)
+    return {"beta_notice_version": cfg.beta_notice_version if cfg else 1}
+
+
 # ── Sources ───────────────────────────────────────────────────────────────────
 
 @app.get("/sources", response_model=list[SourceInfoModel])
@@ -345,7 +352,7 @@ def get_prefs(
     prefs = db.get(UserPrefs, current_user.id)
     if not prefs:
         return UserPrefsModel()
-    return UserPrefsModel(show_margin=prefs.show_margin, tax_rates=prefs.tax_rates)
+    return UserPrefsModel(show_margin=prefs.show_margin, hide_beta_notice=prefs.hide_beta_notice, tax_rates=prefs.tax_rates)
 
 
 @app.patch("/auth/me/prefs", response_model=UserPrefsModel)
@@ -356,14 +363,16 @@ def update_prefs(
 ) -> UserPrefsModel:
     prefs = db.get(UserPrefs, current_user.id)
     if not prefs:
-        prefs = UserPrefs(user_id=current_user.id, show_margin=False)
+        prefs = UserPrefs(user_id=current_user.id, show_margin=False, hide_beta_notice=False)
         db.add(prefs)
     if body.show_margin is not None:
         prefs.show_margin = body.show_margin
+    if body.hide_beta_notice is not None:
+        prefs.hide_beta_notice = body.hide_beta_notice
     if body.tax_rates is not None:
         prefs.tax_rates = body.tax_rates
     db.commit()
-    return UserPrefsModel(show_margin=prefs.show_margin, tax_rates=prefs.tax_rates)
+    return UserPrefsModel(show_margin=prefs.show_margin, hide_beta_notice=prefs.hide_beta_notice, tax_rates=prefs.tax_rates)
 
 
 @app.get("/auth/me/export")
@@ -615,6 +624,21 @@ def _refresh_all_cached_queries() -> None:
         log.info("refresh  done")
     finally:
         db.close()
+
+
+@app.post("/admin/beta-notice/bump")
+def admin_bump_beta_notice(
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> dict:
+    from app.models import GlobalConfig
+    cfg = db.get(GlobalConfig, 1)
+    if not cfg:
+        cfg = GlobalConfig(id=1, beta_notice_version=1)
+        db.add(cfg)
+    cfg.beta_notice_version += 1
+    db.commit()
+    return {"beta_notice_version": cfg.beta_notice_version}
 
 
 @app.post("/admin/refresh-cache")

@@ -114,13 +114,14 @@ export function familyDisplayName(group) {
 
 export function formatModelName(name) {
   const exceptions = {
-    iphone: 'iPhone', ipad: 'iPad', airpods: 'AirPods',
+    iphone: 'iPhone', ipad: 'iPad', airpods: 'AirPods', playstation: 'PlayStation',
     note: 'Note', galaxy: 'Galaxy', redmi: 'Redmi',
     xiaomi: 'Xiaomi', samsung: 'Samsung', apple: 'Apple',
     pro: 'Pro', max: 'Max', plus: 'Plus', ultra: 'Ultra',
     mini: 'Mini', lite: 'Lite', ram: 'RAM', gb: 'GB', tb: 'TB',
   }
   return name
+    .replace(/_/g, ' ')
     .toLowerCase()
     .replace(/\b\w+\b/g, w => exceptions[w] ?? (w[0].toUpperCase() + w.slice(1)))
 }
@@ -145,6 +146,7 @@ const _TYPE_RULES = [
   [/^(perfume|eau\s+de\s+(parfum|toilette)|edp\b|edt\b)/i,'Perfume'],
   [/^(console|playstation|xbox|nintendo\s+switch)/i,       'Console'],
   [/^(controle|gamepad|joystick|dualsense|dualshock|joy.con)/i, 'Controle'],
+  [/^(volante|racing\s+wheel|steering\s+wheel)/i,           'Volante'],
   [/^(jogo|game\b|juego)\b/i,                              'Jogo'],
   [/^(smartphone|celular)/i,                               'Smartphone'],
   [/^(tablet|ipad)/i,                                      'Tablet'],
@@ -158,6 +160,7 @@ const _TYPE_RULES = [
   [/\bipad\b/i,                                            'Tablet'],
   [/\bplaystation\s*[345]\b|\bps\s*[345]\b|\bxbox\b|\bswitch\s*(oled|lite)?\b/i, 'Console'],
   [/\b(dualsense|dualshock|joy.con|controle\s+(ps|xbox|nintendo))/i, 'Controle'],
+  [/\b(volante|racing\s+wheel|steering\s+wheel)\b/i,        'Volante'],
   [/\b(jogo\s+|game\s+).*(ps[345]|xbox|switch|nintendo)/i, 'Jogo'],
 ]
 

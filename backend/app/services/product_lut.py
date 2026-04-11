@@ -286,9 +286,6 @@ _RAW: list[LUTEntry] = [
     _e("fanatec_csl_elite",         "Fanatec CSL Elite",
        r"\bfanatec\s+csl\s+elite\b"),
 
-    _e("volante_generic",           "Volante",
-       r"\bvolante\b|\bracing\s+wheel\b|\bsteering\s+wheel\b"),
-
 ]
 # fmt: on
 
@@ -303,12 +300,14 @@ class PerfumeLUTEntry(NamedTuple):
     brand: str        # e.g. "Dior"
     fragrance: str    # e.g. "Sauvage"
     pattern: re.Pattern[str]
+    concentration: str | None = None  # default when not extractable from title
 
 
-def _p(key: str, brand: str, fragrance: str, pattern: str) -> PerfumeLUTEntry:
+def _p(key: str, brand: str, fragrance: str, pattern: str, concentration: str | None = None) -> PerfumeLUTEntry:
     return PerfumeLUTEntry(
         key=key, brand=brand, fragrance=fragrance,
         pattern=re.compile(pattern, re.IGNORECASE),
+        concentration=concentration,
     )
 
 
@@ -757,32 +756,184 @@ _PERFUME_RAW: list[PerfumeLUTEntry] = [
 
     # ── Lattafa ───────────────────────────────────────────────────────────────
     _p("lattafa_bade_al_oud",       "Lattafa", "Bade'e Al Oud",
-       r"\bbade.?e?\s*al\s+oud\b"),
+       r"\bbade.?e?\s*al\s+oud\b",                                        "EDP"),
 
     _p("lattafa_raghba",            "Lattafa", "Raghba",
-       r"\braghba\b"),
+       r"\braghba\b",                                                      "EDP"),
 
     _p("lattafa_asad",              "Lattafa", "Asad",
-       r"\blattafa\b.*\basad\b|\basad\b.*\blattafa\b"),
+       r"\blattafa\b.*\basad\b|\basad\b.*\blattafa\b",                    "EDP"),
 
     _p("lattafa_yara",              "Lattafa", "Yara",
-       r"\blattafa\b.*\byara\b|\byara\b.*\blattafa\b"),
+       r"\blattafa\b.*\byara\b|\byara\b.*\blattafa\b",                    "EDP"),
 
     _p("lattafa_khamrah",           "Lattafa", "Khamrah",
-       r"\bkhamrah\b"),
+       r"\bkhamrah\b",                                                     "EDP"),
 
     _p("lattafa_oud_mood",          "Lattafa", "Oud Mood",
-       r"\boud\s+mood\b"),
+       r"\boud\s+mood\b",                                                  "EDP"),
+
+    _p("lattafa_ana_abiyedh",       "Lattafa", "Ana Abiyedh",
+       r"\bana\s+abiyedh\b",                                               "EDP"),
+
+    _p("lattafa_hayaati",           "Lattafa", "Hayaati",
+       r"\blattafa\b.*\bhayaati\b|\bhayaati\b.*\blattafa\b",              "EDP"),
+
+    _p("lattafa_ramz_gold",         "Lattafa", "Ramz Gold",
+       r"\bramz\s+gold\b",                                                 "EDP"),
+
+    _p("lattafa_oud_for_glory",     "Lattafa", "Oud For Glory",
+       r"\boud\s+for\s+glory\b",                                           "EDP"),
+
+    _p("lattafa_mayar",             "Lattafa", "Mayar",
+       r"\blattafa\b.*\bmayar\b|\bmayar\b.*\blattafa\b",                  "EDP"),
+
+    _p("lattafa_nebras",            "Lattafa", "Nebras",
+       r"\bnebras\b",                                                       "EDP"),
+
+    # ── Al Haramain ───────────────────────────────────────────────────────────
+    _p("alh_laventure",             "Al Haramain", "L'Aventure",
+       r"\bal\s*haramain\b.*\bl.?aventure\b|\bl.?aventure\b.*\bal\s*haramain\b",  "EDP"),
+
+    _p("alh_laventure_femme",       "Al Haramain", "L'Aventure Femme",
+       r"\bl.?aventure\s+femme\b",                                         "EDP"),
+
+    _p("alh_amber_oud_rouge",       "Al Haramain", "Amber Oud Rouge",
+       r"\bamber\s+oud\s+rouge\b",                                         "EDP"),
+
+    _p("alh_amber_oud_blue",        "Al Haramain", "Amber Oud Blue Edition",
+       r"\bamber\s+oud\s+blue\b",                                          "EDP"),
+
+    _p("alh_amber_oud_gold",        "Al Haramain", "Amber Oud Gold Edition",
+       r"\bamber\s+oud\s+gold\b",                                          "EDP"),
+
+    _p("alh_amber_oud",             "Al Haramain", "Amber Oud",
+       r"\bal\s*haramain\b.*\bamber\s+oud\b|\bamber\s+oud\b.*\bal\s*haramain\b",  "EDP"),
+
+    _p("alh_madinah",               "Al Haramain", "Madinah",
+       r"\bal\s*haramain\b.*\bmadinah\b|\bmadinah\b.*\bal\s*haramain\b",  "EDP"),
+
+    _p("alh_obsession_noir",        "Al Haramain", "Obsession Noir",
+       r"\bobsession\s+noir\b.*\bal\s*haramain\b|\bal\s*haramain\b.*\bobsession\s+noir\b",  "EDP"),
+
+    # ── Rasasi ────────────────────────────────────────────────────────────────
+    _p("rasasi_hawas",              "Rasasi", "Hawas",
+       r"\brasasi\b.*\bhawas\b|\bhawas\b.*\brasasi\b",                    "EDP"),
+
+    _p("rasasi_la_yuqawam",         "Rasasi", "La Yuqawam",
+       r"\bla\s+yuqawam\b",                                                "EDP"),
+
+    _p("rasasi_rumz",               "Rasasi", "Rumz Al Rasasi",
+       r"\brumz\s+al\s+rasasi\b|\brasasi\b.*\brumz\b",                   "EDP"),
+
+    _p("rasasi_dhem",               "Rasasi", "Dhem",
+       r"\brasasi\b.*\bdhem\b|\bdhem\b.*\brasasi\b",                      "EDP"),
+
+    # ── Afnan ─────────────────────────────────────────────────────────────────
+    _p("afnan_9pm",                 "Afnan", "9pm",
+       r"\bafnan\b.*\b9\s*pm\b|\b9\s*pm\b.*\bafnan\b",                   "EDP"),
+
+    _p("afnan_supremacy_silver",    "Afnan", "Supremacy Silver",
+       r"\bsupremacy\s+silver\b",                                          "EDP"),
+
+    _p("afnan_supremacy_noir",      "Afnan", "Supremacy Noir",
+       r"\bsupremacy\s+noir\b",                                            "EDP"),
+
+    _p("afnan_supremacy_rouge",     "Afnan", "Supremacy Rouge",
+       r"\bsupremacy\s+rouge\b",                                           "EDP"),
+
+    _p("afnan_supremacy",           "Afnan", "Supremacy",
+       r"\bafnan\b.*\bsupremacy\b|\bsupremacy\b.*\bafnan\b",              "EDP"),
+
+    _p("afnan_turathi",             "Afnan", "Turathi",
+       r"\bafnan\b.*\bturathi\b|\bturathi\b.*\bafnan\b",                  "EDP"),
+
+    # ── Swiss Arabian ─────────────────────────────────────────────────────────
+    _p("sa_shaghaf_oud_aswad",      "Swiss Arabian", "Shaghaf Oud Aswad",
+       r"\bshaghaf\s+oud\s+aswad\b",                                       "EDP"),
+
+    _p("sa_shaghaf_oud",            "Swiss Arabian", "Shaghaf Oud",
+       r"\bshaghaf\s+oud\b",                                               "EDP"),
+
+    _p("sa_warde",                  "Swiss Arabian", "Warde",
+       r"\bswiss\s+arabian\b.*\bwarde\b|\bwarde\b.*\bswiss\s+arabian\b",  "EDP"),
+
+    _p("sa_mukhalat_malaki",        "Swiss Arabian", "Mukhalat Malaki",
+       r"\bmukhalat\s+malaki\b",                                           "EDP"),
+
+    # ── Orientica ─────────────────────────────────────────────────────────────
+    _p("orientica_velvet_gold",     "Orientica", "Velvet Gold",
+       r"\bvelvet\s+gold\b.*\borientica\b|\borientica\b.*\bvelvet\s+gold\b",  "EDP"),
+
+    _p("orientica_amber_rouge",     "Orientica", "Amber Rouge",
+       r"\borientica\b.*\bamber\s+rouge\b|\bamber\s+rouge\b.*\borientica\b",  "EDP"),
+
+    _p("orientica_oud_saffron",     "Orientica", "Oud Saffron",
+       r"\boud\s+saffron\b",                                               "EDP"),
+
+    _p("orientica_black_oud",       "Orientica", "Black Oud",
+       r"\borientica\b.*\bblack\s+oud\b|\bblack\s+oud\b.*\borientica\b",  "EDP"),
+
+    # ── Ajmal ─────────────────────────────────────────────────────────────────
+    _p("ajmal_evoke_silver",        "Ajmal", "Evoke Silver",
+       r"\bajmal\b.*\bevoke\s+silver\b|\bevoke\s+silver\b.*\bajmal\b",    "EDT"),
+
+    _p("ajmal_evoke",               "Ajmal", "Evoke",
+       r"\bajmal\b.*\bevoke\b|\bevoke\b.*\bajmal\b",                       "EDT"),
+
+    _p("ajmal_amber_wood",          "Ajmal", "Amber Wood",
+       r"\bajmal\b.*\bamber\s+wood\b|\bamber\s+wood\b.*\bajmal\b",        "EDP"),
+
+    _p("ajmal_blu",                 "Ajmal", "Blu",
+       r"\bajmal\b.*\bblu\b|\bblu\b.*\bajmal\b",                          "EDP"),
+
+    _p("ajmal_wisal",               "Ajmal", "Wisal",
+       r"\bajmal\b.*\bwisal\b|\bwisal\b.*\bajmal\b",                      "EDP"),
+
+    # ── Arabian Oud ───────────────────────────────────────────────────────────
+    _p("ao_kalemat",                "Arabian Oud", "Kalemat",
+       r"\bkalemat\b",                                                      "EDP"),
+
+    _p("ao_oud_al_shams",           "Arabian Oud", "Oud Al Shams",
+       r"\boud\s+al\s+shams\b",                                            "EDP"),
+
+    # ── Amouage ───────────────────────────────────────────────────────────────
+    _p("amouage_interlude_man",     "Amouage", "Interlude Man",
+       r"\bamouage\b.*\binterlude\s+man\b|\binterlude\s+man\b.*\bamouage\b",  "EDP"),
+
+    _p("amouage_interlude_woman",   "Amouage", "Interlude Woman",
+       r"\bamouage\b.*\binterlude\s+woman\b|\binterlude\s+woman\b.*\bamouage\b",  "EDP"),
+
+    _p("amouage_interlude",         "Amouage", "Interlude",
+       r"\bamouage\b.*\binterlude\b|\binterlude\b.*\bamouage\b",          "EDP"),
+
+    _p("amouage_reflection",        "Amouage", "Reflection",
+       r"\bamouage\b.*\breflection\b|\breflection\b.*\bamouage\b",        "EDP"),
+
+    _p("amouage_gold_man",          "Amouage", "Gold Man",
+       r"\bamouage\b.*\bgold\s+man\b|\bgold\s+man\b.*\bamouage\b",        "EDP"),
+
+    _p("amouage_epic",              "Amouage", "Epic",
+       r"\bamouage\b.*\bepic\b|\bepic\b.*\bamouage\b",                    "EDP"),
+
+    _p("amouage_beloved",           "Amouage", "Beloved",
+       r"\bamouage\b.*\bbeloved\b|\bbeloved\b.*\bamouage\b",              "EDP"),
 
     # ── Armaf ─────────────────────────────────────────────────────────────────
     _p("armaf_cdni_intense",        "Armaf", "Club de Nuit Intense",
-       r"\bclub\s+de\s+nuit\s+intense\b"),
+       r"\bclub\s+de\s+nuit\s+intense\b",                                  "EDP"),
 
     _p("armaf_cdni_man",            "Armaf", "Club de Nuit Intense Man",
-       r"\bclub\s+de\s+nuit\s+intense\s+man\b"),
+       r"\bclub\s+de\s+nuit\s+intense\s+man\b",                           "EDP"),
 
     _p("armaf_cdn",                 "Armaf", "Club de Nuit",
-       r"\bclub\s+de\s+nuit\b"),
+       r"\bclub\s+de\s+nuit\b",                                            "EDP"),
+
+    _p("armaf_hunter",              "Armaf", "Hunter",
+       r"\barmaf\b.*\bhunter\b|\bhunter\b.*\barmaf\b",                    "EDP"),
+
+    _p("armaf_bucephalus",          "Armaf", "Bucephalus",
+       r"\bbucephalus\b",                                                   "EDP"),
 
     # ── Penhaligon's ──────────────────────────────────────────────────────────
     _p("penhaligons_halfeti",       "Penhaligon's", "Halfeti",
@@ -803,6 +954,72 @@ _PERFUME_RAW: list[PerfumeLUTEntry] = [
 
     _p("jm_generic",                "Jo Malone", "Jo Malone",
        r"\bjo\s+malone\b"),
+
+    # ── Body Splash / Body Mist ───────────────────────────────────────────────
+    # Victoria's Secret
+    _p("vs_bombshell",              "Victoria's Secret", "Bombshell",
+       r"\bvictoria.?s?\s+secret\b.*\bbombshell\b|\bbombshell\b.*\bvictoria.?s?\s+secret\b",  "Body Splash"),
+
+    _p("vs_pure_seduction",         "Victoria's Secret", "Pure Seduction",
+       r"\bpure\s+seduction\b",                                            "Body Splash"),
+
+    _p("vs_love_spell",             "Victoria's Secret", "Love Spell",
+       r"\blove\s+spell\b",                                                "Body Splash"),
+
+    _p("vs_bare_vanilla",           "Victoria's Secret", "Bare Vanilla",
+       r"\bbare\s+vanilla\b",                                              "Body Splash"),
+
+    _p("vs_velvet_petals",          "Victoria's Secret", "Velvet Petals",
+       r"\bvelvet\s+petals\b",                                             "Body Splash"),
+
+    _p("vs_in_the_stars",           "Victoria's Secret", "In The Stars",
+       r"\bin\s+the\s+stars\b.*\bvictoria.?s?\s+secret\b|\bvictoria.?s?\s+secret\b.*\bin\s+the\s+stars\b",  "Body Splash"),
+
+    # Sol de Janeiro
+    _p("sdj_cheirosa_62",           "Sol de Janeiro", "Brazilian Crush Cheirosa 62",
+       r"\bcheirosa\s*62\b",                                               "Body Splash"),
+
+    _p("sdj_cheirosa_68",           "Sol de Janeiro", "Brazilian Crush Cheirosa 68",
+       r"\bcheirosa\s*68\b",                                               "Body Splash"),
+
+    _p("sdj_cheirosa_71",           "Sol de Janeiro", "Brazilian Crush Cheirosa 71",
+       r"\bcheirosa\s*71\b",                                               "Body Splash"),
+
+    _p("sdj_brazilian_crush",       "Sol de Janeiro", "Brazilian Crush",
+       r"\bsol\s+de\s+janeiro\b.*\bbrazilian\s+crush\b|\bbrazilian\s+crush\b.*\bsol\s+de\s+janeiro\b",  "Body Splash"),
+
+    # O Boticário
+    _p("bot_malbec_sport",          "O Boticário", "Malbec Sport",
+       r"\bmalbec\s+sport\b",                                              "Body Splash"),
+
+    _p("bot_floratta_blue",         "O Boticário", "Floratta Blue",
+       r"\bfloratta\s+blue\b",                                             "Body Splash"),
+
+    _p("bot_floratta_rosê",         "O Boticário", "Floratta Rosê",
+       r"\bfloratta\s+ros[eê]\b",                                          "Body Splash"),
+
+    _p("bot_floratta",              "O Boticário", "Floratta",
+       r"\bfloratta\b",                                                    "Body Splash"),
+
+    _p("bot_lily",                  "O Boticário", "Lily",
+       r"\bboticari[oa]\b.*\blily\b|\blily\b.*\bboticari[oa]\b",          "Body Splash"),
+
+    _p("bot_glamour",               "O Boticário", "Glamour",
+       r"\bboticari[oa]\b.*\bglamour\b|\bglamour\b.*\bboticari[oa]\b",    "Body Splash"),
+
+    # Natura
+    _p("nat_tododia",               "Natura", "Tododia",
+       r"\bnatура\b.*\btododia\b|\btododia\b.*\bnatura\b|\btodo\s*dia\b", "Body Splash"),
+
+    # Bath & Body Works
+    _p("bbw_into_the_night",        "Bath & Body Works", "Into The Night",
+       r"\binto\s+the\s+night\b.*\bbath\s*.?\s*body\b|\bbath\s*.?\s*body\b.*\binto\s+the\s+night\b",  "Body Splash"),
+
+    _p("bbw_warm_vanilla_sugar",    "Bath & Body Works", "Warm Vanilla Sugar",
+       r"\bwarm\s+vanilla\s+sugar\b",                                      "Body Splash"),
+
+    _p("bbw_a_thousand_wishes",     "Bath & Body Works", "A Thousand Wishes",
+       r"\ba\s+thousand\s+wishes\b",                                       "Body Splash"),
 
     # ── Davidoff ──────────────────────────────────────────────────────────────
     _p("davidoff_cool_water",       "Davidoff", "Cool Water",

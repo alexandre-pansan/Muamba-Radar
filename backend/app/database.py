@@ -81,6 +81,23 @@ def init_db() -> None:
         except Exception:
             conn.rollback()
 
+        # Add hide_beta_notice column to user_prefs
+        try:
+            conn.execute(text("ALTER TABLE user_prefs ADD COLUMN hide_beta_notice BOOLEAN NOT NULL DEFAULT FALSE"))
+            conn.commit()
+        except Exception:
+            conn.rollback()
+
+    # Seed singleton global_config row
+    from app.models import GlobalConfig as _GlobalConfig
+    _gc_db = SessionLocal()
+    try:
+        if not _gc_db.query(_GlobalConfig).first():
+            _gc_db.add(_GlobalConfig(id=1, beta_notice_version=1))
+            _gc_db.commit()
+    finally:
+        _gc_db.close()
+
         # Purge access_logs older than 6 months (Marco Civil max retention = 6 months)
         try:
             conn.execute(text(

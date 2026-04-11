@@ -10,10 +10,12 @@ import PrivacyPage from './components/PrivacyPage.jsx'
 import TermsPage from './components/TermsPage.jsx'
 import TaxCalculator from './components/TaxCalculator.jsx'
 import OffersDialog from './components/OffersDialog.jsx'
+import BetaNoticeModal, { shouldShowBetaNotice } from './components/BetaNoticeModal.jsx'
+import DonateModal from './components/DonateModal.jsx'
 import {
   getToken, setToken, clearToken,
   apiFetchMe, apiFetchPrefs, apiFetchFeaturedImages,
-  apiFetchUserSearches, apiCompare, apiSavePrefs,
+  apiFetchUserSearches, apiCompare, apiSavePrefs, apiFetchConfig,
 } from './api.js'
 
 const RECENT_KEY = 'muamba_recent'
@@ -64,6 +66,9 @@ function AppInner() {
   const [authModalTab, setAuthModalTab] = useState('login')
   const [userConfigOpen, setUserConfigOpen] = useState(false)
   const [taxCalcOpen, setTaxCalcOpen] = useState(false)
+  const [betaNoticeOpen, setBetaNoticeOpen] = useState(false)
+  const [donateOpen, setDonateOpen] = useState(false)
+  const [betaVersion, setBetaVersion] = useState(1)
 
   // Page routing
   const getPage = () => {
@@ -118,8 +123,11 @@ function AppInner() {
         return
       }
       setCurrentUser(user)
-      const prefs = await apiFetchPrefs()
+      const [prefs, config] = await Promise.all([apiFetchPrefs(), apiFetchConfig()])
       setCurrentPrefs(prefs)
+      const v = config.beta_notice_version ?? 1
+      setBetaVersion(v)
+      if (shouldShowBetaNotice({ user, prefs, version: v })) setBetaNoticeOpen(true)
       // Load user searches for sidebar
       loadUserSearches()
     } catch (_) {
@@ -328,6 +336,7 @@ function AppInner() {
           recentSearches={recentSearches}
           onRecentClick={handleRecentClick}
           currentUser={currentUser}
+          onDonate={() => setDonateOpen(true)}
         />
 
         <div className="main-area">
@@ -402,6 +411,18 @@ function AppInner() {
 
       <PrivacyPage open={legalModal === 'privacy'} onClose={() => setLegalModal(null)} />
       <TermsPage   open={legalModal === 'terms'}   onClose={() => setLegalModal(null)} />
+
+      <BetaNoticeModal
+        open={betaNoticeOpen}
+        onClose={() => setBetaNoticeOpen(false)}
+        isLoggedIn={!!currentUser}
+        betaVersion={betaVersion}
+      />
+
+      <DonateModal
+        open={donateOpen}
+        onClose={() => setDonateOpen(false)}
+      />
 
       </>
       )}

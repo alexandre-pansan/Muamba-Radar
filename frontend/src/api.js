@@ -189,6 +189,23 @@ export async function apiAdminToggleAdmin(userId) {
   return res.json()
 }
 
+export async function apiFetchConfig() {
+  try {
+    const res = await fetch(`${getApiBase()}/config`)
+    if (res.ok) return res.json()
+  } catch (_) {}
+  return { beta_notice_version: 1 }
+}
+
+export async function apiBumpBetaNotice() {
+  const res = await fetch(`${getApiBase()}/admin/beta-notice/bump`, {
+    method: 'POST',
+    headers: authHeaders(),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
 export async function apiTestSearch(query, adapterIds, raw = false) {
   const res = await fetch(`${getApiBase()}/admin/test-search`, {
     method: 'POST',
