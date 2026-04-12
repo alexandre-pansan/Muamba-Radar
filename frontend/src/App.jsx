@@ -69,6 +69,9 @@ function AppInner() {
   const [betaNoticeOpen, setBetaNoticeOpen] = useState(false)
   const [donateOpen, setDonateOpen] = useState(false)
   const [betaVersion, setBetaVersion] = useState(1)
+  const [donateGoal, setDonateGoal] = useState(80)
+  const [donateRaised, setDonateRaised] = useState(0)
+  const [donateSupporters, setDonateSupporters] = useState(0)
 
   // Page routing
   const getPage = () => {
@@ -127,6 +130,9 @@ function AppInner() {
       setCurrentPrefs(prefs)
       const v = config.beta_notice_version ?? 1
       setBetaVersion(v)
+      setDonateGoal(config.donate_goal ?? 80)
+      setDonateRaised(config.donate_raised ?? 0)
+      setDonateSupporters(config.donate_supporters ?? 0)
       if (shouldShowBetaNotice({ user, prefs, version: v })) setBetaNoticeOpen(true)
       // Load user searches for sidebar
       loadUserSearches()
@@ -194,6 +200,16 @@ function AppInner() {
   useEffect(() => {
     apiFetchFeaturedImages().then(imgs => {
       if (imgs && imgs.length) setFeaturedImages(imgs)
+    })
+  }, [])
+
+  // ── Donate config (public, no auth needed) ──────────────────────────────────
+
+  useEffect(() => {
+    apiFetchConfig().then(cfg => {
+      setDonateGoal(cfg.donate_goal ?? 80)
+      setDonateRaised(cfg.donate_raised ?? 0)
+      setDonateSupporters(cfg.donate_supporters ?? 0)
     })
   }, [])
 
@@ -337,6 +353,9 @@ function AppInner() {
           onRecentClick={handleRecentClick}
           currentUser={currentUser}
           onDonate={() => setDonateOpen(true)}
+          donateGoal={donateGoal}
+          donateRaised={donateRaised}
+          donateSupporters={donateSupporters}
         />
 
         <div className="main-area">

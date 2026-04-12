@@ -206,6 +206,16 @@ export async function apiBumpBetaNotice() {
   return res.json()
 }
 
+export async function apiAdminUpdateDonateStats(data) {
+  const res = await fetch(`${getApiBase()}/admin/donate-stats`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
 export async function apiTestSearch(query, adapterIds, raw = false) {
   const res = await fetch(`${getApiBase()}/admin/test-search`, {
     method: 'POST',

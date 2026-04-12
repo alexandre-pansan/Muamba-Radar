@@ -34,7 +34,7 @@ export default function PrivacyModal({ open, onClose }) {
         <p>
           O MuambaRadar é um serviço de comparação de preços entre o Paraguai e o Brasil.
           Para dúvidas sobre privacidade, entre em contato pelo e-mail:{' '}
-          <a href="mailto:privacidade@muambaradar.com.br">privacidade@muambaradar.com.br</a>.
+          <a href="mailto:muambaradar@gmail.com">muambaradar@gmail.com</a>.
         </p>
 
         <h2>2. Dados que coletamos</h2>
@@ -98,7 +98,7 @@ export default function PrivacyModal({ open, onClose }) {
         <h2>10. Contato</h2>
         <p>
           Encarregado de Dados (DPO):{' '}
-          <a href="mailto:privacidade@muambaradar.com.br">privacidade@muambaradar.com.br</a>
+          <a href="mailto:muambaradar@gmail.com">muambaradar@gmail.com</a>
         </p>
       </div>
     </dialog>

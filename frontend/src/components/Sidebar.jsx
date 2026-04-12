@@ -26,12 +26,36 @@ export default function Sidebar({
   onRecentClick,
   currentUser,
   onDonate,
+  donateGoal = 80,
+  donateRaised = 0,
+  donateSupporters = 0,
 }) {
   const { t } = useI18n()
   const [suggestions, setSuggestions] = useState([])
   const [activeSuggestion, setActiveSuggestion] = useState(-1)
   const [showSuggestions, setShowSuggestions] = useState(false)
+  const [donatePulse, setDonatePulse] = useState(false)
   const inputRef = useRef(null)
+
+  const DONATE_COPIES = [
+    { text: 'Já economizou hoje? Nos pague um café', emoji: '☕' },
+    { text: 'Sem anúncios, sem rastreio — só você e o preço justo', emoji: '🙏' },
+    { text: 'Este comparador roda em servidores pagos de bolso', emoji: '💸' },
+    { text: 'Nos ajude a manter este comparador vivo', emoji: '🚀' },
+  ]
+  const donateCopy = useRef(DONATE_COPIES[Math.floor(Math.random() * DONATE_COPIES.length)])
+
+  const donatePct = donateGoal > 0 ? Math.min(100, Math.round((donateRaised / donateGoal) * 100)) : 0
+
+  // Golden pulse a cada 10 minutos
+  useEffect(() => {
+    const pulse = () => {
+      setDonatePulse(true)
+      setTimeout(() => setDonatePulse(false), 1800 * 3 + 200)
+    }
+    const id = setInterval(pulse, 10 * 60 * 1000)
+    return () => clearInterval(id)
+  }, [])
 
   // Debounced suggestions fetch
   const debouncedFetch = useCallback(
@@ -202,13 +226,56 @@ export default function Sidebar({
         </ul>
       </div>
 
-      <div className="sb-donate">
-        <p className="sb-donate-text">
-          Está gostando? Nos ajude a manter este comparador vivo ☕
+      <div className={`sb-donate${donatePulse ? ' sb-donate--pulse' : ''}`}>
+
+        {/* Header: ícone de café animado + copy rotativo */}
+        <div className="sb-donate-header">
+          <svg className="sb-donate-cup" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none">
+            <defs>
+              <clipPath id="cup-fill-clip">
+                <rect x="0" className="cup-liquid-rect" width="24" height="24" />
+              </clipPath>
+            </defs>
+            {/* liquid fill */}
+            <path d="M5 10h14l-1.5 9H6.5L5 10z" fill="#fbbf24" opacity="0.35" clipPath="url(#cup-fill-clip)" />
+            {/* cup outline */}
+            <path d="M5 10h14l-1.5 9H6.5L5 10z" stroke="#fbbf24" strokeWidth="1.4" strokeLinejoin="round" />
+            {/* handle */}
+            <path d="M19 12h1.5a1.5 1.5 0 010 3H19" stroke="#fbbf24" strokeWidth="1.4" strokeLinecap="round" />
+            {/* steam */}
+            <path d="M9 7c0-1 1-1 1-2M12 7c0-1 1-1 1-2M15 7c0-1 1-1 1-2" stroke="#fbbf24" strokeWidth="1.2" strokeLinecap="round" opacity="0.6" />
+          </svg>
+          <p className="sb-donate-text">
+            {donateCopy.current.text} {donateCopy.current.emoji}
+          </p>
+        </div>
+
+        {/* Social proof */}
+        <p className="sb-donate-social">
+          <span className="sb-donate-social-dot" aria-hidden="true" />
+          {donateSupporters} pessoas já apoiaram
         </p>
-        <button className="sb-donate-btn" onClick={onDonate}>
-          Doe agora
-        </button>
+
+        {/* Progress bar */}
+        <div className="sb-donate-progress"
+          role="progressbar"
+          aria-valuenow={donatePct}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label={`R$${donateRaised} de R$${donateGoal} arrecadados este mês`}
+        >
+          <div className="sb-donate-progress-bar" style={{ width: `${donatePct}%` }} />
+        </div>
+        <p className="sb-donate-progress-label">R$ {donateRaised} de R$ {donateGoal}/mês</p>
+
+        {/* Button com shimmer */}
+        <div className="sb-donate-btn-wrap">
+          <button className="sb-donate-btn" onClick={onDonate}>
+            Doe agora
+          </button>
+          <span className="sb-donate-btn-hint">via PIX · leva 10 segundos</span>
+        </div>
+
       </div>
 
     </aside>

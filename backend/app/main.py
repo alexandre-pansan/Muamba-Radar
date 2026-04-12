@@ -235,7 +235,34 @@ def health() -> dict[str, str]:
 def get_config(db: Session = Depends(get_db)) -> dict:
     from app.models import GlobalConfig
     cfg = db.get(GlobalConfig, 1)
-    return {"beta_notice_version": cfg.beta_notice_version if cfg else 1}
+    return {
+        "beta_notice_version": cfg.beta_notice_version if cfg else 1,
+        "donate_goal":         cfg.donate_goal         if cfg else 80,
+        "donate_raised":       cfg.donate_raised       if cfg else 0,
+        "donate_supporters":   cfg.donate_supporters   if cfg else 0,
+    }
+
+
+@app.patch("/admin/donate-stats")
+def admin_update_donate_stats(
+    body: dict,
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> dict:
+    from app.models import GlobalConfig
+    cfg = db.get(GlobalConfig, 1)
+    if not cfg:
+        cfg = GlobalConfig(id=1, beta_notice_version=1, donate_goal=80, donate_raised=0, donate_supporters=0)
+        db.add(cfg)
+    if "donate_goal"       in body: cfg.donate_goal       = int(body["donate_goal"])
+    if "donate_raised"     in body: cfg.donate_raised     = int(body["donate_raised"])
+    if "donate_supporters" in body: cfg.donate_supporters = int(body["donate_supporters"])
+    db.commit()
+    return {
+        "donate_goal":       cfg.donate_goal,
+        "donate_raised":     cfg.donate_raised,
+        "donate_supporters": cfg.donate_supporters,
+    }
 
 
 # ── Sources ───────────────────────────────────────────────────────────────────

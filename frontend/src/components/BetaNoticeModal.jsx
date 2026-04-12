@@ -4,7 +4,8 @@ import { apiSavePrefs } from '../api.js'
 const LS_KEY = (v) => `muamba_beta_dismissed_v${v}`
 
 export function shouldShowBetaNotice({ user, prefs, version }) {
-  if (!user?.is_admin) return false
+  if (!user) return false
+  if (prefs?.hide_beta_notice && localStorage.getItem(LS_KEY(version))) return false
   if (localStorage.getItem(LS_KEY(version))) return false
   return true
 }

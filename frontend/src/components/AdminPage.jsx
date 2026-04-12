@@ -6,6 +6,8 @@ import {
   apiAdminListUsers,
   apiAdminDeleteUser,
   apiAdminToggleAdmin,
+  apiFetchConfig,
+  apiAdminUpdateDonateStats,
 } from '../api.js'
 
 // ── Shared ───────────────────────────────────────────────────────────────────
@@ -435,12 +437,127 @@ function CacheTab() {
   )
 }
 
+// ── Tab: Doações ──────────────────────────────────────────────────────────────
+
+function DonateTab() {
+  const [goal, setGoal] = useState('')
+  const [raised, setRaised] = useState('')
+  const [supporters, setSupporters] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [status, setStatus] = useState(null)
+
+  useEffect(() => {
+    apiFetchConfig()
+      .then(cfg => {
+        setGoal(String(cfg.donate_goal ?? 80))
+        setRaised(String(cfg.donate_raised ?? 0))
+        setSupporters(String(cfg.donate_supporters ?? 0))
+      })
+      .finally(() => setLoading(false))
+  }, [])
+
+  async function handleSave() {
+    const g = parseInt(goal, 10)
+    const r = parseInt(raised, 10)
+    const s = parseInt(supporters, 10)
+    if (isNaN(g) || isNaN(r) || isNaN(s) || g < 1 || r < 0 || s < 0) {
+      setStatus({ ok: false, text: 'Valores inválidos.' })
+      return
+    }
+    setSaving(true)
+    setStatus(null)
+    try {
+      await apiAdminUpdateDonateStats({ donate_goal: g, donate_raised: r, donate_supporters: s })
+      setStatus({ ok: true, text: 'Salvo! Os valores serão refletidos na sidebar.' })
+    } catch (e) {
+      setStatus({ ok: false, text: e.message })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (loading) return <p className="admin-tab-loading">Carregando...</p>
+
+  return (
+    <div className="admin-tab-body">
+      <h2 className="admin-section-title">Contador de Doações</h2>
+      <p className="admin-cache-desc">
+        Atualize manualmente quando receber uma doação via PIX. Os valores aparecem na sidebar para todos os usuários.
+      </p>
+
+      <div className="donate-admin-form">
+        <label className="donate-admin-label">
+          Meta mensal (R$)
+          <input
+            className="donate-admin-input"
+            type="number"
+            min="1"
+            value={goal}
+            onChange={e => setGoal(e.target.value)}
+          />
+        </label>
+
+        <label className="donate-admin-label">
+          Arrecadado este mês (R$)
+          <input
+            className="donate-admin-input"
+            type="number"
+            min="0"
+            value={raised}
+            onChange={e => setRaised(e.target.value)}
+          />
+        </label>
+
+        <label className="donate-admin-label">
+          Apoiadores este mês
+          <input
+            className="donate-admin-input"
+            type="number"
+            min="0"
+            value={supporters}
+            onChange={e => setSupporters(e.target.value)}
+          />
+        </label>
+
+        <button
+          className={`dev-tools-run-btn${saving ? ' is-running' : ''}`}
+          onClick={handleSave}
+          disabled={saving}
+        >
+          {saving ? 'Salvando…' : 'Salvar'}
+        </button>
+
+        {status && (
+          <div className={`admin-status-box ${status.ok ? 'is-ok' : 'is-error'}`}>{status.text}</div>
+        )}
+      </div>
+
+      <div className="donate-admin-preview">
+        <p className="dev-tools-label">Preview</p>
+        <div className="donate-admin-bar-wrap">
+          <div className="donate-admin-bar">
+            <div
+              className="donate-admin-bar-fill"
+              style={{ width: `${Math.min(100, Math.round((parseInt(raised, 10) / parseInt(goal, 10)) * 100) || 0)}%` }}
+            />
+          </div>
+          <span className="donate-admin-bar-label">
+            R$ {raised || 0} de R$ {goal || 0}/mês · {supporters || 0} apoiadores
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Main AdminPage ────────────────────────────────────────────────────────────
 
 const TABS = [
   { id: 'users',    label: 'Usuários'  },
   { id: 'devtools', label: 'Dev Tools' },
   { id: 'cache',    label: 'Cache'     },
+  { id: 'donate',   label: 'Doações'   },
 ]
 
 export default function AdminPage({ onBack }) {
@@ -470,6 +587,7 @@ export default function AdminPage({ onBack }) {
         {tab === 'users'    && <UsersTab />}
         {tab === 'devtools' && <DevToolsTab />}
         {tab === 'cache'    && <CacheTab />}
+        {tab === 'donate'   && <DonateTab />}
       </div>
     </div>
   )

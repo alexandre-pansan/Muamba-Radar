@@ -88,6 +88,18 @@ def init_db() -> None:
         except Exception:
             conn.rollback()
 
+        # Add donation tracking columns to global_config
+        for col in [
+            "ALTER TABLE global_config ADD COLUMN donate_goal INTEGER NOT NULL DEFAULT 80",
+            "ALTER TABLE global_config ADD COLUMN donate_raised INTEGER NOT NULL DEFAULT 0",
+            "ALTER TABLE global_config ADD COLUMN donate_supporters INTEGER NOT NULL DEFAULT 0",
+        ]:
+            try:
+                conn.execute(text(col))
+                conn.commit()
+            except Exception:
+                conn.rollback()
+
     # Seed singleton global_config row
     from app.models import GlobalConfig as _GlobalConfig
     _gc_db = SessionLocal()

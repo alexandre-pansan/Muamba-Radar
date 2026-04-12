@@ -102,7 +102,7 @@ export default function TermsModal({ open, onClose }) {
         <h2>9. Contato</h2>
         <p>
           Para dúvidas sobre estes termos:{' '}
-          <a href="mailto:contato@muambaradar.com.br">contato@muambaradar.com.br</a>
+          <a href="mailto:muambaradar@gmail.com">muambaradar@gmail.com</a>
         </p>
       </div>
     </dialog>

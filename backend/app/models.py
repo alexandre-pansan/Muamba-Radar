@@ -118,6 +118,9 @@ class GlobalConfig(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     beta_notice_version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    donate_goal: Mapped[int] = mapped_column(Integer, default=80, nullable=False)
+    donate_raised: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    donate_supporters: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
 
 class UnknownProduct(Base):

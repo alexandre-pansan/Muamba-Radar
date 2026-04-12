@@ -282,20 +282,13 @@ export default function ResultsArea({
 
       {!isLoading && displayed.length > 0 && (() => {
         const allOffers = displayed.flatMap(g => g.offers || [])
-        const fxRate = allOffers[0]?.price?.fx_rate_used
         const oldestCapture = allOffers.reduce((oldest, o) => {
           if (!o.captured_at) return oldest
           return !oldest || o.captured_at < oldest ? o.captured_at : oldest
         }, null)
-        const capturedDate = oldestCapture
-          ? new Date(oldestCapture).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
-          : null
-        if (!capturedDate && !fxRate) return null
-        const parts = [
-          capturedDate && `Capturado em ${capturedDate}`,
-          fxRate && `USD ≈ R$ ${fxRate.toFixed(2)}`,
-        ].filter(Boolean).join(' · ')
-        return <p className="results-capture-info">{parts}</p>
+        if (!oldestCapture) return null
+        const capturedDate = new Date(oldestCapture).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+        return <p className="results-capture-info">Capturado em {capturedDate}</p>
       })()}
     </div>
   )
