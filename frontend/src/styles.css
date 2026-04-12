@@ -3141,6 +3141,7 @@ th.sort-desc::after { content: " \2193"; font-size: 0.7em; }
 }
 
 .admin-section-title { font-size: 16px; font-weight: 600; color: var(--ink); margin-bottom: 8px; }
+.admin-sep { border: none; border-top: 1px solid var(--line); margin: 24px 0; }
 .admin-tab-toolbar .admin-section-title { margin-bottom: 0; }
 
 .admin-count-badge {
@@ -3245,11 +3246,18 @@ th.sort-desc::after { content: " \2193"; font-size: 0.7em; }
 /* ── Donate admin tab ────────────────────────────────────────────────── */
 
 .donate-admin-form {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 16px;
-  max-width: 320px;
+  max-width: 780px;
   margin-bottom: 32px;
+}
+
+/* Full-width items inside the grid */
+.donate-admin-form > button,
+.donate-admin-form > .admin-status-box,
+.donate-admin-form > .donate-admin-label:has(textarea) {
+  grid-column: 1 / -1;
 }
 
 .donate-admin-label {
@@ -3269,6 +3277,8 @@ th.sort-desc::after { content: " \2193"; font-size: 0.7em; }
   color: var(--ink);
   font-size: 14px;
   width: 100%;
+  box-sizing: border-box;
+  font-family: inherit;
 }
 
 .donate-admin-input:focus {

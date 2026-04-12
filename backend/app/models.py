@@ -118,6 +118,9 @@ class GlobalConfig(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     beta_notice_version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    beta_notice_title: Mapped[str] = mapped_column(Text, default="🚧 Versão Beta", nullable=False)
+    beta_notice_body1: Mapped[str] = mapped_column(Text, default="O <strong>MuambaRadar</strong> está em desenvolvimento ativo. Algumas funcionalidades podem estar incompletas, os preços são obtidos automaticamente e podem conter inconsistências.", nullable=False)
+    beta_notice_body2: Mapped[str] = mapped_column(Text, default="Use as informações como referência e sempre confirme o preço final diretamente na loja antes de comprar.", nullable=False)
     donate_goal: Mapped[int] = mapped_column(Integer, default=80, nullable=False)
     donate_raised: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     donate_supporters: Mapped[int] = mapped_column(Integer, default=0, nullable=False)

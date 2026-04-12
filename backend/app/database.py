@@ -93,6 +93,9 @@ def init_db() -> None:
             "ALTER TABLE global_config ADD COLUMN donate_goal INTEGER NOT NULL DEFAULT 80",
             "ALTER TABLE global_config ADD COLUMN donate_raised INTEGER NOT NULL DEFAULT 0",
             "ALTER TABLE global_config ADD COLUMN donate_supporters INTEGER NOT NULL DEFAULT 0",
+            "ALTER TABLE global_config ADD COLUMN beta_notice_title VARCHAR NOT NULL DEFAULT '🚧 Versão Beta'",
+            "ALTER TABLE global_config ADD COLUMN beta_notice_body1 VARCHAR NOT NULL DEFAULT 'O MuambaRadar está em desenvolvimento ativo. Algumas funcionalidades podem estar incompletas, os preços são obtidos automaticamente e podem conter inconsistências.'",
+            "ALTER TABLE global_config ADD COLUMN beta_notice_body2 VARCHAR NOT NULL DEFAULT 'Use as informações como referência e sempre confirme o preço final diretamente na loja antes de comprar.'",
         ]:
             try:
                 conn.execute(text(col))

@@ -109,8 +109,8 @@ export default function Header({
         onClick={onGoHome ? (e) => { e.preventDefault(); onGoHome() } : undefined}
       >
         {/* Full logo on desktop, compact icon on mobile */}
-        <img src="/logo_text.png"    alt="MuambaRadar" className="topbar-logo topbar-logo-full" />
-        <img src="/logo_compact.png" alt="MuambaRadar" className="topbar-logo topbar-logo-compact" />
+        <img src="/logo_text.png" alt="MuambaRadar" className="topbar-logo topbar-logo-full" />
+        <img src="/logo.png"      alt="MuambaRadar" className="topbar-logo topbar-logo-compact" />
       </a>
 
       <div className="topbar-right">

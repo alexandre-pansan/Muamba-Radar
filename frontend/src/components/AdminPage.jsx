@@ -8,6 +8,8 @@ import {
   apiAdminToggleAdmin,
   apiFetchConfig,
   apiAdminUpdateDonateStats,
+  apiBumpBetaNotice,
+  apiAdminUpdateBetaNoticeText,
 } from '../api.js'
 
 // ── Shared ───────────────────────────────────────────────────────────────────
@@ -443,9 +445,17 @@ function DonateTab() {
   const [goal, setGoal] = useState('')
   const [raised, setRaised] = useState('')
   const [supporters, setSupporters] = useState('')
+  const [betaVersion, setBetaVersion] = useState(null)
+  const [betaTitle, setBetaTitle] = useState('')
+  const [betaBody1, setBetaBody1] = useState('')
+  const [betaBody2, setBetaBody2] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [bumping, setBumping] = useState(false)
+  const [savingText, setSavingText] = useState(false)
   const [status, setStatus] = useState(null)
+  const [betaStatus, setBetaStatus] = useState(null)
+  const [betaTextStatus, setBetaTextStatus] = useState(null)
 
   useEffect(() => {
     apiFetchConfig()
@@ -453,9 +463,40 @@ function DonateTab() {
         setGoal(String(cfg.donate_goal ?? 80))
         setRaised(String(cfg.donate_raised ?? 0))
         setSupporters(String(cfg.donate_supporters ?? 0))
+        setBetaVersion(cfg.beta_notice_version ?? 1)
+        setBetaTitle(cfg.beta_notice_title ?? '')
+        setBetaBody1(cfg.beta_notice_body1 ?? '')
+        setBetaBody2(cfg.beta_notice_body2 ?? '')
       })
       .finally(() => setLoading(false))
   }, [])
+
+  async function handleSaveBetaText() {
+    setSavingText(true)
+    setBetaTextStatus(null)
+    try {
+      await apiAdminUpdateBetaNoticeText({ beta_notice_title: betaTitle, beta_notice_body1: betaBody1, beta_notice_body2: betaBody2 })
+      setBetaTextStatus({ ok: true, text: 'Textos salvos!' })
+    } catch (e) {
+      setBetaTextStatus({ ok: false, text: e.message })
+    } finally {
+      setSavingText(false)
+    }
+  }
+
+  async function handleBumpBeta() {
+    setBumping(true)
+    setBetaStatus(null)
+    try {
+      const res = await apiBumpBetaNotice()
+      setBetaVersion(res.beta_notice_version)
+      setBetaStatus({ ok: true, text: `Versão atualizada para v${res.beta_notice_version} — aviso reaparecerá para todos.` })
+    } catch (e) {
+      setBetaStatus({ ok: false, text: e.message })
+    } finally {
+      setBumping(false)
+    }
+  }
 
   async function handleSave() {
     const g = parseInt(goal, 10)
@@ -530,6 +571,56 @@ function DonateTab() {
 
         {status && (
           <div className={`admin-status-box ${status.ok ? 'is-ok' : 'is-error'}`}>{status.text}</div>
+        )}
+      </div>
+
+      <div className="admin-sep" />
+
+      <h2 className="admin-section-title">Aviso Beta</h2>
+      <p className="admin-cache-desc">
+        Ao incrementar a versão, o aviso beta reaparecerá para todos os usuários (incluindo quem já clicou em "Não mostrar mais").
+      </p>
+      <div className="donate-admin-form">
+        <label className="donate-admin-label">
+          Título
+          <input className="donate-admin-input" type="text" value={betaTitle} onChange={e => setBetaTitle(e.target.value)} />
+        </label>
+        <label className="donate-admin-label">
+          Parágrafo 1 (suporta HTML básico)
+          <textarea className="donate-admin-input" rows={3} style={{ resize: 'vertical', height: 'auto' }} value={betaBody1} onChange={e => setBetaBody1(e.target.value)} />
+        </label>
+        <label className="donate-admin-label">
+          Parágrafo 2
+          <textarea className="donate-admin-input" rows={2} style={{ resize: 'vertical', height: 'auto' }} value={betaBody2} onChange={e => setBetaBody2(e.target.value)} />
+        </label>
+        <button
+          className={`dev-tools-run-btn${savingText ? ' is-running' : ''}`}
+          onClick={handleSaveBetaText}
+          disabled={savingText}
+        >
+          {savingText ? 'Salvando…' : 'Salvar textos'}
+        </button>
+        {betaTextStatus && (
+          <div className={`admin-status-box ${betaTextStatus.ok ? 'is-ok' : 'is-error'}`}>{betaTextStatus.text}</div>
+        )}
+      </div>
+
+      <div className="donate-admin-form" style={{ marginTop: 16 }}>
+        <div className="donate-admin-label">
+          Versão atual
+          <span className="donate-admin-input" style={{ display: 'flex', alignItems: 'center', background: 'var(--card-bg)', cursor: 'default' }}>
+            v{betaVersion ?? '…'}
+          </span>
+        </div>
+        <button
+          className={`dev-tools-run-btn${bumping ? ' is-running' : ''}`}
+          onClick={handleBumpBeta}
+          disabled={bumping}
+        >
+          {bumping ? 'Atualizando…' : '↑ Incrementar versão (força reexibição)'}
+        </button>
+        {betaStatus && (
+          <div className={`admin-status-box ${betaStatus.ok ? 'is-ok' : 'is-error'}`}>{betaStatus.text}</div>
         )}
       </div>
 

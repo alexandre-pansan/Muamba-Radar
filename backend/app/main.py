@@ -237,6 +237,9 @@ def get_config(db: Session = Depends(get_db)) -> dict:
     cfg = db.get(GlobalConfig, 1)
     return {
         "beta_notice_version": cfg.beta_notice_version if cfg else 1,
+        "beta_notice_title":   cfg.beta_notice_title   if cfg else "🚧 Versão Beta",
+        "beta_notice_body1":   cfg.beta_notice_body1   if cfg else "",
+        "beta_notice_body2":   cfg.beta_notice_body2   if cfg else "",
         "donate_goal":         cfg.donate_goal         if cfg else 80,
         "donate_raised":       cfg.donate_raised       if cfg else 0,
         "donate_supporters":   cfg.donate_supporters   if cfg else 0,
@@ -666,6 +669,28 @@ def admin_bump_beta_notice(
     cfg.beta_notice_version += 1
     db.commit()
     return {"beta_notice_version": cfg.beta_notice_version}
+
+
+@app.patch("/admin/beta-notice/text")
+def admin_update_beta_notice_text(
+    body: dict,
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> dict:
+    from app.models import GlobalConfig
+    cfg = db.get(GlobalConfig, 1)
+    if not cfg:
+        cfg = GlobalConfig(id=1)
+        db.add(cfg)
+    if "beta_notice_title" in body: cfg.beta_notice_title = str(body["beta_notice_title"])
+    if "beta_notice_body1" in body: cfg.beta_notice_body1 = str(body["beta_notice_body1"])
+    if "beta_notice_body2" in body: cfg.beta_notice_body2 = str(body["beta_notice_body2"])
+    db.commit()
+    return {
+        "beta_notice_title": cfg.beta_notice_title,
+        "beta_notice_body1": cfg.beta_notice_body1,
+        "beta_notice_body2": cfg.beta_notice_body2,
+    }
 
 
 @app.post("/admin/refresh-cache")

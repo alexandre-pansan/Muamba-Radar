@@ -100,6 +100,9 @@ function AppInner() {
   const [betaNoticeOpen, setBetaNoticeOpen] = useState(false)
   const [donateOpen, setDonateOpen] = useState(false)
   const [betaVersion, setBetaVersion] = useState(1)
+  const [betaTitle, setBetaTitle] = useState('')
+  const [betaBody1, setBetaBody1] = useState('')
+  const [betaBody2, setBetaBody2] = useState('')
   const [donateGoal, setDonateGoal] = useState(80)
   const [donateRaised, setDonateRaised] = useState(0)
   const [donateSupporters, setDonateSupporters] = useState(0)
@@ -161,6 +164,9 @@ function AppInner() {
       setCurrentPrefs(prefs)
       const v = config.beta_notice_version ?? 1
       setBetaVersion(v)
+      setBetaTitle(config.beta_notice_title ?? '')
+      setBetaBody1(config.beta_notice_body1 ?? '')
+      setBetaBody2(config.beta_notice_body2 ?? '')
       setDonateGoal(config.donate_goal ?? 80)
       setDonateRaised(config.donate_raised ?? 0)
       setDonateSupporters(config.donate_supporters ?? 0)
@@ -181,6 +187,9 @@ function AppInner() {
       setRecentSearches(items)
     } catch {
       setRecentSearches([])
+    }
+    if (shouldShowBetaNotice({ user: null, prefs: null, version: betaVersion })) {
+      setBetaNoticeOpen(true)
     }
   }
 
@@ -241,6 +250,10 @@ function AppInner() {
       setDonateGoal(cfg.donate_goal ?? 80)
       setDonateRaised(cfg.donate_raised ?? 0)
       setDonateSupporters(cfg.donate_supporters ?? 0)
+      setBetaVersion(cfg.beta_notice_version ?? 1)
+      setBetaTitle(cfg.beta_notice_title ?? '')
+      setBetaBody1(cfg.beta_notice_body1 ?? '')
+      setBetaBody2(cfg.beta_notice_body2 ?? '')
     })
   }, [])
 
@@ -474,6 +487,9 @@ function AppInner() {
         onClose={() => setBetaNoticeOpen(false)}
         isLoggedIn={!!currentUser}
         betaVersion={betaVersion}
+        betaTitle={betaTitle}
+        betaBody1={betaBody1}
+        betaBody2={betaBody2}
       />
 
       <DonateModal

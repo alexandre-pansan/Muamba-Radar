@@ -197,6 +197,16 @@ export async function apiFetchConfig() {
   return { beta_notice_version: 1 }
 }
 
+export async function apiAdminUpdateBetaNoticeText(data) {
+  const res = await fetch(`${getApiBase()}/admin/beta-notice/text`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
 export async function apiBumpBetaNotice() {
   const res = await fetch(`${getApiBase()}/admin/beta-notice/bump`, {
     method: 'POST',
