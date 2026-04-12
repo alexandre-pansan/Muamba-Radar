@@ -44,8 +44,6 @@ services:
   frontend:
     build: ./frontend
     restart: unless-stopped
-    ports:
-      - "80:80"
     environment:
       # Empty = nginx proxies /compare /auth /etc → backend automatically.
       # Set to a full URL only if the API is on a different domain.
@@ -53,6 +51,24 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.muamba.rule=Host(`muambaradar.com`) || Host(`www.muambaradar.com`)"
+      - "traefik.http.routers.muamba.entrypoints=websecure"
+      - "traefik.http.routers.muamba.tls.certresolver=letsencrypt"
+      - "traefik.http.services.muamba.loadbalancer.server.port=80"
+      # Redirect HTTP → HTTPS
+      - "traefik.http.routers.muamba-http.rule=Host(`muambaradar.com`) || Host(`www.muambaradar.com`)"
+      - "traefik.http.routers.muamba-http.entrypoints=web"
+      - "traefik.http.routers.muamba-http.middlewares=redirect-https"
+      - "traefik.http.middlewares.redirect-https.redirectscheme.scheme=https"
+    networks:
+      - default
+      - traefik-public
 
 volumes:
   pgdata:
+
+networks:
+  traefik-public:
+    external: true
