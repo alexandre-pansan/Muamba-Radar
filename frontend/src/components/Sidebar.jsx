@@ -123,7 +123,7 @@ export default function Sidebar({
   return (
     <aside className={`sidebar${isOpen ? ' is-open' : ''}`} id="sidebar">
       {/* Search block */}
-      <div className="sb-block">
+      <div className="sb-block sb-search-block">
         <div className="autocomplete-wrap">
           <input
             ref={inputRef}

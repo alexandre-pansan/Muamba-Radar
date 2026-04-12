@@ -1,5 +1,36 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { I18nProvider, useI18n } from './i18n.jsx'
+
+function MobileSearchBar({ query, onQueryChange, sort, onSortChange, onSearch }) {
+  const { t } = useI18n()
+  return (
+    <div className="mobile-search-bar">
+      <div className="msb-row">
+        <input
+          className="msb-input"
+          type="text"
+          placeholder={t('search.placeholder')}
+          autoComplete="off"
+          value={query}
+          onChange={e => onQueryChange(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && onSearch(query)}
+        />
+        <select
+          className="msb-select"
+          value={sort}
+          onChange={e => onSortChange(e.target.value)}
+          aria-label={t('search.sort_label')}
+        >
+          <option value="best_match">{t('search.sort_best')}</option>
+          <option value="lowest_price">{t('search.sort_lowest')}</option>
+        </select>
+      </div>
+      <button className="msb-btn" onClick={() => onSearch(query)}>
+        {t('search.btn')}
+      </button>
+    </div>
+  )
+}
 import Header from './components/Header.jsx'
 import Sidebar from './components/Sidebar.jsx'
 import ResultsArea from './components/ResultsArea.jsx'
@@ -359,6 +390,13 @@ function AppInner() {
         />
 
         <div className="main-area">
+          <MobileSearchBar
+            query={query}
+            onQueryChange={setQuery}
+            sort={sort}
+            onSortChange={setSort}
+            onSearch={runCompare}
+          />
           <ResultsArea
             isLoading={isLoading}
             lastData={lastData}
