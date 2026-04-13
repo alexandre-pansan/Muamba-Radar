@@ -20,8 +20,8 @@ export default function DonateModal({ open, onClose }) {
     else { try { el.close() } catch (_) {} }
   }, [open])
 
-  useEffect(() => {
-    if (!open || !canvasRef.current) return
+  function renderQR() {
+    if (!canvasRef.current) return
     const payload = buildPixPayload({
       key: PIX_KEY,
       name: PIX_NAME,
@@ -37,6 +37,19 @@ export default function DonateModal({ open, onClose }) {
         light: style.getPropertyValue('--card').trim() || '#ffffff',
       },
     })
+  }
+
+  useEffect(() => {
+    if (!open) return
+    renderQR()
+  }, [open, activeAmount])
+
+  // Re-render QR when theme changes while modal is open
+  useEffect(() => {
+    if (!open) return
+    const observer = new MutationObserver(() => renderQR())
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
+    return () => observer.disconnect()
   }, [open, activeAmount])
 
   async function handleCopy() {

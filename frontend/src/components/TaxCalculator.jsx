@@ -193,7 +193,7 @@ export default function TaxCalculator({ open, onClose, savedRates }) {
                     <button key={t} onClick={() => setCreditTiming(t)} style={{
                       padding: '4px 10px', border: `1.5px solid ${creditTiming === t ? 'var(--accent)' : 'var(--line)'}`,
                       borderRadius: 20, background: creditTiming === t ? 'var(--accent)' : 'transparent',
-                      color: creditTiming === t ? '#fff' : 'var(--muted)',
+                      color: creditTiming === t ? 'var(--ink-on-accent, #fff)' : 'var(--muted)',
                       fontSize: 11, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
                     }}>{label}</button>
                   ))}

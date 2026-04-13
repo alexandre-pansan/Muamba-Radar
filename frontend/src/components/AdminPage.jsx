@@ -18,9 +18,25 @@ import {
 const PREVIEW_COUNT = 3
 
 function RawOffersModal({ adapter, onClose }) {
+  useEffect(() => {
+    function handleKey(e) { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', handleKey)
+    return () => document.removeEventListener('keydown', handleKey)
+  }, [onClose])
+
   return (
-    <div className="raw-modal-backdrop" onClick={onClose}>
-      <div className="raw-modal" onClick={e => e.stopPropagation()}>
+    <div
+      className="raw-modal-backdrop"
+      onClick={onClose}
+      role="presentation"
+    >
+      <div
+        className="raw-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Resultados raw — ${adapter.adapter_id}`}
+        onClick={e => e.stopPropagation()}
+      >
         <div className="raw-modal-header">
           <span className="raw-modal-title">
             Raw — <strong>{adapter.adapter_id}</strong>

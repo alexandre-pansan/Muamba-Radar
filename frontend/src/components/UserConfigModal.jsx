@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useI18n } from '../i18n.jsx'
 import { apiUpdateMe, apiFetchUserSearches, getApiBase, getToken, apiBumpBetaNotice } from '../api.js'
 import { DEFAULT_RATES, mergeRates } from '../taxRates.js'
+import { PasswordRules } from './AuthModal.jsx'
 
 export default function UserConfigModal({
   open,
@@ -235,6 +236,7 @@ export default function UserConfigModal({
               onChange={e => setNewPassword(e.target.value)}
             />
           </label>
+          <PasswordRules value={newPassword} />
           <label className="field">
             <span>{t('config.confirm_password')}</span>
             <input
@@ -274,7 +276,7 @@ export default function UserConfigModal({
       {currentUser?.is_admin && (
         <section className="ucm-section">
           <h3 className="ucm-section-title">Aviso Beta</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div className="ucm-beta-actions">
             <button className="btn-inline btn-muted" onClick={handleReenableBetaNotice}>
               Re-habilitar para mim
             </button>
@@ -285,7 +287,7 @@ export default function UserConfigModal({
             >
               {bumpedBeta ? 'Enviado para todos ✓' : bumpingBeta ? 'Aguarde…' : 'Forçar para todos os usuários'}
             </button>
-            <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--muted)' }}>
+            <p className="ucm-hint">
               "Forçar para todos" incrementa a versão global — ignora o "Não mostrar mais" de todos.
             </p>
           </div>

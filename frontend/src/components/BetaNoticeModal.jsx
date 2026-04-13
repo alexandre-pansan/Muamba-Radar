@@ -1,5 +1,11 @@
 import React, { useEffect, useRef } from 'react'
+import DOMPurify from 'dompurify'
 import { apiSavePrefs } from '../api.js'
+
+const SANITIZE_CONFIG = {
+  ALLOWED_TAGS: ['strong', 'em', 'u', 'br', 'a'],
+  ALLOWED_ATTR: ['href', 'target', 'rel'],
+}
 
 const DEFAULT_TITLE = '🚧 Versão Beta'
 const DEFAULT_BODY1 = 'O <strong>MuambaRadar</strong> está em desenvolvimento ativo. Algumas funcionalidades podem estar incompletas, os preços são obtidos automaticamente e podem conter inconsistências.'
@@ -38,8 +44,8 @@ export default function BetaNoticeModal({ open, onClose, isLoggedIn, betaVersion
         <button className="modal-close" onClick={onClose} aria-label="Fechar">✕</button>
       </div>
       <div className="modal-body" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        <p style={{ margin: 0, lineHeight: '1.6' }} dangerouslySetInnerHTML={{ __html: betaBody1 || DEFAULT_BODY1 }} />
-        <p style={{ margin: 0, lineHeight: '1.6', color: 'var(--muted)' }} dangerouslySetInnerHTML={{ __html: betaBody2 || DEFAULT_BODY2 }} />
+        <p style={{ margin: 0, lineHeight: '1.6' }} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(betaBody1 || DEFAULT_BODY1, SANITIZE_CONFIG) }} />
+        <p style={{ margin: 0, lineHeight: '1.6', color: 'var(--muted)' }} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(betaBody2 || DEFAULT_BODY2, SANITIZE_CONFIG) }} />
         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', paddingTop: '4px' }}>
           <button className="btn-inline btn-muted" onClick={onClose}>
             Fechar

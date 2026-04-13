@@ -5,7 +5,13 @@ from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 from app.config import settings
 
-engine = create_engine(settings.database_url)
+engine = create_engine(
+    settings.database_url,
+    pool_size=5,          # persistent connections kept open
+    max_overflow=10,      # extra connections allowed under load
+    pool_timeout=30,      # seconds to wait for a connection before raising
+    pool_recycle=1800,    # recycle connections older than 30 min (avoids stale TCP)
+)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
 
@@ -74,6 +80,17 @@ def init_db() -> None:
         except Exception:
             conn.rollback()
 
+        # Account lockout columns
+        for col_sql in [
+            "ALTER TABLE users ADD COLUMN failed_login_attempts INTEGER NOT NULL DEFAULT 0",
+            "ALTER TABLE users ADD COLUMN locked_until TIMESTAMPTZ",
+        ]:
+            try:
+                conn.execute(text(col_sql))
+                conn.commit()
+            except Exception:
+                conn.rollback()
+
         # Add tax_rates JSONB column to user_prefs
         try:
             conn.execute(text("ALTER TABLE user_prefs ADD COLUMN tax_rates JSONB"))
@@ -123,39 +140,30 @@ def init_db() -> None:
             conn.rollback()  # table may not exist yet on first boot — Base.metadata.create_all handles it
 
     # ── Seed admin user ───────────────────────────────────────────────────────
+    # Credentials are read from ADMIN_EMAIL / ADMIN_PASSWORD env vars.
+    # If both are set and no admin exists yet, a first admin account is created.
+    # Hardcoded defaults are intentionally absent — set these in .env or secrets manager.
     from datetime import datetime, timezone
     from app.auth import hash_password
     from app.models import User
     _db = SessionLocal()
     try:
-        admin = _db.query(User).filter(User.email == "admin@admin.com").first()
-        if not admin:
-            # also check old seed (email="admin") and update it
-            old = _db.query(User).filter(User.email == "admin").first()
-            if old:
-                old.email = "admin@admin.com"
-                old.username = "admin"
-                old.is_admin = True
-                _db.commit()
-            else:
+        admin_email = settings.admin_email.strip()
+        admin_password = settings.admin_password.strip()
+        if admin_email and admin_password:
+            existing = _db.query(User).filter(User.email == admin_email).first()
+            if not existing:
                 _db.add(User(
-                    email="admin@admin.com",
+                    email=admin_email,
                     username="admin",
                     name="Admin",
-                    password_hash=hash_password("admin"),
+                    password_hash=hash_password(admin_password),
                     is_admin=True,
                     created_at=datetime.now(timezone.utc),
                 ))
                 _db.commit()
-        else:
-            changed = False
-            if not admin.username:
-                admin.username = "admin"
-                changed = True
-            if not admin.is_admin:
-                admin.is_admin = True
-                changed = True
-            if changed:
+            elif not existing.is_admin:
+                existing.is_admin = True
                 _db.commit()
     finally:
         _db.close()

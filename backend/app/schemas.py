@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import re
 from datetime import datetime
 from enum import Enum
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
 class CountryFilter(str, Enum):
@@ -103,11 +104,29 @@ class CompareByImageResponseModel(BaseModel):
 
 # ── Auth ────────────────────────────────────────────────────────────────────
 
+_PASSWORD_RE = re.compile(
+    r'^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};\':"\\|,.<>\/?`~]).{8,}$'
+)
+
+
+def _validate_password(v: str) -> str:
+    if not _PASSWORD_RE.match(v):
+        raise ValueError(
+            "A senha deve ter ao menos 8 caracteres, uma letra maiúscula, um número e um caractere especial."
+        )
+    return v
+
+
 class RegisterRequest(BaseModel):
-    username: str = Field(min_length=3)
-    email: str
-    password: str = Field(min_length=8)
-    name: str | None = None
+    username: str = Field(min_length=3, max_length=50)
+    email: EmailStr
+    password: str = Field(min_length=8, max_length=128)
+    name: str | None = Field(default=None, max_length=255)
+
+    @field_validator("password")
+    @classmethod
+    def password_complexity(cls, v: str) -> str:
+        return _validate_password(v)
 
 
 class LoginRequest(BaseModel):
@@ -117,7 +136,12 @@ class LoginRequest(BaseModel):
 
 class TokenResponse(BaseModel):
     access_token: str
+    refresh_token: str
     token_type: str = "bearer"
+
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
 
 
 class UserResponse(BaseModel):
@@ -132,8 +156,15 @@ class UserResponse(BaseModel):
 
 
 class UpdateProfileRequest(BaseModel):
-    name: str | None = None
-    password: str | None = Field(default=None, min_length=8)
+    name: str | None = Field(default=None, max_length=255)
+    password: str | None = Field(default=None, min_length=8, max_length=128)
+
+    @field_validator("password")
+    @classmethod
+    def password_complexity(cls, v: str | None) -> str | None:
+        if v is not None:
+            return _validate_password(v)
+        return v
 
 
 class UserPrefsModel(BaseModel):
@@ -154,6 +185,18 @@ class UserSearchItem(BaseModel):
 
 
 # ── Admin ────────────────────────────────────────────────────────────────────
+
+class AdminDonateStatsRequest(BaseModel):
+    donate_goal:       int | None = Field(default=None, ge=0, le=10_000_000)
+    donate_raised:     int | None = Field(default=None, ge=0, le=10_000_000)
+    donate_supporters: int | None = Field(default=None, ge=0, le=1_000_000)
+
+
+class AdminBetaNoticeTextRequest(BaseModel):
+    beta_notice_title: str | None = Field(default=None, max_length=200)
+    beta_notice_body1: str | None = Field(default=None, max_length=1000)
+    beta_notice_body2: str | None = Field(default=None, max_length=1000)
+
 
 class AdminAdapterResult(BaseModel):
     adapter_id: str

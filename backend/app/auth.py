@@ -4,6 +4,7 @@ import base64
 import hashlib
 import hmac
 import os
+import secrets
 from datetime import datetime, timedelta, timezone
 
 from fastapi import Depends, HTTPException, status
@@ -13,7 +14,9 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.database import get_db
-from app.models import User
+from app.models import RefreshToken, User
+
+_REFRESH_TOKEN_EXPIRE_DAYS = 30
 
 _bearer = HTTPBearer(auto_error=False)
 
@@ -51,6 +54,41 @@ def create_access_token(user_id: int) -> str:
         settings.jwt_secret,
         algorithm=ALGORITHM,
     )
+
+
+def create_refresh_token(user_id: int, db: Session) -> str:
+    """Generate an opaque refresh token, store its hash, return the raw token."""
+    raw = secrets.token_urlsafe(48)
+    token_hash = hashlib.sha256(raw.encode()).hexdigest()
+    now = datetime.now(timezone.utc)
+    db.add(RefreshToken(
+        user_id=user_id,
+        token_hash=token_hash,
+        expires_at=now + timedelta(days=_REFRESH_TOKEN_EXPIRE_DAYS),
+        revoked=False,
+        created_at=now,
+    ))
+    db.commit()
+    return raw
+
+
+def verify_refresh_token(raw: str, db: Session) -> RefreshToken:
+    """Look up a refresh token by hash; raises 401 if invalid/expired/revoked."""
+    token_hash = hashlib.sha256(raw.encode()).hexdigest()
+    rt = db.query(RefreshToken).filter(RefreshToken.token_hash == token_hash).first()
+    now = datetime.now(timezone.utc)
+    if not rt or rt.revoked or rt.expires_at.replace(tzinfo=timezone.utc) < now:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired refresh token")
+    return rt
+
+
+def revoke_refresh_token(raw: str, db: Session) -> None:
+    """Mark a refresh token as revoked (logout)."""
+    token_hash = hashlib.sha256(raw.encode()).hexdigest()
+    rt = db.query(RefreshToken).filter(RefreshToken.token_hash == token_hash).first()
+    if rt:
+        rt.revoked = True
+        db.commit()
 
 
 def get_current_user(

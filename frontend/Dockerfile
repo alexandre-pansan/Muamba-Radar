@@ -9,7 +9,9 @@ FROM nginx:alpine
 COPY --from=builder /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh \
+    && chown -R nginx:nginx /usr/share/nginx/html \
+    && chmod -R 755 /usr/share/nginx/html
 
 # MAMU_API_URL — leave empty to use nginx proxy (recommended).
 # Set to a full URL (e.g. https://api.myhost.com) only when

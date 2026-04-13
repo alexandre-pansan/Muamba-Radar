@@ -44,7 +44,7 @@ import OffersDialog from './components/OffersDialog.jsx'
 import BetaNoticeModal, { shouldShowBetaNotice } from './components/BetaNoticeModal.jsx'
 import DonateModal from './components/DonateModal.jsx'
 import {
-  getToken, setToken, clearToken,
+  getToken, setToken, clearToken, apiLogout,
   apiFetchMe, apiFetchPrefs, apiFetchFeaturedImages,
   apiFetchUserSearches, apiCompare, apiSavePrefs, apiFetchConfig,
 } from './api.js'
@@ -201,7 +201,7 @@ function AppInner() {
   }
 
   function handleLogout() {
-    clearToken()
+    apiLogout()
     setCurrentUser(null)
     setCurrentPrefs({ show_margin: false })
     loadLocalRecents()

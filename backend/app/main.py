@@ -7,29 +7,35 @@ from typing import Any
 
 from fastapi import BackgroundTasks, Depends, FastAPI, File, HTTPException, Query, Request, Response, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 from sqlalchemy.orm import Session
 
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from app.adapters.registry import get_adapters
-from app.auth import create_access_token, get_current_user, get_current_user_optional, hash_password, require_admin, verify_password
+from app.auth import create_access_token, create_refresh_token, get_current_user, get_current_user_optional, hash_password, require_admin, revoke_refresh_token, verify_password, verify_refresh_token
 from app.config import settings
 from app.database import SessionLocal, get_db, init_db
 from app.models import AccessLog, ProductOffer, SearchCache, User, UserPrefs, UserSearch
 from app.schemas import (
     # CompareByImageResponseModel,  # image detection deferred
+    AdminAdapterResult,
+    AdminBetaNoticeTextRequest,
+    AdminDonateStatsRequest,
+    AdminTestSearchRequest,
+    AdminTestSearchResponse,
     CompareResponseModel,
     CountryFilter,
     # DetectImageResponseModel,  # image detection deferred
     LoginRequest,
     OfferModel,
+    RefreshRequest,
     RegisterRequest,
     SortOption,
     SourceInfoModel,
     TokenResponse,
-    AdminAdapterResult,
-    AdminTestSearchRequest,
-    AdminTestSearchResponse,
     UpdatePrefsRequest,
     UpdateProfileRequest,
     UserPrefsModel,
@@ -48,7 +54,10 @@ logging.basicConfig(
 )
 log = logging.getLogger("mamu")
 
+limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(title="MAMU API", version="0.6.0")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 _cors_origins = ["*"] if settings.cors_origins.strip() == "*" else settings.cors_origins.split()
 app.add_middleware(
@@ -248,7 +257,7 @@ def get_config(db: Session = Depends(get_db)) -> dict:
 
 @app.patch("/admin/donate-stats")
 def admin_update_donate_stats(
-    body: dict,
+    body: AdminDonateStatsRequest,
     _: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> dict:
@@ -257,9 +266,9 @@ def admin_update_donate_stats(
     if not cfg:
         cfg = GlobalConfig(id=1, beta_notice_version=1, donate_goal=80, donate_raised=0, donate_supporters=0)
         db.add(cfg)
-    if "donate_goal"       in body: cfg.donate_goal       = int(body["donate_goal"])
-    if "donate_raised"     in body: cfg.donate_raised     = int(body["donate_raised"])
-    if "donate_supporters" in body: cfg.donate_supporters = int(body["donate_supporters"])
+    if body.donate_goal       is not None: cfg.donate_goal       = body.donate_goal
+    if body.donate_raised     is not None: cfg.donate_raised     = body.donate_raised
+    if body.donate_supporters is not None: cfg.donate_supporters = body.donate_supporters
     db.commit()
     return {
         "donate_goal":       cfg.donate_goal,
@@ -310,11 +319,13 @@ def featured_images(
 # ── Auth ──────────────────────────────────────────────────────────────────────
 
 @app.post("/auth/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
-def register(body: RegisterRequest, db: Session = Depends(get_db)) -> TokenResponse:
-    if db.query(User).filter(User.email == body.email).first():
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
-    if db.query(User).filter(User.username == body.username).first():
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Username already taken")
+@limiter.limit("5/minute")
+def register(request: Request, body: RegisterRequest, db: Session = Depends(get_db)) -> TokenResponse:
+    email_exists = db.query(User).filter(User.email == body.email).first()
+    username_exists = db.query(User).filter(User.username == body.username).first()
+    if email_exists or username_exists:
+        # Generic message — don't reveal which field caused the conflict
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Conta já existente.")
     user = User(
         email=body.email,
         username=body.username,
@@ -325,19 +336,73 @@ def register(body: RegisterRequest, db: Session = Depends(get_db)) -> TokenRespo
     db.add(user)
     db.commit()
     db.refresh(user)
-    return TokenResponse(access_token=create_access_token(user.id))
+    return TokenResponse(
+        access_token=create_access_token(user.id),
+        refresh_token=create_refresh_token(user.id, db),
+    )
+
+
+_LOGIN_MAX_ATTEMPTS = 5
+_LOGIN_LOCKOUT_MINUTES = 15
 
 
 @app.post("/auth/login", response_model=TokenResponse)
-def login(body: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse:
+@limiter.limit("10/minute")
+def login(request: Request, body: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse:
     # Accept email or username in the identifier field
     if "@" in body.identifier:
         user = db.query(User).filter(User.email == body.identifier).first()
     else:
         user = db.query(User).filter(User.username == body.identifier).first()
+
+    now = datetime.now(timezone.utc)
+
+    # Check lockout (check before password to avoid timing oracle)
+    if user and user.locked_until:
+        locked_until_aware = user.locked_until.replace(tzinfo=timezone.utc) if user.locked_until.tzinfo is None else user.locked_until
+        if locked_until_aware > now:
+            retry_after = int((locked_until_aware - now).total_seconds())
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=f"Conta bloqueada temporariamente. Tente novamente em {_LOGIN_LOCKOUT_MINUTES} minutos.",
+                headers={"Retry-After": str(retry_after)},
+            )
+
     if not user or not verify_password(body.password, user.password_hash):
+        if user:
+            user.failed_login_attempts = (user.failed_login_attempts or 0) + 1
+            if user.failed_login_attempts >= _LOGIN_MAX_ATTEMPTS:
+                user.locked_until = now + timedelta(minutes=_LOGIN_LOCKOUT_MINUTES)
+            db.commit()
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
-    return TokenResponse(access_token=create_access_token(user.id))
+
+    # Success — reset lockout counters
+    user.failed_login_attempts = 0
+    user.locked_until = None
+    db.commit()
+
+    return TokenResponse(
+        access_token=create_access_token(user.id),
+        refresh_token=create_refresh_token(user.id, db),
+    )
+
+
+@app.post("/auth/refresh", response_model=TokenResponse)
+@limiter.limit("20/minute")
+def refresh_token(request: Request, body: RefreshRequest, db: Session = Depends(get_db)) -> TokenResponse:
+    rt = verify_refresh_token(body.refresh_token, db)
+    # Rotate: revoke old token, issue new pair
+    rt.revoked = True
+    db.commit()
+    return TokenResponse(
+        access_token=create_access_token(rt.user_id),
+        refresh_token=create_refresh_token(rt.user_id, db),
+    )
+
+
+@app.post("/auth/logout", status_code=status.HTTP_204_NO_CONTENT)
+def logout(body: RefreshRequest, db: Session = Depends(get_db)) -> None:
+    revoke_refresh_token(body.refresh_token, db)
 
 
 @app.get("/auth/me", response_model=UserResponse)
@@ -681,18 +746,25 @@ def admin_bump_beta_notice(
 
 @app.patch("/admin/beta-notice/text")
 def admin_update_beta_notice_text(
-    body: dict,
+    body: AdminBetaNoticeTextRequest,
     _: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> dict:
+    import bleach
     from app.models import GlobalConfig
+    _ALLOWED_TAGS = ["strong", "em", "u", "br", "a"]
+    _ALLOWED_ATTRS = {"a": ["href", "rel"]}
+
     cfg = db.get(GlobalConfig, 1)
     if not cfg:
         cfg = GlobalConfig(id=1)
         db.add(cfg)
-    if "beta_notice_title" in body: cfg.beta_notice_title = str(body["beta_notice_title"])
-    if "beta_notice_body1" in body: cfg.beta_notice_body1 = str(body["beta_notice_body1"])
-    if "beta_notice_body2" in body: cfg.beta_notice_body2 = str(body["beta_notice_body2"])
+    if body.beta_notice_title is not None:
+        cfg.beta_notice_title = bleach.clean(body.beta_notice_title, tags=[], strip=True)
+    if body.beta_notice_body1 is not None:
+        cfg.beta_notice_body1 = bleach.clean(body.beta_notice_body1, tags=_ALLOWED_TAGS, attributes=_ALLOWED_ATTRS, strip=True)
+    if body.beta_notice_body2 is not None:
+        cfg.beta_notice_body2 = bleach.clean(body.beta_notice_body2, tags=_ALLOWED_TAGS, attributes=_ALLOWED_ATTRS, strip=True)
     db.commit()
     return {
         "beta_notice_title": cfg.beta_notice_title,

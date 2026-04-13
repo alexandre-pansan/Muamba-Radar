@@ -15,8 +15,53 @@ export function setToken(token) {
   localStorage.setItem('muamba_token', token)
 }
 
+export function getRefreshToken() {
+  return localStorage.getItem('muamba_refresh_token')
+}
+
+export function setRefreshToken(token) {
+  localStorage.setItem('muamba_refresh_token', token)
+}
+
 export function clearToken() {
   localStorage.removeItem('muamba_token')
+  localStorage.removeItem('muamba_refresh_token')
+}
+
+let _refreshing = null
+
+async function refreshAccessToken() {
+  const rt = getRefreshToken()
+  if (!rt) return false
+  try {
+    const res = await fetch(`${getApiBase()}/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: rt }),
+    })
+    if (!res.ok) { clearToken(); return false }
+    const data = await res.json()
+    setToken(data.access_token)
+    setRefreshToken(data.refresh_token)
+    return true
+  } catch (_) {
+    clearToken()
+    return false
+  }
+}
+
+async function fetchWithRefresh(url, options = {}) {
+  let res = await fetch(url, options)
+  if (res.status === 401 && getRefreshToken()) {
+    if (!_refreshing) _refreshing = refreshAccessToken().finally(() => { _refreshing = null })
+    const ok = await _refreshing
+    if (ok) {
+      const token = getToken()
+      const headers = { ...(options.headers || {}), Authorization: `Bearer ${token}` }
+      res = await fetch(url, { ...options, headers })
+    }
+  }
+  return res
 }
 
 function authHeaders() {
@@ -26,8 +71,8 @@ function authHeaders() {
 
 export async function apiFetchMe() {
   const token = getToken()
-  if (!token) return null
-  const res = await fetch(`${getApiBase()}/auth/me`, {
+  if (!token && !getRefreshToken()) return null
+  const res = await fetchWithRefresh(`${getApiBase()}/auth/me`, {
     headers: { Authorization: `Bearer ${token}` },
   })
   if (!res.ok) return null
@@ -36,9 +81,9 @@ export async function apiFetchMe() {
 
 export async function apiFetchPrefs() {
   const token = getToken()
-  if (!token) return { show_margin: false }
+  if (!token && !getRefreshToken()) return { show_margin: false }
   try {
-    const res = await fetch(`${getApiBase()}/auth/me/prefs`, {
+    const res = await fetchWithRefresh(`${getApiBase()}/auth/me/prefs`, {
       headers: { Authorization: `Bearer ${token}` },
     })
     if (res.ok) return res.json()
@@ -66,7 +111,9 @@ export async function apiLogin(identifier, password) {
     const err = await res.json().catch(() => ({}))
     throw new Error(err.detail || 'Login failed.')
   }
-  return res.json()
+  const data = await res.json()
+  if (data.refresh_token) setRefreshToken(data.refresh_token)
+  return data
 }
 
 export async function apiRegister(username, name, email, password) {
@@ -79,7 +126,21 @@ export async function apiRegister(username, name, email, password) {
     const err = await res.json().catch(() => ({}))
     throw new Error(err.detail || 'Registration failed.')
   }
-  return res.json()
+  const data = await res.json()
+  if (data.refresh_token) setRefreshToken(data.refresh_token)
+  return data
+}
+
+export async function apiLogout() {
+  const rt = getRefreshToken()
+  if (rt) {
+    await fetch(`${getApiBase()}/auth/logout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: rt }),
+    }).catch(() => {})
+  }
+  clearToken()
 }
 
 export async function apiUpdateMe(updates) {

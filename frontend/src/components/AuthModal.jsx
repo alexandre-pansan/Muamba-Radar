@@ -2,6 +2,27 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useI18n } from '../i18n.jsx'
 import { apiLogin, apiRegister } from '../api.js'
 
+const PWD_RULES = [
+  { id: 'len',     label: 'Mínimo 8 caracteres',           test: v => v.length >= 8 },
+  { id: 'upper',   label: '1 letra maiúscula (A–Z)',        test: v => /[A-Z]/.test(v) },
+  { id: 'digit',   label: '1 número (0–9)',                 test: v => /\d/.test(v) },
+  { id: 'special', label: '1 caractere especial (!@#$…)',   test: v => /[!@#$%^&*()\-_=+\[\]{};':"\\|,.<>/?`~]/.test(v) },
+]
+
+export function PasswordRules({ value }) {
+  if (!value) return null
+  return (
+    <ul className="pwd-rules" aria-label="Requisitos de senha">
+      {PWD_RULES.map(r => (
+        <li key={r.id} className={r.test(value) ? 'pwd-rule ok' : 'pwd-rule'}>
+          <span className="pwd-rule-icon" aria-hidden="true">{r.test(value) ? '✓' : '○'}</span>
+          {r.label}
+        </li>
+      ))}
+    </ul>
+  )
+}
+
 export default function AuthModal({
   open,
   tab,
@@ -194,9 +215,7 @@ export default function AuthModal({
             />
           </label>
           <label className="field">
-            <span>
-              {t('auth.password')} <span className="field-optional">{t('auth.min_chars')}</span>
-            </span>
+            <span>{t('auth.password')}</span>
             <input
               type="password"
               autoComplete="new-password"
@@ -206,6 +225,7 @@ export default function AuthModal({
               onChange={e => setRegPassword(e.target.value)}
             />
           </label>
+          <PasswordRules value={regPassword} />
           <label className="auth-consent">
             <input
               type="checkbox"

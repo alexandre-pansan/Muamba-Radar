@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, SmallInteger, Text, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, SmallInteger, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -19,6 +19,8 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(Text, nullable=False)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    failed_login_attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     __table_args__ = (
         UniqueConstraint("email", name="uq_users_email"),
@@ -124,6 +126,23 @@ class GlobalConfig(Base):
     donate_goal: Mapped[int] = mapped_column(Integer, default=80, nullable=False)
     donate_raised: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     donate_supporters: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+
+class RefreshToken(Base):
+    """Opaque refresh tokens — one active token per session, revocable."""
+    __tablename__ = "refresh_tokens"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
+    token_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    revoked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    __table_args__ = (
+        Index("ix_refresh_tokens_user_id", "user_id"),
+        Index("ix_refresh_tokens_expires_at", "expires_at"),
+    )
 
 
 class UnknownProduct(Base):
