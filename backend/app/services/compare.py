@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from collections import Counter
 from datetime import UTC, datetime
 
 from app.adapters.base import SourceAdapter
@@ -13,6 +12,7 @@ from app.schemas import CheapestModel, CompareResponseModel, CountryFilter, Offe
 from app.services.fx import build_price
 from app.services.matcher import group_offers
 from app.services.normalization import (
+    expand_gaming_aliases,
     extract_brand_model,
     is_refurbished_or_used,
     matches_query,
@@ -106,43 +106,74 @@ def _collect_offers(query: str, country: CountryFilter) -> list[OfferModel]:
     return _run_adapters(adapters, query)
 
 
-def _refine_query_from_py_offers(py_offers: list[OfferModel], original_query: str) -> str:
-    """
-    Extract brand + model from PY offer titles for a cleaner BR search.
-    Storage/RAM excluded — BR titles rarely list them, causing false rejections.
-    """
-    if not py_offers:
-        return original_query
+import re as _re
 
-    brands: list[str] = []
-    models: list[str] = []
+_SKU_RE = _re.compile(
+    r"\bcfi[.\-]?\w+\b"           # PlayStation SKU codes (CFI-2115B, CFI-Y1001)
+    r"|\bcuh[.\-]?\w+\b"          # PS4 SKU codes
+    r"|\b\d+\s*(?:gb|tb)\b"       # storage sizes (825GB, 1TB)
+    r"|\b\d+\s*ssd\b"             # SSD variants
+    r"|\b[a-z]{1,3}[.\-]?\d{4,}\w*\b"  # generic model codes (HAC-001, etc.)
+    , _re.IGNORECASE
+)
+
+_CONSOLE_LUT_KEY_RE = _re.compile(r"^(playstation_[1-9]|xbox_series|xbox_one|nintendo_switch)")
+
+
+def _br_queries_from_py_offers(py_offers: list[OfferModel], original_query: str) -> list[str]:
+    """
+    Derive clean, deduplicated BR search queries from PY offers.
+
+    Strategy:
+    - For each PY offer, resolve to a LUT canonical name (e.g. "PlayStation 5 Slim").
+    - Append "Digital" when the offer is a digital edition.
+    - Strip bundles/games — BR is searched for the base product so prices are comparable.
+    - For non-LUT products, strip SKU codes / storage from the title.
+    - Deduplicate by base key; cap at 6 queries to avoid excess adapter calls.
+    - Fall back to the original query if nothing could be derived.
+    """
+    from app.services.product_lut import lookup as lut_lookup
+
+    seen_keys: set[str] = set()
+    queries: list[str] = []
 
     for offer in py_offers:
-        brand, model = extract_brand_model(offer.title)
-        if brand:
-            brands.append(brand.lower())
-        if model:
-            models.append(model.lower())
+        text = expand_gaming_aliases(normalize_text(offer.title))
+        entry = lut_lookup(text)
 
-    def most_common(values: list[str]) -> str | None:
-        if not values:
-            return None
-        return Counter(values).most_common(1)[0][0]
+        if entry:
+            base_key = entry.key
+            display = entry.display  # e.g. "PlayStation 5 Slim"
 
-    brand = most_common(brands)
-    model = most_common(models)
+            # For consoles: add Digital if relevant; strip bundle (search base model in BR)
+            if _CONSOLE_LUT_KEY_RE.match(base_key):
+                if _re.search(r"\bdigital\b", text):
+                    base_key = f"{base_key}_digital"
+                    display = f"{display} Digital"
+                # _bundle intentionally dropped — search for the base console in BR
 
-    parts: list[str] = []
-    if brand:
-        parts.append(brand)
-    if model:
-        parts.append(model)
+            if base_key not in seen_keys:
+                seen_keys.add(base_key)
+                queries.append(display.lower())
+        else:
+            # Non-LUT product: strip SKU codes and storage, use cleaned title
+            cleaned = _SKU_RE.sub(" ", text)
+            cleaned = _re.sub(r"\s+", " ", cleaned).strip()
+            # Cap at first 4 meaningful tokens to avoid over-specific queries
+            tokens = cleaned.split()[:4]
+            cleaned = " ".join(tokens)
+            if cleaned and cleaned not in seen_keys:
+                seen_keys.add(cleaned)
+                queries.append(cleaned)
 
-    if not parts:
-        return original_query
+    if not queries:
+        return [original_query]
 
-    refined = " ".join(parts)
-    return refined if refined != original_query else original_query
+    # Always include original query as final fallback (deduped)
+    if original_query not in seen_keys:
+        queries.append(original_query)
+
+    return queries[:6]  # cap to avoid too many adapter calls
 
 
 def scrape_offers(query: str, country: CountryFilter) -> list[OfferModel]:
@@ -155,8 +186,20 @@ def scrape_offers(query: str, country: CountryFilter) -> list[OfferModel]:
         br_adapters = [a for a in all_adapters if a.country == "br"]
 
         py_offers = _run_adapters(py_adapters, normalized_query)
-        refined_query = _refine_query_from_py_offers(py_offers, normalized_query)
-        br_offers = _run_adapters(br_adapters, refined_query)
+
+        # Build one clean BR query per unique product group found in PY,
+        # stripping SKU codes, storage sizes, and bundle games.
+        br_queries = _br_queries_from_py_offers(py_offers, normalized_query)
+        log.info("BR queries derived from PY: %s", br_queries)
+
+        br_offers: list[OfferModel] = []
+        seen_queries: set[str] = set()
+        for br_q in br_queries:
+            if br_q in seen_queries:
+                continue
+            seen_queries.add(br_q)
+            br_offers.extend(_run_adapters(br_adapters, br_q))
+
         return py_offers + br_offers
     else:
         return _collect_offers(normalized_query, country)

@@ -10,6 +10,7 @@ import {
   apiAdminUpdateDonateStats,
   apiBumpBetaNotice,
   apiAdminUpdateBetaNoticeText,
+  apiRefreshCacheStatus,
 } from '../api.js'
 
 // ── Shared ───────────────────────────────────────────────────────────────────
@@ -405,19 +406,48 @@ function DevToolsTab() {
 function CacheTab() {
   const [status, setStatus] = useState(null)
   const [running, setRunning] = useState(false)
+  const [progress, setProgress] = useState(null) // {done, total, current}
+  const pollRef = React.useRef(null)
+
+  function startPolling() {
+    pollRef.current = setInterval(async () => {
+      try {
+        const p = await apiRefreshCacheStatus()
+        setProgress(p)
+        if (!p.running) {
+          stopPolling()
+          setRunning(false)
+          setStatus({ ok: true, text: `Concluído! ${p.total} queries atualizadas.` })
+        }
+      } catch (_) {}
+    }, 2000)
+  }
+
+  function stopPolling() {
+    if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
+  }
+
+  React.useEffect(() => () => stopPolling(), [])
 
   async function handleRefresh() {
     setRunning(true)
     setStatus(null)
+    setProgress(null)
     try {
       const data = await apiRefreshCache()
-      setStatus({ ok: true, text: `Iniciado! ${data.unique_queries} queries sendo re-scrapeadas em background.` })
+      if (data.status === 'already_running') {
+        setProgress({ running: true, done: data.done, total: data.total, current: data.current })
+      } else {
+        setProgress({ running: true, done: 0, total: data.unique_queries, current: '' })
+      }
+      startPolling()
     } catch (e) {
       setStatus({ ok: false, text: e.message })
-    } finally {
       setRunning(false)
     }
   }
+
+  const pct = progress?.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0
 
   return (
     <div className="admin-cache">
@@ -430,8 +460,21 @@ function CacheTab() {
         onClick={handleRefresh}
         disabled={running}
       >
-        {running ? 'Iniciando…' : 'Atualizar cache agora'}
+        {running ? `Rodando… (${pct}%)` : 'Atualizar cache agora'}
       </button>
+
+      {progress?.running && (
+        <div className="cache-progress">
+          <div className="cache-progress-bar-wrap">
+            <div className="cache-progress-bar" style={{ width: `${pct}%` }} />
+          </div>
+          <div className="cache-progress-info">
+            <span>{progress.done} / {progress.total} queries</span>
+            {progress.current && <span className="cache-progress-current">↻ {progress.current}</span>}
+          </div>
+        </div>
+      )}
+
       {status && (
         <div className={`admin-status-box ${status.ok ? 'is-ok' : 'is-error'}`}>{status.text}</div>
       )}

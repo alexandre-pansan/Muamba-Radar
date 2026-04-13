@@ -1059,6 +1059,7 @@ dialog.modal::backdrop {
 
 .type-filter-bar--sub { padding-top: 4px; padding-bottom: 8px; }
 .type-filter-bar--sub .type-chip { font-size: 0.72rem; padding: 3px 9px; }
+.filter-bar-label { font-size: 0.72rem; color: var(--muted); font-weight: 600; align-self: center; margin-right: 2px; white-space: nowrap; }
 
 /* ── Donate Modal ────────────────────────────────────────────────────────── */
 .donate-modal-body {
@@ -3226,7 +3227,39 @@ th.sort-desc::after { content: " \2193"; font-size: 0.7em; }
 }
 
 /* Cache tab */
-.admin-cache { padding: 32px; max-width: 500px; }
+.admin-cache { padding: 32px; max-width: 560px; }
+
+.cache-progress { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
+
+.cache-progress-bar-wrap {
+  height: 8px;
+  background: var(--line);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.cache-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), #6366f1);
+  border-radius: 99px;
+  transition: width 0.4s ease;
+}
+
+.cache-progress-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.cache-progress-current {
+  color: var(--chrome-text);
+  font-style: italic;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 60%;
+}
 .admin-cache-desc {
   color: var(--muted);
   font-size: 13px;

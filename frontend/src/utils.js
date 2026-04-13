@@ -144,6 +144,8 @@ const _TYPE_RULES = [
   [/^(impressora)/i,                                       'Impressora'],
   [/^(c[aâ]mera|câmera)/i,                               'Câmera'],
   [/^(perfume|eau\s+de\s+(parfum|toilette)|edp\b|edt\b)/i,'Perfume'],
+  [/^(playstation\s+portal)/i,                              'PS Portal'],
+  [/^(playstation\s+vr2?|ps\s*vr2?|óculos.*vr|oculos.*vr)/i, 'PS VR'],
   [/^(console|playstation|xbox|nintendo\s+switch)/i,       'Console'],
   [/^(controle|gamepad|joystick|dualsense|dualshock|joy.con)/i, 'Controle'],
   [/^(volante|racing\s+wheel|steering\s+wheel)/i,           'Volante'],
@@ -158,6 +160,8 @@ const _TYPE_RULES = [
   [/\b(intel\s+core\s+i[3579]|amd\s+ryzen\s+[357]|core\s+ultra)\b/i,'Processador'],
   [/\biphone\b/i,                                          'Smartphone'],
   [/\bipad\b/i,                                            'Tablet'],
+  [/\bplaystation\s+portal\b/i,                              'PS Portal'],
+  [/\bplaystation\s+vr2?\b|\bps\s*vr2?\b/i,                 'PS VR'],
   [/\bplaystation\s*[345]\b|\bps\s*[345]\b|\bxbox\b|\bswitch\s*(oled|lite)?\b/i, 'Console'],
   [/\b(dualsense|dualshock|joy.con|controle\s+(ps|xbox|nintendo))/i, 'Controle'],
   [/\b(volante|racing\s+wheel|steering\s+wheel)\b/i,        'Volante'],
@@ -169,6 +173,67 @@ export function detectProductType(name) {
   const n = name.trim()
   for (const [pattern, label] of _TYPE_RULES) {
     if (pattern.test(n)) return label
+  }
+  return null
+}
+
+// Detects product variant from name:
+// 1. Bundle (group key ends with "_bundle" or display name ends with "Bundle")
+// 2. Special editions: "God of War Edition", "Spider-Man Bundle", etc.
+// 3. Standard variants: Pro, Slim, Digital, Plus, Max, etc.
+export function detectVariant(name) {
+  if (!name) return null
+
+  // Bundle — backend marks all game bundles with "_bundle" key suffix
+  if (/(_|\s)bundle$/i.test(name)) return 'Bundle'
+
+  // Special editions — capture what's before Edition/Bundle/Pack/Ed.
+  const editionMatch = name.match(
+    /\b([\w\s\-']+?)\s+(edition|bundle|pack|ed\.)\b/i
+  )
+  if (editionMatch) {
+    const label = editionMatch[1].trim()
+    // Ignore generic words that aren't real edition names
+    const ignore = /^(standard|digital|slim|disc|launch|special|limited|deluxe|collector|the|a|an|this)$/i
+    if (!ignore.test(label) && label.length > 2) {
+      // Capitalize each word
+      return label.replace(/\b\w/g, c => c.toUpperCase()) + ' Edition'
+    }
+  }
+
+  // Standard model variants (ordered: more specific first)
+  const VARIANTS = [
+    'Pro Max', 'Pro Plus', 'Ultra Max',
+    'Pro', 'Plus', 'Max', 'Ultra',
+    'Slim', 'Lite', 'Mini',
+    'Digital', 'Standard', 'Disc',
+    'Air', 'SE', 'FE',
+    'Deluxe', 'Limited', 'Collector',
+  ]
+  const upper = name.toUpperCase()
+  for (const v of VARIANTS) {
+    const pattern = new RegExp(`\\b${v.toUpperCase()}\\b`)
+    if (pattern.test(upper)) return v
+  }
+
+  return null
+}
+
+// Extracts the game name from a bundle offer title.
+// Handles "PlayStation 5 + Jogo Astro Bot" and "PS5 Fortnite Bundle"
+export function extractBundleGame(title) {
+  if (!title) return null
+
+  // "+ Jogo Astro Bot" (Portuguese)
+  const jogoMatch = title.match(/\+\s*jogo\s+([\w\s\-'&:]+?)(?:\s*\+|$)/i)
+  if (jogoMatch) return jogoMatch[1].trim()
+
+  // "Fortnite Flowering Chaos Bundle" — words before "bundle" that look like a game name
+  const bundleMatch = title.match(/\b([\w\s\-'&:]+?)\s+bundle\b/i)
+  if (bundleMatch) {
+    const _generic = /^(console|playstation|ps[345]|xbox|sony|nintendo|switch|slim|digital|disc|standard|pro|launch|special|collector|deluxe|a|an|the)$/i
+    const words = bundleMatch[1].trim().split(/\s+/).filter(w => !_generic.test(w) && w.length > 1)
+    if (words.length >= 1) return words.join(' ')
   }
   return null
 }

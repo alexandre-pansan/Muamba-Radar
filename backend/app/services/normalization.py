@@ -97,7 +97,13 @@ _ACCESSORY_PATTERNS = re.compile(
     r"headset|fone|earphone|earbuds|headphone|"
     r"bateria|battery|power\s*bank|"
     r"mouse|teclado|keyboard|webcam|"
-    r"adapt[ae]dor|hub|leitor|reader)\b"
+    r"adapt[ae]dor|hub|leitor|reader|"
+    # Peripherals that mention console compatibility but are NOT the console
+    r"volante|racing\s+wheel|steering\s+wheel|"
+    # Games — "Jogo PS5 X" or "Game PS5 X" is not the console itself
+    # Note: query filter is applied before alias expansion, so "ps5" stays "ps5"
+    r"jogo\s+(ps[1-5]|playstation|xbox|nintendo|switch)|"
+    r"game\s+(ps[1-5]|playstation|xbox|nintendo|switch))\b"
 )
 
 

@@ -142,6 +142,14 @@ export async function apiFetchFeaturedImages() {
   return []
 }
 
+export async function apiRefreshCacheStatus() {
+  const res = await fetch(`${getApiBase()}/admin/refresh-cache/status`, {
+    headers: authHeaders(),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
 export async function apiRefreshCache() {
   const res = await fetch(`${getApiBase()}/admin/refresh-cache`, {
     method: 'POST',

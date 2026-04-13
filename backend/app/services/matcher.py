@@ -27,6 +27,8 @@ _DISPLAY_OVERRIDES: dict[str, str] = {
     "lite": "Lite",
     "portal": "Portal",
     "move": "Move",
+    "digital": "Digital",
+    "bundle": "Bundle",
 }
 
 
@@ -175,7 +177,7 @@ def _extract_perfume_concentration(title: str) -> str | None:
         return "Extrait"
     if "elixir" in text:
         return "Elixir"
-    if "eau de parfum" in text or re.search(r"\bedp\b", text):
+    if "eau de parfum" in text or re.search(r"\bedp\b", text) or re.search(r"\bparfum\b", text):
         return "EDP"
     if "eau de toilette" in text or re.search(r"\bedt\b", text):
         return "EDT"
@@ -183,8 +185,6 @@ def _extract_perfume_concentration(title: str) -> str | None:
         return "EDC"
     if re.search(r"\bcologne\b", text):
         return "Cologne"
-    if re.search(r"\bparfum\b", text):
-        return "Parfum"
     return None
 
 
@@ -224,10 +224,40 @@ def _base_model_key(offer: OfferModel) -> str:
     # Normalize gaming aliases so "ps5" and "playstation 5" produce the same key
     text = expand_gaming_aliases(text)
 
+    # Volante / racing wheel — MUST come before LUT to avoid "Volante G29 para PS5"
+    # being matched as a PS5 console by the LUT's \bplaystation\s*5\b pattern.
+    volante_early = re.search(r"\b(volante|racing\s+wheel|steering\s+wheel)\b", text)
+    if volante_early:
+        wheel_brand = next((b for b in ("logitech", "thrustmaster", "fanatec", "hori") if b in text), None)
+        model_code = re.search(r"\b(g\d{2,3}|t\d{3}|t-?\d{3}|csl|dd\s*pro)\b", text)
+        parts = [wheel_brand or "", model_code.group(1) if model_code else "", "volante"]
+        return normalize_text(" ".join(p for p in parts if p).strip())
+
     # LUT takes priority over all heuristics — returns stable key if matched
     lut_entry = lut_lookup(text)
     if lut_entry:
-        return lut_entry.key
+        key = lut_entry.key
+        # For console products: apply Digital edition and game-bundle sub-grouping on top
+        # Use startswith checks on the key (underscored) to identify consoles
+        # and exclude peripherals (portal, vr, move, camera, controllers, handhelds).
+        _CONSOLE_KEY_RE = re.compile(
+            r"^(playstation_[1-9]|xbox_series|xbox_one|nintendo_switch)"
+        )
+        if _CONSOLE_KEY_RE.match(key):
+            if re.search(r"\bdigital\b", text):
+                key = f"{key}_digital"
+            _GENERIC_ED = re.compile(
+                r"^(standard|digital|disc|launch|special|collector|deluxe|a|an|the)$", re.I
+            )
+            has_jogo = bool(re.search(r"\+\s*jogo\b", text, re.I))
+            has_named_bundle = False
+            em = re.search(r"\b((?:\w+\s+){1,4}?)(edition|bundle|pack)\b", text, re.I)
+            if em:
+                ew = [w for w in em.group(1).strip().split() if not _GENERIC_ED.match(w)]
+                has_named_bundle = bool(ew)
+            if has_jogo or has_named_bundle:
+                key = f"{key}_bundle"
+        return key
 
     # Detect critical variant suffixes present in the title (must never be merged)
     # Use a meaningful order (pro before max, etc.) rather than alphabetical
@@ -248,14 +278,22 @@ def _base_model_key(offer: OfferModel) -> str:
         suffix = iphone_match.group(2) or ""
         return normalize_text(f"apple iphone {number} {suffix}".strip())
 
-    # PlayStation Portal (must come before generic ps number match)
-    if re.search(r"\bplaystation\s+portal\b", text):
+    # PlayStation Portal — handles "playstation portal" and "playstation 5 portal" / CFI-Y1001
+    if re.search(r"\bplaystation\s+(?:\d\s+)?portal\b|\bcfi.?y1001\b", text):
+        # Check for special edition (e.g. 30th Anniversary)
+        edition_match = re.search(r"\b((?:\w+\s+){1,4}?)(edition|anniversary)\b", text, re.I)
+        if edition_match:
+            edition_words = [w for w in edition_match.group(1).strip().split()
+                             if not re.match(r"^(standard|special|a|an|the)$", w, re.I)]
+            if edition_words:
+                return normalize_text(f"playstation portal {' '.join(edition_words)}")
         return "playstation portal"
 
-    # PlayStation VR2 / VR
-    vr_match = re.search(r"\bplaystation\s+(vr2?)\b", text)
+    # PlayStation VR2 / VR — handles "playstation vr2" and "playstation 5 vr2" / CFI-ZVR1
+    vr_match = re.search(r"\bplaystation\s+(?:\d\s+)?(vr2?)\b|\bcfi.?zvr\b|\bps\s*vr2?\b", text)
     if vr_match:
-        return normalize_text(f"playstation {vr_match.group(1)}")
+        vr_label = "vr2" if "vr2" in text else "vr"
+        return normalize_text(f"playstation {vr_label}")
 
     # PlayStation Move
     if re.search(r"\bplaystation\s+move\b", text):
@@ -266,14 +304,49 @@ def _base_model_key(offer: OfferModel) -> str:
     if ps_match:
         number = ps_match.group(1)
         suffix_str = " ".join(variants)
-        return normalize_text(f"playstation {number} {suffix_str}".strip())
+
+        _GENERIC_EDITION = re.compile(
+            r"^(standard|digital|disc|launch|special|collector|deluxe|a|an|the)$", re.I
+        )
+
+        # Digital edition detection
+        digital_suffix = " digital" if re.search(r"\bdigital\b", text) else ""
+
+        # "+ Jogo X" — Portuguese game bundle (e.g. "PS5 + Jogo Astro Bot")
+        has_jogo = bool(re.search(r"\+\s*jogo\b", text, re.I))
+
+        # "X Edition/Bundle/Pack" with real game name (not generic descriptors)
+        has_named_bundle = False
+        edition_match = re.search(r"\b((?:\w+\s+){1,4}?)(edition|bundle|pack)\b", text, re.I)
+        if edition_match:
+            edition_words = [w for w in edition_match.group(1).strip().split()
+                             if not _GENERIC_EDITION.match(w)]
+            has_named_bundle = bool(edition_words)
+
+        # All game bundles share one group key so they can be sub-filtered by game in the UI
+        if has_jogo or has_named_bundle:
+            return normalize_text(f"playstation {number} {suffix_str}{digital_suffix} bundle".strip())
+
+        return normalize_text(f"playstation {number} {suffix_str}{digital_suffix}".strip())
 
     # Xbox Series X/S
     xbox_series = re.search(r"\bxbox\s+series\s+([xs])\b", text)
     if xbox_series:
         letter = xbox_series.group(1)
         suffix_str = " ".join(v for v in variants if v not in {"pro"})
-        return normalize_text(f"xbox series {letter} {suffix_str}".strip())
+        digital_suffix = " digital" if re.search(r"\bdigital\b", text) else ""
+
+        has_jogo = bool(re.search(r"\+\s*jogo\b", text, re.I))
+        has_named_bundle = False
+        edition_match = re.search(r"\b((?:\w+\s+){1,4}?)(edition|bundle|pack)\b", text, re.I)
+        if edition_match:
+            edition_words = [w for w in edition_match.group(1).strip().split()
+                             if not re.match(r"^(standard|special|launch|a|an|the)$", w, re.I)]
+            has_named_bundle = bool(edition_words)
+
+        if has_jogo or has_named_bundle:
+            return normalize_text(f"xbox series {letter} {suffix_str}{digital_suffix} bundle".strip())
+        return normalize_text(f"xbox series {letter} {suffix_str}{digital_suffix}".strip())
 
     # Xbox One (X/S/base)
     xbox_one = re.search(r"\bxbox\s+one\b", text)
@@ -286,14 +359,6 @@ def _base_model_key(offer: OfferModel) -> str:
     if switch_match:
         suffix_str = " ".join(variants)
         return normalize_text(f"nintendo switch {suffix_str}".strip())
-
-    # Volante / racing wheel — keep brand + product type
-    volante_match = re.search(r"\b(volante|racing\s+wheel|steering\s+wheel)\b", text)
-    if volante_match:
-        wheel_brand = next((b for b in ("logitech", "thrustmaster", "fanatec", "hori") if b in text), None)
-        model_code = re.search(r"\b(g\d{2,3}|t\d{3}|t-?\d{3}|csl|dd\s*pro)\b", text)
-        parts = [wheel_brand or "", model_code.group(1) if model_code else "", "volante"]
-        return normalize_text(" ".join(p for p in parts if p).strip())
 
     text = re.sub(r"\b\d{1,4}\s?(gb|tb)\b", " ", text)
     text = re.sub(r"\bram\b", " ", text)
@@ -312,7 +377,12 @@ def _canonical_name(base_model: str, storage: str | None, ram: str | None, offer
     # LUT gives the authoritative display name when available
     lut_entry = lut_lookup(expand_gaming_aliases(normalize_text(sample.title)))
     if lut_entry:
-        name = lut_entry.display
+        # If base_model has extra modifiers (_digital, _bundle) beyond the LUT key,
+        # derive the display name from base_model so "Slim Digital Bundle" is shown.
+        if base_model == lut_entry.key:
+            name = lut_entry.display
+        else:
+            name = _gaming_display_name(base_model.replace("_", " "))
     else:
         brand_norm = (sample.brand or "").lower()
         if sample.brand and sample.model and brand_norm not in _GAMING_BRANDS:

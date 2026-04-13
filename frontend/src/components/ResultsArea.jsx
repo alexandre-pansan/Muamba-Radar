@@ -12,6 +12,8 @@ import {
   formatMoney,
   sourceDomain,
   detectProductType,
+  detectVariant,
+  extractBundleGame,
 } from '../utils.js'
 
 function FlatTable({ groups, marginPct, t, onOpenOffers }) {
@@ -99,9 +101,13 @@ export default function ResultsArea({
   const { t } = useI18n()
   const [typeFilter, setTypeFilter] = useState(null)
   const [concFilter, setConcFilter] = useState(null)
+  const [variantFilter, setVariantFilter] = useState(null)
+  const [gameFilter, setGameFilter] = useState(null)
 
-  // Reset filter when results change
-  useEffect(() => { setTypeFilter(null); setConcFilter(null) }, [lastQuery])
+  // Reset filters when results change
+  useEffect(() => { setTypeFilter(null); setConcFilter(null); setVariantFilter(null); setGameFilter(null) }, [lastQuery])
+  // Reset game filter when variant filter changes
+  useEffect(() => { setGameFilter(null) }, [variantFilter])
 
   const showClear = Boolean(lastData)
   const showRetry = status?.isError && lastQuery != null
@@ -140,9 +146,58 @@ export default function ResultsArea({
   const concentrations = Object.entries(concMap).sort((a, b) => b[1] - a[1])
   const showConcFilter = concentrations.length >= 2
 
-  const displayed = concFilter
+  const concFiltered = concFilter
     ? typeFiltered.filter(g => g.concentration === concFilter)
     : typeFiltered
+
+  // Variant sub-filter (editions, Pro/Slim/Digital/etc.)
+  function groupVariant(g) {
+    const fk = g.family_key || ''
+    // Use family_key directly for backend-set console modifiers (most specific first)
+    if (fk.includes('_bundle')) return 'Bundle'
+    if (fk.includes('_digital')) return 'Digital'
+    // Fall back to name-based detection for other variants (Slim, Pro, OLED, etc.)
+    const candidates = [
+      familyDisplayName(g),
+      ...(g.offers || []).map(o => o.title).filter(Boolean),
+    ]
+    for (const name of candidates) {
+      const v = detectVariant(name)
+      if (v) return v
+    }
+    return null
+  }
+
+  const variantMap = {}
+  concFiltered.forEach(g => {
+    const v = groupVariant(g)
+    if (v) variantMap[v] = (variantMap[v] || 0) + 1
+  })
+  const variants = Object.entries(variantMap).sort((a, b) => b[1] - a[1])
+  const showVariantFilter = variants.length >= 2
+
+  const variantFiltered = variantFilter
+    ? concFiltered.filter(g => groupVariant(g) === variantFilter)
+    : concFiltered
+
+  // Game sub-filter — shown when Bundle variant is active
+  const showGameFilter = variantFilter === 'Bundle'
+  const gameMap = {}
+  if (showGameFilter) {
+    variantFiltered.forEach(g => {
+      const titles = (g.offers || []).map(o => o.title).filter(Boolean)
+      const game = titles.reduce((found, t) => found || extractBundleGame(t), null)
+      if (game) gameMap[game] = (gameMap[game] || 0) + 1
+    })
+  }
+  const games = Object.entries(gameMap).sort((a, b) => b[1] - a[1])
+
+  const displayed = gameFilter
+    ? variantFiltered.filter(g => {
+        const titles = (g.offers || []).map(o => o.title).filter(Boolean)
+        return titles.some(t => extractBundleGame(t) === gameFilter)
+      })
+    : variantFiltered
 
   return (
     <div className="content-area">
@@ -210,7 +265,7 @@ export default function ResultsArea({
             <button
               key={type}
               className={`type-chip${typeFilter === type ? ' is-active' : ''}`}
-              onClick={() => { setTypeFilter(t => t === type ? null : type); setConcFilter(null) }}
+              onClick={() => { setTypeFilter(t => t === type ? null : type); setConcFilter(null); setVariantFilter(null) }}
             >
               {type} <span className="type-chip-count">{count}</span>
             </button>
@@ -230,9 +285,50 @@ export default function ResultsArea({
             <button
               key={conc}
               className={`type-chip${concFilter === conc ? ' is-active' : ''}`}
-              onClick={() => setConcFilter(c => c === conc ? null : conc)}
+              onClick={() => { setConcFilter(c => c === conc ? null : conc); setVariantFilter(null) }}
             >
               {conc} <span className="type-chip-count">{count}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {!isLoading && showVariantFilter && (
+        <div className="type-filter-bar type-filter-bar--sub">
+          <button
+            className={`type-chip${!variantFilter ? ' is-active' : ''}`}
+            onClick={() => setVariantFilter(null)}
+          >
+            Todos <span className="type-chip-count">{concFiltered.length}</span>
+          </button>
+          {variants.map(([variant, count]) => (
+            <button
+              key={variant}
+              className={`type-chip${variantFilter === variant ? ' is-active' : ''}`}
+              onClick={() => setVariantFilter(v => v === variant ? null : variant)}
+            >
+              {variant} <span className="type-chip-count">{count}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {!isLoading && showGameFilter && games.length >= 1 && (
+        <div className="type-filter-bar type-filter-bar--sub">
+          <span className="filter-bar-label">Jogo:</span>
+          <button
+            className={`type-chip${!gameFilter ? ' is-active' : ''}`}
+            onClick={() => setGameFilter(null)}
+          >
+            Todos <span className="type-chip-count">{variantFiltered.length}</span>
+          </button>
+          {games.map(([game, count]) => (
+            <button
+              key={game}
+              className={`type-chip${gameFilter === game ? ' is-active' : ''}`}
+              onClick={() => setGameFilter(g => g === game ? null : game)}
+            >
+              {game} <span className="type-chip-count">{count}</span>
             </button>
           ))}
         </div>

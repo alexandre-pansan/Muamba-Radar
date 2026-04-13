@@ -623,8 +623,12 @@ def search_history(
 
 # ── Admin: cache refresh ──────────────────────────────────────────────────────
 
+_refresh_progress: dict = {"running": False, "done": 0, "total": 0, "current": ""}
+
+
 def _refresh_all_cached_queries() -> None:
     """Re-scrape every saved query and upsert individual offers to ProductOffer."""
+    global _refresh_progress
     db = SessionLocal()
     try:
         rows = (
@@ -633,9 +637,12 @@ def _refresh_all_cached_queries() -> None:
             .all()
         )
         total = len(rows)
+        _refresh_progress = {"running": True, "done": 0, "total": total, "current": ""}
         log.info("refresh  starting — %d unique queries", total)
         now = datetime.now(timezone.utc)
         for i, row in enumerate(rows, 1):
+            _refresh_progress["done"] = i - 1
+            _refresh_progress["current"] = row.query_raw
             log.info("refresh  [%d/%d]  q=%r  country=%s", i, total, row.query_raw, row.country)
             try:
                 live_offers = scrape_offers(
@@ -653,6 +660,7 @@ def _refresh_all_cached_queries() -> None:
                 continue
         log.info("refresh  done")
     finally:
+        _refresh_progress = {"running": False, "done": _refresh_progress.get("total", 0), "total": _refresh_progress.get("total", 0), "current": ""}
         db.close()
 
 
@@ -699,9 +707,16 @@ def trigger_refresh_cache(
     _: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> dict:
+    if _refresh_progress.get("running"):
+        return {"status": "already_running", **_refresh_progress}
     count = db.query(SearchCache.query_norm).distinct().count()
     background_tasks.add_task(_refresh_all_cached_queries)
     return {"status": "started", "unique_queries": count}
+
+
+@app.get("/admin/refresh-cache/status")
+def refresh_cache_status(_: User = Depends(require_admin)) -> dict:
+    return _refresh_progress
 
 
 @app.get("/admin/users", response_model=list[UserResponse])

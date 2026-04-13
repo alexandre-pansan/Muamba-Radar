@@ -29,6 +29,23 @@ def _e(key: str, display: str, pattern: str) -> LUTEntry:
 # fmt: off
 _RAW: list[LUTEntry] = [
 
+    # ── Sony PlayStation — Periféricos (MUST come before numbered consoles) ───
+    # "PlayStation 5 Portal" / "PlayStation 5 VR2" must NOT match the PS5 console entry.
+    _e("playstation_vr2",           "PlayStation VR2",
+       r"\bplaystation\s+(?:\d\s+)?vr\s*2\b|\bps\s*vr\s*2\b|\bpsvr\s*2\b|\bcfij.?1[0-9]{4}\b"),
+
+    _e("playstation_vr",            "PlayStation VR",
+       r"\bplaystation\s+(?:\d\s+)?vr\b|\bps\s*vr\b|\bpsvr\b|\bcuh.?zvr\b"),
+
+    _e("playstation_portal",        "PlayStation Portal",
+       r"\bplaystation\s+(?:\d\s+)?portal\b|\bps\s+(?:\d\s+)?portal\b|\bcfi.?y[0-9]{4}\b"),
+
+    _e("playstation_move",          "PlayStation Move",
+       r"\bplaystation\s+move\b|\bps\s+move\b"),
+
+    _e("playstation_camera",        "PlayStation Camera",
+       r"\bplaystation\s+camera\b|\bps\s+camera\b"),
+
     # ── Sony PlayStation — Consoles ───────────────────────────────────────────
     _e("playstation_5_pro",         "PlayStation 5 Pro",
        r"\bplaystation\s*5\s+pro\b|\bps\s*5\s+pro\b|\bcfi.?7[0-9]{3}\b"),
@@ -81,22 +98,6 @@ _RAW: list[LUTEntry] = [
 
     _e("psp",                       "PSP",
        r"\bpsp\b|\bplaystation\s+portable\b"),
-
-    # ── Sony PlayStation — Periféricos ────────────────────────────────────────
-    _e("playstation_vr2",           "PlayStation VR2",
-       r"\bplaystation\s+vr\s*2\b|\bps\s*vr\s*2\b|\bpsvr\s*2\b|\bcfij.?1[0-9]{4}\b"),
-
-    _e("playstation_vr",            "PlayStation VR",
-       r"\bplaystation\s+vr\b|\bps\s*vr\b|\bpsvr\b|\bcuh.?zvr\b"),
-
-    _e("playstation_portal",        "PlayStation Portal",
-       r"\bplaystation\s+portal\b|\bps\s+portal\b|\bcfi.?y[0-9]{4}\b"),
-
-    _e("playstation_move",          "PlayStation Move",
-       r"\bplaystation\s+move\b|\bps\s+move\b"),
-
-    _e("playstation_camera",        "PlayStation Camera",
-       r"\bplaystation\s+camera\b|\bps\s+camera\b"),
 
     _e("dualsense_edge",            "DualSense Edge",
        r"\bdualsense\s+edge\b|\bcfi.?zct1e\b"),
