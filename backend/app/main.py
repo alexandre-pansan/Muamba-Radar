@@ -166,6 +166,23 @@ def _load_db_offers(
     return offers
 
 
+def _purge_expired(db: Session, now: datetime) -> None:
+    """Delete expired rows from product_offers and search_cache."""
+    deleted_offers = (
+        db.query(ProductOffer)
+        .filter(ProductOffer.expires_at <= now)
+        .delete(synchronize_session=False)
+    )
+    deleted_cache = (
+        db.query(SearchCache)
+        .filter(SearchCache.expires_at <= now)
+        .delete(synchronize_session=False)
+    )
+    if deleted_offers or deleted_cache:
+        db.commit()
+        log.debug("purge: removed %d expired offers, %d stale cache entries", deleted_offers, deleted_cache)
+
+
 def _upsert_offers(db: Session, offers: list[OfferModel], now: datetime) -> None:
     """Save/update offers in ProductOffer table. Live price always wins on conflict."""
     if not offers:
@@ -569,9 +586,10 @@ def compare(
     all_offers = list(url_map.values())
     log.info("  merged: %d unique offers", len(all_offers))
 
-    # ── 4. Persist new/updated live offers to DB ──────────────────────────────
+    # ── 4. Persist new/updated live offers to DB + purge expired rows ────────
     if live_offers:
         _upsert_offers(db, live_offers, now)
+        _purge_expired(db, now)
 
     # ── 5. Record search query for suggestions / history ──────────────────────
     existing = (

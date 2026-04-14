@@ -166,6 +166,20 @@ const _TYPE_RULES = [
   [/\b(dualsense|dualshock|joy.con|controle\s+(ps|xbox|nintendo))/i, 'Controle'],
   [/\b(volante|racing\s+wheel|steering\s+wheel)\b/i,        'Volante'],
   [/\b(jogo\s+|game\s+).*(ps[345]|xbox|switch|nintendo)/i, 'Jogo'],
+
+  // Eletrodomésticos
+  [/\b(secador\s+de\s+cabelo|hair\s+dryer|secador\b)/i,    'Secador'],
+  [/\b(chapinha|prancha\s+de\s+cabelo|flat\s+iron|alisador)/i, 'Chapinha'],
+  [/\b(ferro\s+de\s+passar|steam\s+iron)\b/i,               'Ferro de Passar'],
+  [/\b(maquina\s+de\s+lavar|lavadora|washing\s+machine)\b/i,'Lavadora'],
+  [/\b(micro.?ondas|microwave)\b/i,                          'Micro-ondas'],
+  [/\b(geladeira|refrigerador|refrigerator|frigobar)\b/i,   'Geladeira'],
+  [/\b(liquidificador|blender\b)\b/i,                        'Liquidificador'],
+  [/\b(air\s*fryer|airfryer|fritadeira\s+el[eé]trica)\b/i,  'Air Fryer'],
+  [/\b(aspirador\s+de\s+p[oó]|vacuum\s+cleaner)\b/i,        'Aspirador'],
+  [/\b(ar\s*condicionado|air\s+conditioner)\b/i,            'Ar-Condicionado'],
+  [/\b(ventilador|fan\s+elétrico)\b/i,                       'Ventilador'],
+  [/\b(batedeira|batedeira\s+planet[aá]ria|stand\s+mixer)\b/i, 'Batedeira'],
 ]
 
 export function detectProductType(name) {
@@ -241,6 +255,9 @@ export function extractBundleGame(title) {
 export function buildConfigChip(group) {
   if (group.concentration || group.volume_ml) {
     return [group.concentration, group.volume_ml].filter(Boolean).join(' · ')
+  }
+  if (group.voltage) {
+    return group.voltage
   }
   return (group.canonical_name.match(/\(([^)]+)\)/) || ['', ''])[1]
 }

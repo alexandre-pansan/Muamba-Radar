@@ -4,7 +4,6 @@ import re
 from datetime import UTC, datetime
 from urllib.parse import quote_plus, urljoin, urlsplit, urlunsplit
 
-import requests
 from bs4 import BeautifulSoup, Tag
 
 from app.adapters.base import SourceAdapter
@@ -12,6 +11,30 @@ from app.schemas import RawOfferModel
 from app.services.normalization import matches_query
 
 STOP_TOKENS = {"de", "da", "do", "e", "com", "para", "pro", "max", "mini", "plus"}
+
+# Bidirectional synonym groups: if any token from a group is in the query,
+# all tokens from that group are accepted as matches in the title (and vice-versa).
+# This lets "air fry" match "Fritadeira" and "fritadeira" match "Air Fryer".
+_APPLIANCE_SYNONYM_GROUPS: list[frozenset[str]] = [
+    frozenset({"airfryer", "air", "fry", "fryer", "fritadeira"}),
+    frozenset({"secador", "hairdryer"}),
+    frozenset({"lavadora", "washing"}),
+    frozenset({"microondas", "micro", "microwave"}),
+    frozenset({"liquidificador", "blender"}),
+    frozenset({"chapinha", "prancha", "alisador"}),
+    frozenset({"aspirador", "vacuum"}),
+    frozenset({"ventilador", "fan"}),
+    frozenset({"batedeira", "mixer"}),
+]
+
+
+def _expand_synonyms(tokens: set[str]) -> set[str]:
+    """Add all synonym-group siblings for any token already in the set."""
+    expanded = set(tokens)
+    for group in _APPLIANCE_SYNONYM_GROUPS:
+        if expanded & group:
+            expanded |= group
+    return expanded
 
 COLOR_TOKENS = (
     "black",
@@ -47,7 +70,33 @@ def _query_tokens(query: str) -> list[str]:
 
 
 def _is_relevant(query: str, title: str) -> bool:
-    return matches_query(query, title)
+    # For category-style queries (e.g. "escova de cabelo", "ferro de passar"),
+    # matches_query is too strict because it includes stop words like "de" as
+    # required tokens. Use stop-word-stripped tokens + synonym expansion instead.
+    query_tokens = _query_tokens(query)  # strips stop words
+    if not query_tokens:
+        return matches_query(query, title)
+
+    title_norm = _normalize_text(title)
+    title_toks = set(title_norm.split())
+
+    # Numeric tokens (model numbers, storage) must all match — they are discriminating.
+    numeric = [t for t in query_tokens if re.search(r"\d", t)]
+    if numeric and not all(t in title_toks for t in numeric):
+        return False
+
+    non_numeric = [t for t in query_tokens if not re.search(r"\d", t)]
+    if not non_numeric:
+        return matches_query(query, title)
+
+    # Expand both sides with appliance synonym groups so "air fry" matches
+    # "Fritadeira" and "fritadeira" matches "Air Fryer".
+    query_expanded = _expand_synonyms(set(non_numeric))
+    title_expanded = _expand_synonyms(title_toks)
+
+    hits = len(query_expanded & title_expanded)
+    required = max(1, (len(non_numeric) + 1) // 2)
+    return hits >= required
 
 
 def _normalize_product_url(href: str) -> str:
@@ -83,8 +132,9 @@ def _parse_number_pt_br(value: str) -> float | None:
 
 
 def _extract_price(card: Tag, is_perfume: bool = False) -> tuple[float, str] | None:
-    min_usd = 5 if is_perfume else 80
-    min_brl = 20 if is_perfume else 300
+    # Low threshold to allow accessories, appliances, and general merchandise
+    min_usd = 5 if is_perfume else 8
+    min_brl = 20 if is_perfume else 30
 
     usd_text = card.get_text(" ", strip=True)
     usd_match = re.search(r"US\$\s*([0-9\.,]+)", usd_text, re.IGNORECASE)
@@ -159,17 +209,14 @@ class ComprasParaguaiAdapter(SourceAdapter):
     source_id = "comprasparaguai"
     country = "py"
 
+    def __init__(self) -> None:
+        super().__init__()
+
     def _search_url(self, query: str) -> str:
         return f"https://www.comprasparaguai.com.br/busca/?q={quote_plus(query)}"
 
     def _fetch_html(self, url: str) -> str:
-        response = requests.get(
-            url,
-            timeout=15,
-            headers={"User-Agent": "Mozilla/5.0 (PriceSourcerer/0.1)"},
-        )
-        response.raise_for_status()
-        return response.text
+        return self._get(url).text
 
     def _extract_model_urls(self, query: str, soup: BeautifulSoup) -> list[str]:
         model_urls: list[str] = []

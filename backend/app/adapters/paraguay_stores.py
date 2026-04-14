@@ -5,7 +5,6 @@ import re
 from datetime import UTC, datetime
 from urllib.parse import quote_plus, urljoin, urlparse, urlsplit, urlunsplit
 
-import requests
 from bs4 import BeautifulSoup, Tag
 
 from app.adapters.base import SourceAdapter
@@ -207,6 +206,7 @@ class GenericStoreAdapter(SourceAdapter):
         country: str = "py",
         fallback_currency: str = "PYG",
     ) -> None:
+        super().__init__()
         self.source_id = source_id
         self.country = country
         self._store_name = store_name
@@ -242,12 +242,7 @@ class GenericStoreAdapter(SourceAdapter):
         return None
 
     def _scrape_from_url(self, url: str, query: str) -> list[dict]:
-        response = requests.get(
-            url,
-            timeout=12,
-            headers={"User-Agent": "Mozilla/5.0 (PriceSourcerer/0.1)"},
-        )
-        response.raise_for_status()
+        response = self._get(url)
 
         soup = BeautifulSoup(response.text, "html.parser")
         now = datetime.now(UTC)

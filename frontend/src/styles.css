@@ -508,7 +508,7 @@ dialog.modal::backdrop {
 .modal-sm { --modal-w: 400px; }
 .modal-md { --modal-w: 520px; }
 .modal-lg { --modal-w: 680px; }
-.modal-xl { --modal-w: 900px; }
+.modal-xl { --modal-w: 1100px; }
 
 /* ── Modal header — sticky title bar with close button ─────────── */
 .modal-header {
@@ -1781,15 +1781,90 @@ th.sort-desc::after { content: " \2193"; font-size: 0.7em; }
   flex-shrink: 0;
 }
 
-/* Offers body padding & table overrides */
-.modal-xl .modal-body { padding: 0 16px 16px; }
-.modal-xl .modal-body .offers-inner { margin-top: 0; font-size: 0.83rem; }
-.modal-xl .modal-body .offers-inner th { position: sticky; top: 0; z-index: 1; background: var(--card); }
+/* store filter bar */
+.od-store-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--line);
+  background: var(--card-bg);
+}
 
-.od-store  { white-space: nowrap; color: var(--muted); font-size: 0.8rem; }
-.od-title  { max-width: 320px; }
-.od-price  { white-space: nowrap; font-variant-numeric: tabular-nums; }
-.od-brl    { white-space: nowrap; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink); }
+.od-store-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+  white-space: nowrap;
+}
+.od-store-chip:hover { border-color: var(--accent); color: var(--accent); }
+.od-store-chip.is-active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.od-store-chip-count {
+  font-size: 0.65rem;
+  opacity: 0.75;
+}
+.od-store-chip.is-active .od-store-chip-count { opacity: 1; }
+
+.od-empty {
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.85rem;
+  padding: 32px 0;
+}
+
+/* Offers body padding & table overrides */
+.modal-xl .modal-body { padding: 0; }
+.modal-xl .modal-body .offers-inner { margin-top: 0; font-size: 0.83rem; }
+.modal-xl .modal-body .offers-inner th { position: sticky; top: 0; z-index: 1; background: var(--card-bg); }
+
+/* header count badges */
+.od-counts { display: flex; gap: 6px; margin-right: 8px; }
+.od-count-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 20px;
+  letter-spacing: 0.04em;
+}
+.od-count-py { background: var(--py-bg); color: var(--py-color); border: 1px solid var(--py-border); }
+.od-count-br { background: var(--br-bg); color: var(--br-color); border: 1px solid var(--br-border); }
+
+/* section separator rows */
+.od-section-label {
+  font-size: 0.64rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 8px 16px 6px;
+}
+.od-section-py { color: var(--py-color); background: var(--py-bg); border-top: 1px solid var(--py-border); }
+.od-section-br { color: var(--br-color); background: var(--br-bg); border-top: 1px solid var(--br-border); }
+
+/* offer rows */
+.od-row { border-left: 3px solid transparent; }
+.od-row--py { border-left-color: var(--py-color); }
+.od-row--br { border-left-color: var(--br-color); }
+
+.od-store  { white-space: nowrap; color: var(--muted); font-size: 0.8rem; width: 110px; }
+.od-title  {
+  max-width: 300px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text);
+}
+.od-price  { white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--muted); font-size: 0.8rem; }
+.od-brl    { white-space: nowrap; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink); }
 .od-link a { color: var(--accent); text-decoration: none; font-size: 0.8rem; }
 .od-link a:hover { text-decoration: underline; }
 
@@ -2043,6 +2118,7 @@ th.sort-desc::after { content: " \2193"; font-size: 0.7em; }
 }
 
 .product-card {
+  flex: 1;                 /* fill the grid cell height → equal card heights */
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: 16px;
@@ -2274,6 +2350,7 @@ th.sort-desc::after { content: " \2193"; font-size: 0.7em; }
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-top: auto;        /* push footer to bottom regardless of content height */
   padding-top: 12px;
   border-top: 1px solid var(--line);
 }
@@ -2399,16 +2476,19 @@ th.sort-desc::after { content: " \2193"; font-size: 0.7em; }
 /* ── Flat table view ─────────────────────────────────────────────── */
 
 .flat-table-wrap {
+  min-width: 0;            /* prevent grid item from expanding past container */
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: 16px;
-  overflow: hidden;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   box-shadow: var(--shadow);
   animation: rise 260ms ease both;
 }
 
 .flat-table {
   width: 100%;
+  min-width: 720px;
   border-collapse: collapse;
   font-size: 0.84rem;
 }
@@ -2420,12 +2500,10 @@ th.sort-desc::after { content: " \2193"; font-size: 0.7em; }
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.07em;
-  padding: 9px 14px;
+  padding: 10px 14px;
   text-align: left;
-  border-bottom: 1px solid var(--line);
-  position: sticky;
-  top: 0;
-  z-index: 1;
+  border-bottom: 2px solid var(--line);
+  white-space: nowrap;
 }
 
 .flat-table tbody tr {
@@ -2438,18 +2516,39 @@ th.sort-desc::after { content: " \2193"; font-size: 0.7em; }
 .flat-table tbody tr:hover td { background: var(--card-bg); }
 
 .flat-table td {
-  padding: 10px 14px;
+  padding: 11px 14px;
   vertical-align: middle;
 }
+
+/* column sizing hints */
+.flat-table th:nth-child(1),
+.flat-table td:nth-child(1) { min-width: 160px; }   /* modelo */
+.flat-table th:nth-child(2),
+.flat-table td:nth-child(2) { width: 76px; }         /* config */
+.flat-table th:nth-child(3),
+.flat-table td:nth-child(3) { width: 110px; }        /* preço py */
+.flat-table th:nth-child(4),
+.flat-table td:nth-child(4) { width: 130px; }        /* fonte py */
+.flat-table th:nth-child(5),
+.flat-table td:nth-child(5) { width: 110px; }        /* mercado br */
+.flat-table th:nth-child(6),
+.flat-table td:nth-child(6) { width: 130px; }        /* fonte br */
+.flat-table th:nth-child(7),
+.flat-table td:nth-child(7) { width: 110px; }        /* est. venda */
+.flat-table th:nth-child(8),
+.flat-table td:nth-child(8) { width: 80px; }         /* margem */
+.flat-table th:nth-child(9),
+.flat-table td:nth-child(9) { width: 64px; text-align: center; } /* ofertas */
 
 .ft-model {
   font-weight: 600;
   white-space: nowrap;
+  color: var(--ink);
 }
 
-.ft-py { color: var(--py-color); font-weight: 700; font-family: "Space Grotesk", sans-serif; }
-.ft-br { color: var(--br-color); font-weight: 700; font-family: "Space Grotesk", sans-serif; }
-.ft-sell { font-family: "Space Grotesk", sans-serif; font-size: 0.92rem; }
+.ft-py  { color: var(--py-color); font-weight: 700; font-family: "Space Grotesk", sans-serif; white-space: nowrap; }
+.ft-br  { color: var(--br-color); font-weight: 700; font-family: "Space Grotesk", sans-serif; white-space: nowrap; }
+.ft-sell { font-family: "Space Grotesk", sans-serif; font-size: 0.92rem; white-space: nowrap; color: var(--ink); }
 
 .ft-link {
   font-size: 0.72rem;
@@ -2459,29 +2558,22 @@ th.sort-desc::after { content: " \2193"; font-size: 0.7em; }
 
 .ft-link:hover { color: var(--accent); text-decoration: underline; }
 
-.ft-count {
-  font-size: 0.72rem;
-  color: var(--muted);
-}
+.ft-count { text-align: center; }
+
 .ft-offers-btn {
   background: var(--card-bg);
   border: 1px solid var(--line);
   border-radius: 6px;
-  padding: 3px 10px;
-  font-size: 0.72rem;
+  padding: 4px 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
   color: var(--muted);
   cursor: pointer;
   font-family: inherit;
-  transition: background 0.12s, color 0.12s;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  min-width: 36px;
 }
 .ft-offers-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
-
-@media (max-width: 820px) {
-  .flat-table thead th:nth-child(4),
-  .flat-table thead th:nth-child(6),
-  .flat-table td:nth-child(4),
-  .flat-table td:nth-child(6) { display: none; }
-}
 
 @media (max-width: 820px) {
   .variants-grid { padding: 8px; gap: 8px; }

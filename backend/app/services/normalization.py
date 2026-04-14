@@ -20,6 +20,30 @@ _ALIAS_EXPANSIONS: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"\bxss\b"),               "xbox series s"),
 ]
 
+# Appliance synonym groups — bidirectional PT-BR ↔ EN equivalences.
+# Any token from a group expands to all others at match time,
+# so "air fry" matches "Fritadeira" and vice-versa.
+_APPLIANCE_SYNONYM_GROUPS: list[frozenset[str]] = [
+    frozenset({"airfryer", "air", "fry", "fryer", "fritadeira", "freidora"}),
+    frozenset({"secador", "hairdryer"}),
+    frozenset({"lavadora", "washing"}),
+    frozenset({"microondas", "microwave"}),
+    frozenset({"liquidificador", "blender"}),
+    frozenset({"chapinha", "prancha", "alisador"}),
+    frozenset({"aspirador", "vacuum"}),
+    frozenset({"ventilador", "fan"}),
+    frozenset({"batedeira", "mixer"}),
+]
+
+
+def _expand_synonyms(tokens: set[str]) -> set[str]:
+    expanded = set(tokens)
+    for group in _APPLIANCE_SYNONYM_GROUPS:
+        if expanded & group:
+            expanded |= group
+    return expanded
+
+
 # Platform/console names that should never be treated as a product model
 _PLATFORM_TOKENS = frozenset({
     "ps5", "ps4", "ps3", "ps2", "playstation", "xbox", "switch", "nintendo",
@@ -107,6 +131,51 @@ _ACCESSORY_PATTERNS = re.compile(
 )
 
 
+_PT_STOP_WORDS = frozenset({
+    "de", "da", "do", "dos", "das", "em", "no", "na", "nos", "nas",
+    "e", "com", "para", "por", "um", "uma", "o", "a", "os", "as",
+})
+
+
+def matches_query_loose(query: str, title: str) -> bool:
+    """Lenient relevance check used after adapter pre-filtering.
+
+    Strips Portuguese stop words before counting required hits, and applies
+    synonym expansion, so 'escova de cabelo' matches 'Escova Elétrica Onida'
+    on the strength of a single significant token ('escova').
+    """
+    query_tokens = tokenize(query)
+    if not query_tokens:
+        return False
+
+    norm_query  = normalize_text(query)
+    norm_title  = normalize_text(title)
+
+    if _ACCESSORY_PATTERNS.search(norm_title) and not _ACCESSORY_PATTERNS.search(norm_query):
+        return False
+
+    significant = [t for t in query_tokens if t not in _PT_STOP_WORDS]
+    if not significant:
+        return matches_query(query, title)
+
+    title_tokens = set(tokenize(title))
+
+    # Numeric tokens in query must all appear in title.
+    numeric = [t for t in significant if re.search(r"\d", t)]
+    if numeric and not all(t in title_tokens for t in numeric):
+        return False
+
+    non_numeric = [t for t in significant if not re.search(r"\d", t)]
+    if not non_numeric:
+        return True
+
+    query_expanded = _expand_synonyms(set(non_numeric))
+    title_expanded = _expand_synonyms(title_tokens)
+    hits = len(query_expanded & title_expanded)
+    required = max(1, (len(non_numeric) + 1) // 2)
+    return hits >= required
+
+
 def matches_query(query: str, title: str) -> bool:
     query_tokens = tokenize(query)
     if not query_tokens:
@@ -120,12 +189,17 @@ def matches_query(query: str, title: str) -> bool:
         return False
 
     title_tokens = set(tokenize(title))
-    hits = sum(1 for token in query_tokens if token in title_tokens)
 
     # Strong guardrail: numeric tokens in query (model/storage) must match.
     numeric_tokens = [token for token in query_tokens if re.search(r"\d", token)]
     if numeric_tokens and not all(token in title_tokens for token in numeric_tokens):
         return False
+
+    # Expand both sides with appliance synonyms so "air fry" matches "Fritadeira"
+    # and "fritadeira" matches "Air Fryer" without false positives on other searches.
+    query_expanded = _expand_synonyms(set(query_tokens))
+    title_expanded = _expand_synonyms(title_tokens)
+    hits = len(query_expanded & title_expanded)
 
     if numeric_tokens:
         # Numeric queries (e.g., iphone 15 128gb) stay strict.

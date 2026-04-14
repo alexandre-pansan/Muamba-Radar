@@ -14,7 +14,6 @@ from datetime import UTC, datetime
 from typing import Any
 from urllib.parse import quote_plus, urlsplit, urlunsplit
 
-import requests
 from bs4 import BeautifulSoup
 
 from app.adapters.base import SourceAdapter
@@ -231,14 +230,12 @@ class AmericanasAdapter(SourceAdapter):
 
         return offers
 
+    def __init__(self) -> None:
+        super().__init__()
+
     def search(self, query: str) -> list[RawOfferModel]:
         try:
-            resp = requests.get(
-                self._search_url(query),
-                timeout=15,
-                headers=_default_headers(),
-            )
-            resp.raise_for_status()
+            resp = self._get(self._search_url(query), headers=_default_headers())
             soup = BeautifulSoup(resp.text, "html.parser")
 
             offers = self._from_next_data(_next_data(soup), query)
@@ -383,14 +380,12 @@ class CasasBahiaAdapter(SourceAdapter):
 
         return offers
 
+    def __init__(self) -> None:
+        super().__init__()
+
     def search(self, query: str) -> list[RawOfferModel]:
         try:
-            resp = requests.get(
-                self._search_url(query),
-                timeout=15,
-                headers=_default_headers(),
-            )
-            resp.raise_for_status()
+            resp = self._get(self._search_url(query), headers=_default_headers())
             soup = BeautifulSoup(resp.text, "html.parser")
 
             offers = self._from_next_data(_next_data(soup), query)

@@ -76,6 +76,8 @@ class ProductGroupModel(BaseModel):
     # Perfume-specific (None for non-perfume groups)
     concentration: str | None = None   # e.g. "EDP", "EDT", "Elixir"
     volume_ml: str | None = None       # e.g. "100ml"
+    # Appliance voltage variant (None for non-appliance groups)
+    voltage: str | None = None         # e.g. "127V", "220V", "Bivolt"
 
 
 class CompareResponseModel(BaseModel):

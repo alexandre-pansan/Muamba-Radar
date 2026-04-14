@@ -161,6 +161,17 @@ def _extract_volume_ml(title: str) -> str | None:
     return f"{match.group(1)}ml" if match else None
 
 
+def _extract_voltage(title: str) -> str | None:
+    text = normalize_text(title)
+    if re.search(r"\b(bivolt|dual\s*volt|bivoltage)\b", text):
+        return "Bivolt"
+    if re.search(r"\b(110|127)\s*v\b", text):
+        return "127V"
+    if re.search(r"\b(220|240)\s*v\b", text):
+        return "220V"
+    return None
+
+
 def _extract_perfume_concentration(title: str) -> str | None:
     text = normalize_text(title)
     # Body/skincare formats — check before parfum keywords
@@ -371,7 +382,7 @@ def _base_model_key(offer: OfferModel) -> str:
     return " ".join(tokens[:6]) if tokens else "product"
 
 
-def _canonical_name(base_model: str, storage: str | None, ram: str | None, offers: list[OfferModel]) -> str:
+def _canonical_name(base_model: str, storage: str | None, voltage: str | None, offers: list[OfferModel]) -> str:
     sample = min(offers, key=lambda offer: len(offer.title))
 
     # LUT gives the authoritative display name when available
@@ -390,7 +401,9 @@ def _canonical_name(base_model: str, storage: str | None, ram: str | None, offer
         else:
             name = _gaming_display_name(base_model)
 
-    details = [detail.upper() for detail in (storage, ram) if detail]
+    details = [detail.upper() for detail in [storage] if detail]
+    if voltage:
+        details.append(voltage)
     return f"{name} ({', '.join(details)})" if details else name
 
 
@@ -413,9 +426,9 @@ def _canonical_perfume_name(name_key: str, concentration: str | None, volume_ml:
 
 def group_offers(
     query: str, offers: list[OfferModel]
-) -> tuple[list[tuple[str, str, str, float, list[OfferModel], str | None, str | None]], list[tuple[str, str, str]]]:
+) -> tuple[list[tuple[str, str, str, float, list[OfferModel], str | None, str | None, str | None]], list[tuple[str, str, str]]]:
     """Return (groups, lut_misses).
-    groups: list of (product_key, family_key, canonical_name, confidence, offers, concentration, volume_ml).
+    groups: list of (product_key, family_key, canonical_name, confidence, offers, concentration, volume_ml, voltage).
     lut_misses: list of (title_norm, query, category) for offers that didn't match any LUT entry.
     """
     grouped: dict[tuple[str, str, str | None, str | None], list[OfferModel]] = {}
@@ -438,25 +451,28 @@ def group_offers(
             continue
 
         storage, _ram = _extract_storage_and_ram(offer.title)
+        voltage = _extract_voltage(offer.title)
         base = _base_model_key(offer)
         # RAM is intentionally excluded from the key: PY listings often include
         # RAM in the title (e.g. "256GB 8GB") while BR listings don't, which
         # would create duplicate groups for the same product.
-        key = ("default", base, storage, None)
+        # Voltage IS included: 127V and 220V variants are distinct products.
+        key = ("default", base, storage, voltage)
         grouped.setdefault(key, []).append(offer)
 
-    response: list[tuple[str, str, str, float, list[OfferModel], str | None, str | None]] = []
-    for (group_type, base, storage, ram), grouped_offers in grouped.items():
+    response: list[tuple[str, str, str, float, list[OfferModel], str | None, str | None, str | None]] = []
+    for (group_type, base, storage, extra), grouped_offers in grouped.items():
         if group_type == "perfume":
-            # In the key: storage slot holds volume_ml, ram slot holds concentration
+            # In the key: storage slot holds volume_ml, extra slot holds concentration
             volume_ml = storage
-            concentration = ram
+            concentration = extra
             canonical_name = _canonical_perfume_name(base, concentration, volume_ml, grouped_offers)
             product_key = slugify(f"perfume {base} {volume_ml or ''} {concentration or ''}")
-            response.append((product_key, base, canonical_name, 1.0, grouped_offers, concentration, volume_ml))
+            response.append((product_key, base, canonical_name, 1.0, grouped_offers, concentration, volume_ml, None))
         else:
-            canonical_name = _canonical_name(base, storage, None, grouped_offers)
-            product_key = slugify(f"{base} {storage or ''}")
-            response.append((product_key, base, canonical_name, 1.0, grouped_offers, None, None))
+            voltage = extra  # extra slot holds voltage for default products
+            canonical_name = _canonical_name(base, storage, voltage, grouped_offers)
+            product_key = slugify(f"{base} {storage or ''} {voltage or ''}")
+            response.append((product_key, base, canonical_name, 1.0, grouped_offers, None, None, voltage))
 
     return response, lut_misses

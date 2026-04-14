@@ -4,7 +4,6 @@ import re
 from datetime import UTC, datetime
 from urllib.parse import quote_plus, urlsplit, urlunsplit
 
-import requests
 from bs4 import BeautifulSoup, Tag
 
 from app.adapters.base import SourceAdapter
@@ -76,18 +75,16 @@ class MercadoLivreAdapter(SourceAdapter):
     source_id = "mercadolivre"
     country = "br"
 
+    def __init__(self) -> None:
+        super().__init__()
+
     def _search_url(self, query: str) -> str:
         query_slug = quote_plus(query).replace("+", "-")
         return f"https://lista.mercadolivre.com.br/{query_slug}"
 
     def _scrape(self, query: str) -> list[RawOfferModel]:
         url = self._search_url(query)
-        response = requests.get(
-            url,
-            timeout=12,
-            headers={"User-Agent": "Mozilla/5.0 (PriceSourcerer/0.1)"},
-        )
-        response.raise_for_status()
+        response = self._get(url)
 
         soup = BeautifulSoup(response.text, "html.parser")
         now = datetime.now(UTC)
@@ -117,7 +114,7 @@ class MercadoLivreAdapter(SourceAdapter):
                 continue
 
             price_amount = _extract_price(item)
-            if price_amount is None or price_amount < 300:
+            if price_amount is None or price_amount < 30:
                 continue
 
             seen_urls.add(product_url)

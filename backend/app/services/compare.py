@@ -16,6 +16,7 @@ from app.services.normalization import (
     extract_brand_model,
     is_refurbished_or_used,
     matches_query,
+    matches_query_loose,
     normalize_text,
     slugify,
 )
@@ -77,7 +78,9 @@ def _run_adapters(adapters: list[SourceAdapter], query: str) -> list[OfferModel]
         for raw in raw_offers:
             if is_refurbished_or_used(raw.title):
                 continue
-            if not matches_query(query, raw.title):
+            # Use loose matching: the adapter already pre-filtered for relevance,
+            # so we only need to guard against obvious mismatches and accessories.
+            if not matches_query_loose(query, raw.title):
                 continue
             brand, model = extract_brand_model(raw.title)
             offers.append(
@@ -243,7 +246,7 @@ def build_response_from_offers(
     _log_lut_misses(lut_misses)
 
     groups: list[ProductGroupModel] = []
-    for product_key, family_key, canonical_name, confidence, group_offers_list, concentration, volume_ml in grouped:
+    for product_key, family_key, canonical_name, confidence, group_offers_list, concentration, volume_ml, voltage in grouped:
 
         sorted_offers = (
             sorted(group_offers_list, key=lambda offer: offer.price.amount_brl)
@@ -263,6 +266,7 @@ def build_response_from_offers(
                 cheapest=_compute_cheapest(sorted_offers),
                 concentration=concentration,
                 volume_ml=volume_ml,
+                voltage=voltage,
             )
         )
 

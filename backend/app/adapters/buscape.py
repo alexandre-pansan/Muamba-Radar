@@ -19,7 +19,6 @@ from datetime import UTC, datetime
 from typing import Any
 from urllib.parse import quote_plus, urlsplit, urlunsplit
 
-import requests
 from bs4 import BeautifulSoup
 
 from app.adapters.base import SourceAdapter
@@ -493,11 +492,13 @@ class BuscapeAdapter(SourceAdapter):
     source_id = "buscape"
     country = "br"
 
+    def __init__(self) -> None:
+        super().__init__()
+
     def search(self, query: str) -> list[RawOfferModel]:
         url = f"{_BASE}/search?q={quote_plus(query)}"
         try:
-            resp = requests.get(url, headers=_HEADERS, timeout=_TIMEOUT)
-            resp.raise_for_status()
+            resp = self._get(url, headers=_HEADERS)
         except Exception as exc:
             log.warning("buscape: request failed — %s", exc)
             return []
