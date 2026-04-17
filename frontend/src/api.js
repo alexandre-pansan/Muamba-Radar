@@ -295,6 +295,135 @@ export async function apiAdminUpdateDonateStats(data) {
   return res.json()
 }
 
+// ── Cart ─────────────────────────────────────────────────────────────────────
+
+export async function apiFetchCart() {
+  const res = await fetchWithRefresh(`${getApiBase()}/cart`, {
+    headers: { Authorization: `Bearer ${getToken()}` },
+  })
+  if (!res.ok) return []
+  return res.json()
+}
+
+export async function apiAddToCart(item) {
+  const res = await fetchWithRefresh(`${getApiBase()}/cart`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+    body: JSON.stringify(item),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.detail || `HTTP ${res.status}`)
+  }
+  return res.json()
+}
+
+export async function apiRemoveFromCart(itemId) {
+  const res = await fetchWithRefresh(`${getApiBase()}/cart/${itemId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${getToken()}` },
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+}
+
+export async function apiClearCart() {
+  const res = await fetchWithRefresh(`${getApiBase()}/cart`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${getToken()}` },
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+}
+
+export async function apiFetchCartGrouped() {
+  const res = await fetchWithRefresh(`${getApiBase()}/cart/grouped`, {
+    headers: { Authorization: `Bearer ${getToken()}` },
+  })
+  if (!res.ok) return []
+  return res.json()
+}
+
+// ── Admin: Stores ─────────────────────────────────────────────────────────────
+
+export async function apiAdminListStores() {
+  const res = await fetch(`${getApiBase()}/admin/stores`, { headers: authHeaders() })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
+export async function apiAdminCreateStore(data) {
+  const res = await fetch(`${getApiBase()}/admin/stores`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.detail || `HTTP ${res.status}`)
+  }
+  return res.json()
+}
+
+export async function apiAdminUpdateStore(storeId, data) {
+  const res = await fetch(`${getApiBase()}/admin/stores/${storeId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.detail || `HTTP ${res.status}`)
+  }
+  return res.json()
+}
+
+export async function apiAdminDeleteStore(storeId) {
+  const res = await fetch(`${getApiBase()}/admin/stores/${storeId}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+}
+
+export async function apiAdminUploadStorePhoto(storeId, file) {
+  const form = new FormData()
+  form.append('file', file)
+  const res = await fetch(`${getApiBase()}/admin/stores/${storeId}/photo`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: form,
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.detail || `HTTP ${res.status}`)
+  }
+  return res.json()
+}
+
+export async function apiAdminUnmatchedStores() {
+  const res = await fetch(`${getApiBase()}/admin/stores/unmatched`, { headers: authHeaders() })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
+export async function apiAdminExportStores() {
+  const res = await fetch(`${getApiBase()}/admin/stores/export`, { headers: authHeaders() })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
+export async function apiAdminImportStores(stores) {
+  const res = await fetch(`${getApiBase()}/admin/stores/import`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(stores),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.detail || `HTTP ${res.status}`)
+  }
+  return res.json()
+}
+
 export async function apiTestSearch(query, adapterIds, raw = false) {
   const res = await fetch(`${getApiBase()}/admin/test-search`, {
     method: 'POST',

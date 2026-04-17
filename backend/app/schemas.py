@@ -186,6 +186,102 @@ class UserSearchItem(BaseModel):
     searched_at: datetime
 
 
+# ── Cart ────────────────────────────────────────────────────────────────────
+
+class CartItemCreate(BaseModel):
+    offer_url: str
+    source: str
+    country: str
+    store_name: str
+    title: str
+    price_amount: float
+    price_currency: str
+    image_url: str | None = None
+
+
+class StoreInfo(BaseModel):
+    model_config = {"from_attributes": True}
+    id: int
+    name: str
+    country: str
+    name_aliases: list[str] | None = None
+    address: str | None = None
+    city: str | None = None
+    lat: float | None = None
+    lng: float | None = None
+    photo_url: str | None = None
+    google_maps_url: str | None = None
+
+
+class CartItemResponse(BaseModel):
+    model_config = {"from_attributes": True}
+    id: int
+    offer_url: str
+    source: str
+    country: str
+    store_name: str
+    title: str
+    price_amount: float
+    price_currency: str
+    image_url: str | None = None
+    store_id: int | None = None
+    store: StoreInfo | None = None
+    added_at: datetime
+
+
+class CartGroupItem(BaseModel):
+    store_name: str
+    store: StoreInfo | None = None
+    items: list[CartItemResponse]
+
+
+# ── Admin Stores ─────────────────────────────────────────────────────────────
+
+class StoreCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=200)
+    name_aliases: list[str] = []
+    country: str = Field(pattern="^(py|br)$")
+    address: str | None = None
+    city: str | None = None
+    lat: float | None = None
+    lng: float | None = None
+    photo_url: str | None = None
+    google_maps_url: str | None = None
+
+
+class StoreImportItem(BaseModel):
+    """One store entry from an export JSON. photo_data carries the photo as base64."""
+    name: str = Field(min_length=1, max_length=200)
+    country: str = "py"
+    name_aliases: list[str] = []
+    address: str | None = None
+    city: str | None = None
+    lat: float | None = None
+    lng: float | None = None
+    photo_url: str | None = None   # fallback: kept only if https://
+    photo_data: str | None = None  # base64-encoded photo (preferred)
+    photo_mime: str | None = None  # e.g. "image/jpeg"
+    google_maps_url: str | None = None
+
+
+class StoreImportResult(BaseModel):
+    created: int
+    updated: int
+    skipped: int
+
+
+class StoreUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=200)
+    name_aliases: list[str] | None = None
+    country: str | None = Field(default=None, pattern="^(py|br)$")
+    address: str | None = None
+    city: str | None = None
+    lat: float | None = None
+    lng: float | None = None
+    photo_url: str | None = None
+    google_maps_url: str | None = None
+
+
 # ── Admin ────────────────────────────────────────────────────────────────────
 
 class AdminDonateStatsRequest(BaseModel):

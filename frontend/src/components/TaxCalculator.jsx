@@ -135,7 +135,7 @@ export default function TaxCalculator({ open, onClose, savedRates }) {
       position: 'fixed', left: pos.x, top: pos.y, width: 'min(440px, calc(100vw - 32px))',
       background: 'var(--card)', border: '1px solid var(--line)',
       borderRadius: 12, boxShadow: 'var(--shadow-lg)',
-      zIndex: 500, display: 'flex', flexDirection: 'column',
+      zIndex: 9999, display: 'flex', flexDirection: 'column',
       maxHeight: 'calc(100vh - 100px)', overflow: 'hidden',
       userSelect: dragging.current ? 'none' : 'auto',
     }}>

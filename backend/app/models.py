@@ -4,7 +4,7 @@ from datetime import datetime
 
 from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, SmallInteger, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 
@@ -142,6 +142,47 @@ class RefreshToken(Base):
     __table_args__ = (
         Index("ix_refresh_tokens_user_id", "user_id"),
         Index("ix_refresh_tokens_expires_at", "expires_at"),
+    )
+
+
+class Store(Base):
+    """Loja física — endereço e coordenadas para o mapa do carrinho."""
+    __tablename__ = "stores"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(Text, nullable=False)
+    name_aliases: Mapped[list | None] = mapped_column(JSONB, nullable=True)  # list[str]
+    country: Mapped[str] = mapped_column(Text, nullable=False)  # "py" or "br"
+    address: Mapped[str | None] = mapped_column(Text, nullable=True)
+    city: Mapped[str | None] = mapped_column(Text, nullable=True)
+    lat: Mapped[float | None] = mapped_column(Float, nullable=True)
+    lng: Mapped[float | None] = mapped_column(Float, nullable=True)
+    photo_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    google_maps_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class UserCartItem(Base):
+    """Item salvo no carrinho de compras de um usuário."""
+    __tablename__ = "user_cart_items"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
+    offer_url: Mapped[str] = mapped_column(Text, nullable=False)
+    source: Mapped[str] = mapped_column(Text, nullable=False)
+    country: Mapped[str] = mapped_column(Text, nullable=False)
+    store_name: Mapped[str] = mapped_column(Text, nullable=False)
+    title: Mapped[str] = mapped_column(Text, nullable=False)
+    price_amount: Mapped[float] = mapped_column(Float, nullable=False)
+    price_currency: Mapped[str] = mapped_column(Text, nullable=False)
+    image_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    store_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("stores.id"), nullable=True)
+    added_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "offer_url", name="uq_user_cart_items_user_offer"),
+        Index("ix_user_cart_items_user_id", "user_id"),
     )
 
 

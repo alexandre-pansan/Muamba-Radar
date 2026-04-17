@@ -1,11 +1,16 @@
 from __future__ import annotations
 
+import base64
 import logging
+import os
 import time
+import uuid
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any
 
 from fastapi import BackgroundTasks, Depends, FastAPI, File, HTTPException, Query, Request, Response, UploadFile, status
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -18,7 +23,7 @@ from app.adapters.registry import get_adapters
 from app.auth import create_access_token, create_refresh_token, get_current_user, get_current_user_optional, hash_password, require_admin, revoke_refresh_token, verify_password, verify_refresh_token
 from app.config import settings
 from app.database import SessionLocal, get_db, init_db
-from app.models import AccessLog, ProductOffer, SearchCache, User, UserPrefs, UserSearch
+from app.models import AccessLog, ProductOffer, SearchCache, Store, User, UserCartItem, UserPrefs, UserSearch
 from app.schemas import (
     # CompareByImageResponseModel,  # image detection deferred
     AdminAdapterResult,
@@ -26,6 +31,9 @@ from app.schemas import (
     AdminDonateStatsRequest,
     AdminTestSearchRequest,
     AdminTestSearchResponse,
+    CartGroupItem,
+    CartItemCreate,
+    CartItemResponse,
     CompareResponseModel,
     CountryFilter,
     # DetectImageResponseModel,  # image detection deferred
@@ -35,6 +43,11 @@ from app.schemas import (
     RegisterRequest,
     SortOption,
     SourceInfoModel,
+    StoreCreate,
+    StoreImportItem,
+    StoreImportResult,
+    StoreInfo,
+    StoreUpdate,
     TokenResponse,
     UpdatePrefsRequest,
     UpdateProfileRequest,
@@ -110,6 +123,12 @@ async def log_requests(request: Request, call_next):
             db.close()
 
     return response
+
+
+_STATIC_DIR = Path(__file__).parent.parent / "static"
+_STORE_PHOTOS_DIR = _STATIC_DIR / "store-photos"
+_STORE_PHOTOS_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/static", StaticFiles(directory=str(_STATIC_DIR)), name="static")
 
 
 @app.on_event("startup")
@@ -500,6 +519,12 @@ def export_account(
         .order_by(UserSearch.searched_at.desc())
         .all()
     )
+    cart_items = (
+        db.query(UserCartItem)
+        .filter(UserCartItem.user_id == current_user.id)
+        .order_by(UserCartItem.added_at.desc())
+        .all()
+    )
     return {
         "exported_at": datetime.now(timezone.utc).isoformat(),
         "user": {
@@ -517,6 +542,17 @@ def export_account(
             {"query": s.query, "searched_at": s.searched_at.isoformat()}
             for s in searches
         ],
+        "cart": [
+            {
+                "title": c.title,
+                "store": c.store_name,
+                "price": c.price_amount,
+                "currency": c.price_currency,
+                "url": c.offer_url,
+                "added_at": c.added_at.isoformat(),
+            }
+            for c in cart_items
+        ],
     }
 
 
@@ -528,6 +564,7 @@ def delete_account(
     """LGPD art. 18 — direito à exclusão. Apaga todos os dados pessoais do titular."""
     db.query(UserSearch).filter(UserSearch.user_id == current_user.id).delete()
     db.query(UserPrefs).filter(UserPrefs.user_id == current_user.id).delete()
+    db.query(UserCartItem).filter(UserCartItem.user_id == current_user.id).delete()
     db.delete(current_user)
     db.commit()
 
@@ -901,6 +938,410 @@ def admin_test_search(
         total_filtered=sum(r.filtered_count for r in results),
         adapters=results,
     )
+
+
+# ── Cart helpers ──────────────────────────────────────────────────────────────
+
+def _find_store_match(db: Session, store_name: str, country: str) -> Store | None:
+    """Try to match a store_name against stores.name_aliases (case-insensitive)."""
+    stores = db.query(Store).filter(Store.country == country).all()
+    name_lower = store_name.lower()
+    for store in stores:
+        check_names = [store.name.lower()]
+        if store.name_aliases:
+            check_names.extend(a.lower() for a in store.name_aliases)
+        if any(name_lower in alias or alias in name_lower for alias in check_names):
+            return store
+    return None
+
+
+def _enrich_cart_item(item: UserCartItem, db: Session) -> CartItemResponse:
+    store_info = None
+    if item.store_id:
+        s = db.get(Store, item.store_id)
+        if s:
+            store_info = StoreInfo.model_validate(s)
+    else:
+        # Lazy match: store was registered after this item was added to cart
+        s = _find_store_match(db, item.store_name, item.country)
+        if s:
+            item.store_id = s.id
+            try:
+                db.commit()
+            except Exception:
+                db.rollback()
+            store_info = StoreInfo.model_validate(s)
+    return CartItemResponse(
+        id=item.id,
+        offer_url=item.offer_url,
+        source=item.source,
+        country=item.country,
+        store_name=item.store_name,
+        title=item.title,
+        price_amount=item.price_amount,
+        price_currency=item.price_currency,
+        image_url=item.image_url,
+        store_id=item.store_id,
+        store=store_info,
+        added_at=item.added_at,
+    )
+
+
+# ── Cart endpoints ────────────────────────────────────────────────────────────
+
+@app.get("/cart", response_model=list[CartItemResponse])
+def get_cart(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> list[CartItemResponse]:
+    items = (
+        db.query(UserCartItem)
+        .filter(UserCartItem.user_id == current_user.id)
+        .order_by(UserCartItem.added_at.desc())
+        .all()
+    )
+    return [_enrich_cart_item(item, db) for item in items]
+
+
+@app.post("/cart", response_model=CartItemResponse, status_code=status.HTTP_201_CREATED)
+def add_to_cart(
+    body: CartItemCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> CartItemResponse:
+    existing = (
+        db.query(UserCartItem)
+        .filter(UserCartItem.user_id == current_user.id, UserCartItem.offer_url == body.offer_url)
+        .first()
+    )
+    if existing:
+        return _enrich_cart_item(existing, db)
+
+    store = _find_store_match(db, body.store_name, body.country)
+    item = UserCartItem(
+        user_id=current_user.id,
+        offer_url=body.offer_url,
+        source=body.source,
+        country=body.country,
+        store_name=body.store_name,
+        title=body.title,
+        price_amount=body.price_amount,
+        price_currency=body.price_currency,
+        image_url=body.image_url,
+        store_id=store.id if store else None,
+        added_at=datetime.now(timezone.utc),
+    )
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+    return _enrich_cart_item(item, db)
+
+
+@app.delete("/cart", status_code=status.HTTP_204_NO_CONTENT)
+def clear_cart(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> None:
+    db.query(UserCartItem).filter(UserCartItem.user_id == current_user.id).delete()
+    db.commit()
+
+
+@app.delete("/cart/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
+def remove_from_cart(
+    item_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> None:
+    item = (
+        db.query(UserCartItem)
+        .filter(UserCartItem.id == item_id, UserCartItem.user_id == current_user.id)
+        .first()
+    )
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    db.delete(item)
+    db.commit()
+
+
+@app.get("/cart/grouped", response_model=list[CartGroupItem])
+def get_cart_grouped(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> list[CartGroupItem]:
+    items = (
+        db.query(UserCartItem)
+        .filter(UserCartItem.user_id == current_user.id)
+        .order_by(UserCartItem.store_name, UserCartItem.added_at.desc())
+        .all()
+    )
+    groups: dict[str, CartGroupItem] = {}
+    for item in items:
+        key = item.store_name
+        if key not in groups:
+            store_info = None
+            if item.store_id:
+                s = db.get(Store, item.store_id)
+                if s:
+                    store_info = StoreInfo.model_validate(s)
+            groups[key] = CartGroupItem(store_name=key, store=store_info, items=[])
+        groups[key].items.append(_enrich_cart_item(item, db))
+    return list(groups.values())
+
+
+# ── Admin: Stores ─────────────────────────────────────────────────────────────
+
+@app.get("/admin/stores", response_model=list[StoreInfo])
+def admin_list_stores(
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> list[StoreInfo]:
+    stores = db.query(Store).order_by(Store.country, Store.name).all()
+    return [StoreInfo.model_validate(s) for s in stores]
+
+
+@app.post("/admin/stores", response_model=StoreInfo, status_code=status.HTTP_201_CREATED)
+def admin_create_store(
+    body: StoreCreate,
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> StoreInfo:
+    now = datetime.now(timezone.utc)
+    store = Store(
+        name=body.name,
+        name_aliases=body.name_aliases or [],
+        country=body.country,
+        address=body.address,
+        city=body.city,
+        lat=body.lat,
+        lng=body.lng,
+        photo_url=body.photo_url,
+        google_maps_url=body.google_maps_url,
+        created_at=now,
+        updated_at=now,
+    )
+    db.add(store)
+    db.commit()
+    db.refresh(store)
+    return StoreInfo.model_validate(store)
+
+
+@app.patch("/admin/stores/{store_id}", response_model=StoreInfo)
+def admin_update_store(
+    store_id: int,
+    body: StoreUpdate,
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> StoreInfo:
+    store = db.get(Store, store_id)
+    if not store:
+        raise HTTPException(status_code=404, detail="Store not found")
+    if body.name is not None: store.name = body.name
+    if body.name_aliases is not None: store.name_aliases = body.name_aliases
+    if body.country is not None: store.country = body.country
+    if body.address is not None: store.address = body.address
+    if body.city is not None: store.city = body.city
+    if body.lat is not None: store.lat = body.lat
+    if body.lng is not None: store.lng = body.lng
+    if body.photo_url is not None: store.photo_url = body.photo_url
+    if body.google_maps_url is not None: store.google_maps_url = body.google_maps_url
+    store.updated_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(store)
+    return StoreInfo.model_validate(store)
+
+
+@app.delete("/admin/stores/{store_id}", status_code=status.HTTP_204_NO_CONTENT)
+def admin_delete_store(
+    store_id: int,
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> None:
+    store = db.get(Store, store_id)
+    if not store:
+        raise HTTPException(status_code=404, detail="Store not found")
+    db.delete(store)
+    db.commit()
+
+
+@app.post("/admin/stores/{store_id}/photo", response_model=StoreInfo)
+async def admin_upload_store_photo(
+    store_id: int,
+    file: UploadFile = File(...),
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> StoreInfo:
+    store = db.get(Store, store_id)
+    if not store:
+        raise HTTPException(status_code=404, detail="Store not found")
+    content_type = file.content_type or ""
+    if not content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="File must be an image")
+    ext = content_type.split("/")[-1].split(";")[0].strip()
+    if ext not in ("jpeg", "jpg", "png", "webp"):
+        ext = "jpg"
+    filename = f"{uuid.uuid4().hex}.{ext}"
+    dest = _STORE_PHOTOS_DIR / filename
+    content = await file.read()
+    dest.write_bytes(content)
+    # Remove old photo if it was a local upload
+    if store.photo_url and store.photo_url.startswith("/static/store-photos/"):
+        old_file = _STATIC_DIR / store.photo_url.removeprefix("/static/")
+        if old_file.exists():
+            old_file.unlink(missing_ok=True)
+    store.photo_url = f"/static/store-photos/{filename}"
+    store.updated_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(store)
+    return StoreInfo.model_validate(store)
+
+
+# ── Admin: unmatched store names ─────────────────────────────────────────────
+
+@app.get("/admin/stores/unmatched")
+def admin_unmatched_stores(
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> list[dict]:
+    """Return distinct store names from product_offers + cart items that have no matching Store row."""
+    from sqlalchemy import func, select, union_all, literal
+
+    # All known store names (exact + aliases)
+    known_stores = db.query(Store).all()
+    known_names: set[str] = set()
+    for s in known_stores:
+        known_names.add(s.name.lower())
+        for alias in (s.name_aliases or []):
+            known_names.add(alias.lower())
+
+    # Collect candidates from product_offers (live catalogue) — PY only
+    offer_rows = (
+        db.query(ProductOffer.store, ProductOffer.country, func.count().label("cnt"))
+        .filter(ProductOffer.country == "py")
+        .group_by(ProductOffer.store, ProductOffer.country)
+        .all()
+    )
+
+    # Collect candidates from cart items without a store_id — PY only
+    cart_rows = (
+        db.query(UserCartItem.store_name, UserCartItem.country, func.count().label("cnt"))
+        .filter(UserCartItem.store_id.is_(None), UserCartItem.country == "py")
+        .group_by(UserCartItem.store_name, UserCartItem.country)
+        .all()
+    )
+
+    # Merge counts by (store_name, country), skip already-known stores
+    merged: dict[tuple[str, str], int] = {}
+    for r in offer_rows:
+        key = (r.store, r.country)
+        if r.store.lower() not in known_names:
+            merged[key] = merged.get(key, 0) + r.cnt
+    for r in cart_rows:
+        key = (r.store_name, r.country)
+        if r.store_name.lower() not in known_names:
+            merged[key] = merged.get(key, 0) + r.cnt
+
+    result = [
+        {"store_name": name, "country": country, "occurrences": cnt}
+        for (name, country), cnt in sorted(merged.items(), key=lambda x: -x[1])
+    ]
+    return result
+
+
+# ── Admin: export / import stores ─────────────────────────────────────────────
+
+@app.get("/admin/stores/export")
+def admin_export_stores(
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> list[dict]:
+    """Export all stores as JSON with photos embedded as base64."""
+    stores = db.query(Store).order_by(Store.name).all()
+    result = []
+    for s in stores:
+        row = StoreInfo.model_validate(s).model_dump()
+        # Embed photo as base64 if it's a local file
+        if s.photo_url and s.photo_url.startswith("/static/"):
+            photo_path = _STATIC_DIR / s.photo_url.removeprefix("/static/").lstrip("/")
+            if photo_path.exists():
+                raw = photo_path.read_bytes()
+                suffix = photo_path.suffix.lower()
+                mime = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png",
+                        "webp": "image/webp", "gif": "image/gif"}.get(suffix.lstrip("."), "image/jpeg")
+                row["photo_data"] = base64.b64encode(raw).decode()
+                row["photo_mime"] = mime
+        result.append(row)
+    return result
+
+
+@app.post("/admin/stores/import", response_model=StoreImportResult)
+def admin_import_stores(
+    body: list[StoreImportItem],
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> StoreImportResult:
+    """Import stores from JSON. Upserts by name (case-insensitive).
+    photo_url: kept only if it's an external https:// URL; local /static/ paths are dropped."""
+    now = datetime.now(timezone.utc)
+    created = updated = skipped = 0
+
+    def _decode_photo(item: StoreImportItem) -> str | None:
+        """Decode base64 photo → save to disk → return /static/... URL."""
+        if item.photo_data:
+            try:
+                raw = base64.b64decode(item.photo_data)
+                ext = {"image/jpeg": "jpg", "image/png": "png",
+                       "image/webp": "webp", "image/gif": "gif"}.get(item.photo_mime or "", "jpg")
+                filename = f"{uuid.uuid4().hex}.{ext}"
+                ((_STORE_PHOTOS_DIR) / filename).write_bytes(raw)
+                return f"/static/store-photos/{filename}"
+            except Exception:
+                pass
+        if item.photo_url and item.photo_url.startswith("https://"):
+            return item.photo_url
+        return None
+
+    for item in body:
+        existing = (
+            db.query(Store)
+            .filter(Store.name.ilike(item.name))
+            .first()
+        )
+        if existing:
+            changed = False
+            for field in ("name_aliases", "country", "address", "city", "lat", "lng", "google_maps_url"):
+                val = getattr(item, field)
+                if val is not None and val != getattr(existing, field):
+                    setattr(existing, field, val)
+                    changed = True
+            # Update photo only if the store has none
+            if not existing.photo_url:
+                decoded = _decode_photo(item)
+                if decoded:
+                    existing.photo_url = decoded
+                    changed = True
+            if changed:
+                existing.updated_at = now
+                updated += 1
+            else:
+                skipped += 1
+        else:
+            db.add(Store(
+                name=item.name,
+                name_aliases=item.name_aliases or None,
+                country=item.country,
+                address=item.address,
+                city=item.city,
+                lat=item.lat,
+                lng=item.lng,
+                photo_url=_decode_photo(item),
+                google_maps_url=item.google_maps_url,
+                created_at=now,
+                updated_at=now,
+            ))
+            created += 1
+
+    db.commit()
+    return StoreImportResult(created=created, updated=updated, skipped=skipped)
 
 
 # ── Image (deferred — placeholder only, uncomment when real vision is ready) ──

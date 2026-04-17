@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import {
   apiFetchSources,
   apiTestSearch,
@@ -11,6 +11,15 @@ import {
   apiBumpBetaNotice,
   apiAdminUpdateBetaNoticeText,
   apiRefreshCacheStatus,
+  apiAdminListStores,
+  apiAdminCreateStore,
+  apiAdminUpdateStore,
+  apiAdminDeleteStore,
+  apiAdminUploadStorePhoto,
+  apiAdminUnmatchedStores,
+  apiAdminExportStores,
+  apiAdminImportStores,
+  getApiBase,
 } from '../api.js'
 
 // ── Shared ───────────────────────────────────────────────────────────────────
@@ -701,6 +710,365 @@ function DonateTab() {
   )
 }
 
+// ── Stores Tab ────────────────────────────────────────────────────────────────
+
+const EMPTY_STORE = { name: '', country: 'py', name_aliases: '', address: '', city: '', lat: '', lng: '', photo_url: '', google_maps_url: '' }
+// Stores are PY-only (location feature is Paraguay-specific)
+
+function StoreForm({ initial, onSave, onCancel, saving }) {
+  const [form, setForm] = useState({ ...EMPTY_STORE, ...initial })
+  const photoRef = useRef(null)
+
+  function set(key, val) { setForm(f => ({ ...f, [key]: val })) }
+
+  function handleSubmit(e) {
+    e.preventDefault()
+    const aliases = form.name_aliases ? form.name_aliases.split(',').map(s => s.trim()).filter(Boolean) : []
+    onSave({
+      name: form.name,
+      country: form.country,
+      name_aliases: aliases,
+      address: form.address || null,
+      city: form.city || null,
+      lat: form.lat ? parseFloat(form.lat) : null,
+      lng: form.lng ? parseFloat(form.lng) : null,
+      photo_url: form.photo_url || null,
+      google_maps_url: form.google_maps_url || null,
+    }, photoRef.current?.files?.[0])
+  }
+
+  return (
+    <form className="store-form" onSubmit={handleSubmit}>
+      <div className="store-form-row">
+        <label className="store-form-label">Nome *</label>
+        <input className="store-form-input" value={form.name} onChange={e => set('name', e.target.value)} required />
+      </div>
+      <div className="store-form-row">
+        <label className="store-form-label">Aliases (vírgula)</label>
+        <input className="store-form-input" value={form.name_aliases} onChange={e => set('name_aliases', e.target.value)} placeholder="Loja Americana, LA Paraguay..." />
+      </div>
+      <div className="store-form-row">
+        <label className="store-form-label">Cidade</label>
+        <input className="store-form-input" value={form.city} onChange={e => set('city', e.target.value)} placeholder="Ciudad del Este" />
+      </div>
+      <div className="store-form-row">
+        <label className="store-form-label">Endereço</label>
+        <input className="store-form-input" value={form.address} onChange={e => set('address', e.target.value)} placeholder="Av. San Blas, 1234" />
+      </div>
+      <div className="store-form-row-half">
+        <div>
+          <label className="store-form-label">Latitude</label>
+          <input className="store-form-input" type="number" step="any" value={form.lat} onChange={e => set('lat', e.target.value)} placeholder="-25.509" />
+        </div>
+        <div>
+          <label className="store-form-label">Longitude</label>
+          <input className="store-form-input" type="number" step="any" value={form.lng} onChange={e => set('lng', e.target.value)} placeholder="-54.617" />
+        </div>
+      </div>
+      <div className="store-form-row">
+        <label className="store-form-label">Link Google Maps</label>
+        <input className="store-form-input" type="url" value={form.google_maps_url} onChange={e => set('google_maps_url', e.target.value)} placeholder="https://maps.google.com/..." />
+      </div>
+      <div className="store-form-row">
+        <label className="store-form-label">Foto URL (ou upload)</label>
+        <input className="store-form-input" value={form.photo_url} onChange={e => set('photo_url', e.target.value)} placeholder="https://..." />
+        <input ref={photoRef} type="file" accept="image/*" className="store-form-file" />
+      </div>
+      <div className="store-form-actions">
+        <button type="submit" className="admin-action-btn" disabled={saving}>{saving ? 'Salvando...' : 'Salvar'}</button>
+        <button type="button" className="admin-action-btn btn-ghost" onClick={onCancel}>Cancelar</button>
+      </div>
+    </form>
+  )
+}
+
+function StoresTab() {
+  const [stores, setStores] = useState([])
+  const [unmatched, setUnmatched] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  // creatingFrom: null | { store_name, country } — pre-fills form from unmatched row
+  const [creatingFrom, setCreatingFrom] = useState(null)
+  const [editingId, setEditingId] = useState(null)
+  const [saving, setSaving] = useState(false)
+  const [deleteId, setDeleteId] = useState(null)
+  const [importResult, setImportResult] = useState(null)
+  const importRef = useRef(null)
+
+  useEffect(() => { load() }, [])
+
+  async function load() {
+    setLoading(true)
+    setError(null)
+    try {
+      const [s, u] = await Promise.all([apiAdminListStores(), apiAdminUnmatchedStores()])
+      setStores(s)
+      setUnmatched(u)
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleCreate(data, photoFile) {
+    setSaving(true)
+    try {
+      const created = await apiAdminCreateStore(data)
+      let final = created
+      if (photoFile) final = await apiAdminUploadStorePhoto(created.id, photoFile)
+      setStores(prev => [...prev, final])
+      setCreatingFrom(null)
+      // refresh unmatched (newly created store may now absorb some rows)
+      apiAdminUnmatchedStores().then(setUnmatched).catch(() => {})
+    } catch (e) {
+      alert(`Erro: ${e.message}`)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleUpdate(id, data, photoFile) {
+    setSaving(true)
+    try {
+      let updated = await apiAdminUpdateStore(id, data)
+      if (photoFile) updated = await apiAdminUploadStorePhoto(id, photoFile)
+      setStores(prev => prev.map(s => s.id === id ? updated : s))
+      setEditingId(null)
+      apiAdminUnmatchedStores().then(setUnmatched).catch(() => {})
+    } catch (e) {
+      alert(`Erro: ${e.message}`)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleDelete(id) {
+    if (deleteId !== id) { setDeleteId(id); return }
+    try {
+      await apiAdminDeleteStore(id)
+      setStores(prev => prev.filter(s => s.id !== id))
+    } catch (e) {
+      alert(`Erro: ${e.message}`)
+    } finally {
+      setDeleteId(null)
+    }
+  }
+
+  async function handleExport() {
+    try {
+      const data = await apiAdminExportStores()
+      const json = JSON.stringify(data, null, 2)
+      const blob = new Blob([json], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `muamba-stores-${new Date().toISOString().slice(0, 10)}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      alert(`Erro ao exportar: ${e.message}`)
+    }
+  }
+
+  async function handleImport(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+    try {
+      const text = await file.text()
+      const raw = JSON.parse(text)
+      // Accept both full StoreInfo (with id) and stripped objects
+      const payload = raw.map(({ name, country, name_aliases, address, city, lat, lng, google_maps_url }) => ({
+        name, country: country ?? 'py', name_aliases: name_aliases ?? [],
+        address: address ?? null, city: city ?? null,
+        lat: lat ?? null, lng: lng ?? null,
+        google_maps_url: google_maps_url ?? null,
+      }))
+      const result = await apiAdminImportStores(payload)
+      setImportResult(result)
+      // Reload stores list
+      const [s, u] = await Promise.all([apiAdminListStores(), apiAdminUnmatchedStores()])
+      setStores(s)
+      setUnmatched(u)
+    } catch (e) {
+      alert(`Erro ao importar: ${e.message}`)
+    }
+  }
+
+  if (loading) return <div className="admin-tab-body"><p className="admin-tab-loading">Carregando...</p></div>
+  if (error) return <div className="admin-tab-body"><p className="admin-tab-error">{error}</p></div>
+
+  return (
+    <div className="admin-tab-body">
+
+      {/* ── Lojas detectadas ── */}
+      <div className="admin-stores-section">
+        <div className="admin-stores-section-head">
+          <h2 className="admin-section-title">Lojas detectadas</h2>
+          {unmatched.length > 0 && (
+            <span className="admin-count-badge">{unmatched.length} sem cadastro</span>
+          )}
+        </div>
+        <p className="admin-stores-desc">
+          Nomes capturados nas pesquisas que ainda não têm loja cadastrada. Clique em "+ Adicionar" para preencher os dados.
+        </p>
+
+        {unmatched.length === 0 ? (
+          <p className="admin-empty">Nenhum nome sem loja — tudo associado.</p>
+        ) : (
+          <div className="admin-table-wrap">
+            <table className="admin-table">
+              <thead>
+                <tr><th>Nome da loja</th><th>Ocorrências</th><th style={{ width: 110 }}></th></tr>
+              </thead>
+              <tbody>
+                {unmatched.map((u, i) => (
+                  <React.Fragment key={i}>
+                    <tr className={creatingFrom?.store_name === u.store_name ? 'is-expanding' : ''}>
+                      <td className="store-unmatched-name">{u.store_name}</td>
+                      <td className="td-muted">{u.occurrences}×</td>
+                      <td>
+                        <button
+                          className={`admin-action-btn btn-sm${creatingFrom?.store_name === u.store_name ? ' is-active-row' : ''}`}
+                          onClick={() => {
+                            setCreatingFrom(creatingFrom?.store_name === u.store_name ? null : u)
+                            setEditingId(null)
+                          }}
+                        >
+                          {creatingFrom?.store_name === u.store_name ? '✕ Cancelar' : '+ Adicionar'}
+                        </button>
+                      </td>
+                    </tr>
+                    {creatingFrom?.store_name === u.store_name && (
+                      <tr className="unmatched-form-row">
+                        <td colSpan={3}>
+                          <StoreForm
+                            initial={{
+                              ...EMPTY_STORE,
+                              name: u.store_name,
+                              name_aliases: u.store_name,
+                              country: u.country,
+                            }}
+                            onSave={handleCreate}
+                            onCancel={() => setCreatingFrom(null)}
+                            saving={saving}
+                          />
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* ── Lojas cadastradas ── */}
+      <div className="admin-stores-section">
+        <div className="admin-stores-section-head">
+          <h2 className="admin-section-title">Lojas cadastradas</h2>
+          {stores.length > 0 && (
+            <span className="admin-count-badge">{stores.length}</span>
+          )}
+          <div className="stores-io-actions">
+            <button className="admin-ghost-btn" onClick={handleExport} title="Baixa JSON com todas as lojas">
+              ↓ Exportar JSON
+            </button>
+            <button className="admin-ghost-btn" onClick={() => importRef.current?.click()} title="Importa JSON — atualiza existentes, adiciona novas">
+              ↑ Importar JSON
+            </button>
+            <input ref={importRef} type="file" accept=".json,application/json" hidden onChange={handleImport} />
+          </div>
+        </div>
+
+        {importResult && (
+          <div className="stores-import-result" onClick={() => setImportResult(null)}>
+            ✓ Importado — {importResult.created} criadas · {importResult.updated} atualizadas · {importResult.skipped} sem alteração
+            <span className="stores-import-dismiss">✕</span>
+          </div>
+        )}
+
+        {stores.length === 0 ? (
+          <p className="admin-empty">Nenhuma loja cadastrada ainda. Use a lista acima para criar.</p>
+        ) : (
+          <div className="stores-grid">
+            {stores.map(store => (
+              <div key={store.id} className={`store-card${editingId === store.id ? ' is-editing' : ''}`}>
+                {editingId === store.id ? (
+                  <StoreForm
+                    initial={{
+                      ...store,
+                      name_aliases: store.name_aliases?.join(', ') ?? '',
+                      lat: store.lat ?? '',
+                      lng: store.lng ?? '',
+                      photo_url: store.photo_url ?? '',
+                      google_maps_url: store.google_maps_url ?? '',
+                    }}
+                    onSave={(data, file) => handleUpdate(store.id, data, file)}
+                    onCancel={() => setEditingId(null)}
+                    saving={saving}
+                  />
+                ) : (
+                  <>
+                    {/* Photo */}
+                    {store.photo_url ? (
+                      <img
+                        className="store-card-cover"
+                        src={store.photo_url.startsWith('/static') ? `${getApiBase()}${store.photo_url}` : store.photo_url}
+                        alt={store.name}
+                      />
+                    ) : (
+                      <div className="store-card-cover store-card-cover--empty">
+                        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                      </div>
+                    )}
+
+                    {/* Body */}
+                    <div className="store-card-body">
+                      <span className="store-card-name">{store.name}</span>
+                      {(store.city || store.address) && (
+                        <span className="store-card-addr">
+                          {[store.city, store.address].filter(Boolean).join(' · ')}
+                        </span>
+                      )}
+                      <div className="store-card-chips">
+                        {store.lat && store.lng
+                          ? <span className="store-chip store-chip--coords">📍 coords</span>
+                          : <span className="store-chip store-chip--missing">sem coords</span>
+                        }
+                        {store.google_maps_url && (
+                          <span className="store-chip store-chip--maps">Maps</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="store-card-actions">
+                      <button className="admin-action-btn btn-sm" onClick={() => { setEditingId(store.id); setCreatingFrom(null) }}>Editar</button>
+                      <button
+                        className={`admin-action-btn btn-sm btn-danger${deleteId === store.id ? ' is-confirm' : ''}`}
+                        onClick={() => handleDelete(store.id)}
+                        onBlur={() => setDeleteId(null)}
+                      >
+                        {deleteId === store.id ? 'Confirmar?' : 'Excluir'}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+    </div>
+  )
+}
+
 // ── Main AdminPage ────────────────────────────────────────────────────────────
 
 const TABS = [
@@ -708,6 +1076,7 @@ const TABS = [
   { id: 'devtools', label: 'Dev Tools' },
   { id: 'cache',    label: 'Cache'     },
   { id: 'donate',   label: 'Doações'   },
+  { id: 'stores',   label: 'Lojas'     },
 ]
 
 export default function AdminPage({ onBack }) {
@@ -738,6 +1107,7 @@ export default function AdminPage({ onBack }) {
         {tab === 'devtools' && <DevToolsTab />}
         {tab === 'cache'    && <CacheTab />}
         {tab === 'donate'   && <DonateTab />}
+        {tab === 'stores'   && <StoresTab />}
       </div>
     </div>
   )

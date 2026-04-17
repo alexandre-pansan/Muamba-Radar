@@ -43,6 +43,8 @@ import TaxCalculator from './components/TaxCalculator.jsx'
 import OffersDialog from './components/OffersDialog.jsx'
 import BetaNoticeModal, { shouldShowBetaNotice } from './components/BetaNoticeModal.jsx'
 import DonateModal from './components/DonateModal.jsx'
+import CartPage from './components/CartPage.jsx'
+import { CartProvider, useCart } from './CartContext.jsx'
 import {
   getToken, setToken, clearToken, apiLogout,
   apiFetchMe, apiFetchPrefs, apiFetchFeaturedImages,
@@ -66,12 +68,12 @@ function useTheme() {
   return [theme, toggle]
 }
 
-function AppInner() {
+function AppShell({ currentUser, setCurrentUser }) {
   const { t } = useI18n()
   const [theme, toggleTheme] = useTheme()
+  const { items: cartItems } = useCart()
 
-  // Auth state
-  const [currentUser, setCurrentUser] = useState(null)
+  // Auth state (currentUser + setCurrentUser come from parent via props)
   const [currentPrefs, setCurrentPrefs] = useState({ show_margin: false })
 
   // Search / results state
@@ -111,6 +113,7 @@ function AppInner() {
   const getPage = () => {
     const p = window.location.pathname
     if (p === '/admin') return 'admin'
+    if (p === '/cart') return 'cart'
     return 'home'
   }
   const [page, setPage] = useState(getPage)
@@ -124,6 +127,11 @@ function AppInner() {
   function goAdmin() {
     history.pushState(null, '', '/admin')
     setPage('admin')
+  }
+
+  function goCart() {
+    history.pushState(null, '', '/cart')
+    setPage('cart')
   }
 
   function goHome() {
@@ -365,6 +373,8 @@ function AppInner() {
         onOpenSettings={() => setUserConfigOpen(true)}
         onOpenAdmin={goAdmin}
         onOpenCalc={() => setTaxCalcOpen(true)}
+        onOpenCart={goCart}
+        cartCount={cartItems.length}
         onToggleSidebar={() => setSidebarOpen(o => !o)}
         theme={theme}
         onToggleTheme={toggleTheme}
@@ -373,6 +383,8 @@ function AppInner() {
 
       {page === 'admin' ? (
         <AdminPage onBack={goHome} />
+      ) : page === 'cart' ? (
+        <CartPage onBack={goHome} />
       ) : (
       <>
       {sidebarOpen && (
@@ -426,6 +438,7 @@ function AppInner() {
             onClear={handleClear}
             featuredImages={featuredImages}
             onOpenOffers={openOffersDialog}
+            onNeedAuth={() => openAuthModal('login')}
           />
           <footer className="app-footer">
             <span>© {new Date().getFullYear()} MuambaRadar — Comparador de preços informativo. Não vendemos produtos.</span>
@@ -501,6 +514,15 @@ function AppInner() {
       )}
 
     </>
+  )
+}
+
+function AppInner() {
+  const [currentUser, setCurrentUser] = useState(null)
+  return (
+    <CartProvider currentUser={currentUser}>
+      <AppShell currentUser={currentUser} setCurrentUser={setCurrentUser} />
+    </CartProvider>
   )
 }
 

@@ -1,5 +1,6 @@
-import React from 'react'
+import React, { useCallback, useState, useEffect, useRef } from 'react'
 import { useI18n } from '../i18n.jsx'
+import { useCart } from '../CartContext.jsx'
 import {
   cheapestByCountry,
   estimateSellingPrice,
@@ -9,8 +10,47 @@ import {
   sourceDomain,
 } from '../utils.js'
 
-export default function ProductCard({ group, marginPct, showMargin, idx, onOpenOffers }) {
+function AuthHint({ onLogin, onClose }) {
+  const ref = useRef(null)
+
+  useEffect(() => {
+    function handler(e) {
+      if (ref.current && !ref.current.contains(e.target)) onClose()
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [onClose])
+
+  return (
+    <div ref={ref} className="pc-auth-hint" role="dialog" aria-label="Login necessário">
+      <button className="pc-auth-hint-close" onClick={onClose} aria-label="Fechar">
+        <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+      <div className="pc-auth-hint-icon">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+        </svg>
+      </div>
+      <p className="pc-auth-hint-title">Salve produtos na sua lista</p>
+      <p className="pc-auth-hint-body">
+        Crie uma conta grátis para montar sua lista de compras, comparar preços e saber exatamente onde buscar cada item em Ciudad del Este.
+      </p>
+      <button className="pc-auth-hint-btn" onClick={onLogin}>
+        Entrar ou cadastrar
+        <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 8h10M9 4l4 4-4 4"/>
+        </svg>
+      </button>
+    </div>
+  )
+}
+
+export default function ProductCard({ group, marginPct, showMargin, idx, onOpenOffers, onNeedAuth }) {
   const { t } = useI18n()
+  const { savedUrls, toggle } = useCart()
+  const [showHint, setShowHint] = useState(false)
 
   const py     = cheapestByCountry(group.offers, 'py')
   const br     = cheapestByCountry(group.offers, 'br')
@@ -21,9 +61,22 @@ export default function ProductCard({ group, marginPct, showMargin, idx, onOpenO
   const config = buildConfigChip(group)
   const name   = familyDisplayName(group)
 
+  const cartOffer = py || br
+  const isSaved = cartOffer ? savedUrls.has(cartOffer.url) : false
+
   function handleExpand(e) {
     e.stopPropagation()
     onOpenOffers(group, name, config)
+  }
+
+  function handleHeart(e) {
+    e.stopPropagation()
+    if (cartOffer) toggle(cartOffer, () => setShowHint(true))
+  }
+
+  function handleLogin() {
+    setShowHint(false)
+    onNeedAuth?.()
   }
 
   return (
@@ -32,6 +85,25 @@ export default function ProductCard({ group, marginPct, showMargin, idx, onOpenO
         className="product-card"
         style={{ animationDelay: `${idx * 40}ms` }}
       >
+        {/* Heart button + auth hint */}
+        <div className="pc-heart-wrap">
+          <button
+            className={`pc-heart-btn${isSaved ? ' is-saved' : ''}`}
+            type="button"
+            aria-label={isSaved ? 'Remover da lista' : 'Salvar na lista'}
+            onClick={handleHeart}
+            title={isSaved ? 'Remover da lista de compras' : 'Adicionar à lista de compras'}
+          >
+            <svg viewBox="0 0 24 24" width="15" height="15" fill={isSaved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+          </button>
+
+          {showHint && (
+            <AuthHint onLogin={handleLogin} onClose={() => setShowHint(false)} />
+          )}
+        </div>
+
         {/* Image */}
         <div className={`pc-img${group.product_image_url ? '' : ' no-image'}`}>
           {group.product_image_url && (

@@ -120,6 +120,28 @@ def init_db() -> None:
             except Exception:
                 conn.rollback()
 
+        # stores table — new columns if table already existed without them
+        for col in [
+            "ALTER TABLE stores ADD COLUMN name_aliases JSONB",
+            "ALTER TABLE stores ADD COLUMN photo_url TEXT",
+            "ALTER TABLE stores ADD COLUMN google_maps_url TEXT",
+            "ALTER TABLE stores ADD COLUMN city TEXT",
+        ]:
+            try:
+                conn.execute(text(col))
+                conn.commit()
+            except Exception:
+                conn.rollback()
+
+        # user_cart_items — ensure store_id FK added if table pre-existed
+        try:
+            conn.execute(text(
+                "ALTER TABLE user_cart_items ADD COLUMN store_id INTEGER REFERENCES stores(id) ON DELETE SET NULL"
+            ))
+            conn.commit()
+        except Exception:
+            conn.rollback()
+
     # Seed singleton global_config row
     from app.models import GlobalConfig as _GlobalConfig
     _gc_db = SessionLocal()
