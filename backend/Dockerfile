@@ -8,8 +8,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app ./app
 
-# Run as non-root
-RUN adduser --disabled-password --gecos '' appuser
+# Create static dirs and non-root user with correct ownership
+RUN adduser --disabled-password --gecos '' appuser \
+ && mkdir -p /app/static/store-photos \
+ && chown -R appuser:appuser /app/static
 USER appuser
 
 EXPOSE 8000
