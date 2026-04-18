@@ -7,7 +7,6 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app ./app
-COPY import_stores.py ./import_stores.py
 
 # Create static dirs and non-root user with correct ownership
 RUN adduser --disabled-password --gecos '' appuser \
