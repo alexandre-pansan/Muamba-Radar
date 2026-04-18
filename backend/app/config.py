@@ -18,6 +18,10 @@ class Settings(BaseSettings):
     jwt_secret: str = "change-me-in-production"
     jwt_expire_minutes: int = 30  # short-lived; use refresh token to renew
 
+    # Google Places API key (optional). If set, maps-search uses Places API.
+    # Without it, falls back to Nominatim (OSM, free, lower coverage for CDE).
+    google_maps_api_key: str = ""
+
     # Initial admin account — set via env on first boot; ignored if admin already exists.
     # Leave blank to skip auto-seeding (manual setup via DB or future endpoint).
     admin_email: str = ""

@@ -27,6 +27,8 @@ services:
       CACHE_TTL_MINUTES:  ${CACHE_TTL_MINUTES:-30}
       JWT_SECRET:         ${JWT_SECRET:?Set JWT_SECRET in .env}
       JWT_EXPIRE_MINUTES: ${JWT_EXPIRE_MINUTES:-10080}
+    volumes:
+      - store_photos:/app/static/store-photos
     depends_on:
       db:
         condition: service_healthy
@@ -68,6 +70,7 @@ services:
 
 volumes:
   pgdata:
+  store_photos:
 
 networks:
   traefik-proxy:

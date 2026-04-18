@@ -405,6 +405,15 @@ export async function apiAdminUnmatchedStores() {
   return res.json()
 }
 
+export async function apiAdminMapsSearch(name) {
+  const res = await fetch(
+    `${getApiBase()}/admin/maps-search?q=${encodeURIComponent(name)}`,
+    { headers: authHeaders() }
+  )
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
 export async function apiAdminExportStores() {
   const res = await fetch(`${getApiBase()}/admin/stores/export`, { headers: authHeaders() })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)

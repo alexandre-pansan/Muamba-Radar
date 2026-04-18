@@ -19,6 +19,7 @@ import {
   apiAdminUnmatchedStores,
   apiAdminExportStores,
   apiAdminImportStores,
+  apiAdminMapsSearch,
   getApiBase,
 } from '../api.js'
 
@@ -789,6 +790,8 @@ function StoresTab() {
   const [error, setError] = useState(null)
   // creatingFrom: null | { store_name, country } — pre-fills form from unmatched row
   const [creatingFrom, setCreatingFrom] = useState(null)
+  const [mapsResults, setMapsResults] = useState(null) // { store_name, country, u, results: [] }
+  const [mapsSearchingName, setMapsSearchingName] = useState(null)
   const [editingId, setEditingId] = useState(null)
   const [saving, setSaving] = useState(false)
   const [deleteId, setDeleteId] = useState(null)
@@ -843,6 +846,31 @@ function StoresTab() {
     }
   }
 
+  async function handleMapsSearch(u) {
+    if (mapsResults?.store_name === u.store_name) {
+      setMapsResults(null)
+      return
+    }
+    setMapsSearchingName(u.store_name)
+    try {
+      const results = await apiAdminMapsSearch(u.store_name)
+      setMapsResults({ store_name: u.store_name, country: u.country, u, results })
+      setCreatingFrom(null)
+      setEditingId(null)
+    } catch (e) {
+      alert(`Maps: ${e.message}`)
+    } finally {
+      setMapsSearchingName(null)
+    }
+  }
+
+  function handlePickMapsResult(result) {
+    const u = mapsResults.u
+    setCreatingFrom({ ...u, _mapsResult: result })
+    setMapsResults(null)
+    setEditingId(null)
+  }
+
   async function handleDelete(id) {
     if (deleteId !== id) { setDeleteId(id); return }
     try {
@@ -879,10 +907,13 @@ function StoresTab() {
       const text = await file.text()
       const raw = JSON.parse(text)
       // Accept both full StoreInfo (with id) and stripped objects
-      const payload = raw.map(({ name, country, name_aliases, address, city, lat, lng, google_maps_url }) => ({
+      const payload = raw.map(({ name, country, name_aliases, address, city, lat, lng, photo_url, photo_data, photo_mime, google_maps_url }) => ({
         name, country: country ?? 'py', name_aliases: name_aliases ?? [],
         address: address ?? null, city: city ?? null,
         lat: lat ?? null, lng: lng ?? null,
+        photo_url: photo_url ?? null,
+        photo_data: photo_data ?? null,
+        photo_mime: photo_mime ?? null,
         google_maps_url: google_maps_url ?? null,
       }))
       const result = await apiAdminImportStores(payload)
@@ -920,7 +951,7 @@ function StoresTab() {
           <div className="admin-table-wrap">
             <table className="admin-table">
               <thead>
-                <tr><th>Nome da loja</th><th>Ocorrências</th><th style={{ width: 110 }}></th></tr>
+                <tr><th>Nome da loja</th><th>Ocorrências</th><th style={{ width: 180 }}></th></tr>
               </thead>
               <tbody>
                 {unmatched.map((u, i) => (
@@ -929,26 +960,59 @@ function StoresTab() {
                       <td className="store-unmatched-name">{u.store_name}</td>
                       <td className="td-muted">{u.occurrences}×</td>
                       <td>
-                        <button
-                          className={`admin-action-btn btn-sm${creatingFrom?.store_name === u.store_name ? ' is-active-row' : ''}`}
-                          onClick={() => {
-                            setCreatingFrom(creatingFrom?.store_name === u.store_name ? null : u)
-                            setEditingId(null)
-                          }}
-                        >
-                          {creatingFrom?.store_name === u.store_name ? '✕ Cancelar' : '+ Adicionar'}
-                        </button>
+                        <div className="admin-actions">
+                          <button
+                            className={`admin-action-btn btn-sm${mapsResults?.store_name === u.store_name ? ' is-active-row' : ''}`}
+                            disabled={mapsSearchingName === u.store_name}
+                            onClick={() => handleMapsSearch(u)}
+                            title="Buscar coordenadas via Nominatim / OSM"
+                          >
+                            {mapsSearchingName === u.store_name ? '…' : '🔍 Maps'}
+                          </button>
+                          <button
+                            className={`admin-action-btn btn-sm${creatingFrom?.store_name === u.store_name ? ' is-active-row' : ''}`}
+                            onClick={() => {
+                              setCreatingFrom(creatingFrom?.store_name === u.store_name ? null : u)
+                              setMapsResults(null)
+                              setEditingId(null)
+                            }}
+                          >
+                            {creatingFrom?.store_name === u.store_name ? '✕' : '+ Adicionar'}
+                          </button>
+                        </div>
                       </td>
                     </tr>
+                    {mapsResults?.store_name === u.store_name && (
+                      <tr className="unmatched-form-row">
+                        <td colSpan={3}>
+                          <div className="maps-picker">
+                            <p className="maps-picker-title">Selecione o local correto:</p>
+                            {mapsResults.results.map((r, idx) => (
+                              <button key={idx} className="maps-picker-item" onClick={() => handlePickMapsResult(r)}>
+                                <span className="maps-picker-name">{r.name}</span>
+                                <span className="maps-picker-addr">{r.address}</span>
+                                <span className="maps-picker-coords">{r.lat?.toFixed(4)}, {r.lng?.toFixed(4)}</span>
+                              </button>
+                            ))}
+                            <button className="admin-ghost-btn" style={{ marginTop: 6 }} onClick={() => setMapsResults(null)}>Cancelar</button>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
                     {creatingFrom?.store_name === u.store_name && (
                       <tr className="unmatched-form-row">
                         <td colSpan={3}>
                           <StoreForm
                             initial={{
                               ...EMPTY_STORE,
-                              name: u.store_name,
+                              name: creatingFrom._mapsResult?.name || u.store_name,
                               name_aliases: u.store_name,
                               country: u.country,
+                              address: creatingFrom._mapsResult?.address || '',
+                              lat: creatingFrom._mapsResult?.lat ?? '',
+                              lng: creatingFrom._mapsResult?.lng ?? '',
+                              photo_url: creatingFrom._mapsResult?.photo_url || '',
+                              google_maps_url: creatingFrom._mapsResult?.google_maps_url || '',
                             }}
                             onSave={handleCreate}
                             onCancel={() => setCreatingFrom(null)}
@@ -1001,6 +1065,8 @@ function StoresTab() {
                     initial={{
                       ...store,
                       name_aliases: store.name_aliases?.join(', ') ?? '',
+                      address: store.address ?? '',
+                      city: store.city ?? '',
                       lat: store.lat ?? '',
                       lng: store.lng ?? '',
                       photo_url: store.photo_url ?? '',

@@ -5,11 +5,13 @@ import logging
 import os
 import time
 import uuid
+import requests
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
 from fastapi import BackgroundTasks, Depends, FastAPI, File, HTTPException, Query, Request, Response, UploadFile, status
+from pydantic import BaseModel
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -1088,6 +1090,121 @@ def get_cart_grouped(
     return list(groups.values())
 
 
+# ── Admin: Maps search ────────────────────────────────────────────────────────
+
+class MapsSearchResult(BaseModel):
+    name: str
+    address: str | None = None
+    city: str | None = None
+    lat: float | None = None
+    lng: float | None = None
+    google_maps_url: str | None = None
+    photo_url: str | None = None
+    source: str  # "google" | "nominatim"
+
+
+def _maps_search_google(q: str) -> MapsSearchResult | None:
+    key = settings.google_maps_api_key
+    # 1. Text Search to get place_id
+    r = requests.get(
+        "https://maps.googleapis.com/maps/api/place/textsearch/json",
+        params={"query": q, "key": key},
+        timeout=6,
+    )
+    data = r.json()
+    results = data.get("results", [])
+    if not results:
+        return None
+    place = results[0]
+    place_id = place.get("place_id")
+    loc = place.get("geometry", {}).get("location", {})
+
+    # 2. Place Details for address components + maps URL
+    details_r = requests.get(
+        "https://maps.googleapis.com/maps/api/place/details/json",
+        params={"place_id": place_id, "fields": "name,formatted_address,geometry,url,address_components,photos", "key": key},
+        timeout=6,
+    )
+    det = details_r.json().get("result", {})
+
+    # Extract city from address_components
+    city = None
+    for comp in det.get("address_components", []):
+        if "locality" in comp.get("types", []):
+            city = comp["long_name"]
+            break
+
+    # Photo (first one, via Places Photo API)
+    photo_url = None
+    photos = det.get("photos", [])
+    if photos:
+        ref = photos[0].get("photo_reference")
+        if ref:
+            photo_url = (
+                f"https://maps.googleapis.com/maps/api/place/photo"
+                f"?maxwidth=800&photo_reference={ref}&key={key}"
+            )
+
+    loc2 = det.get("geometry", {}).get("location", loc)
+    return MapsSearchResult(
+        name=det.get("name") or place.get("name", q),
+        address=det.get("formatted_address") or place.get("formatted_address"),
+        city=city,
+        lat=loc2.get("lat"),
+        lng=loc2.get("lng"),
+        google_maps_url=det.get("url"),
+        photo_url=photo_url,
+        source="google",
+    )
+
+
+def _maps_search_nominatim(q: str) -> list[MapsSearchResult]:
+    r = requests.get(
+        "https://nominatim.openstreetmap.org/search",
+        params={"q": q, "format": "json", "limit": 5, "addressdetails": 1},
+        headers={"User-Agent": "MuambaRadar/1.0"},
+        timeout=6,
+    )
+    out = []
+    for p in r.json():
+        addr = p.get("address", {})
+        city = addr.get("city") or addr.get("town") or addr.get("municipality")
+        osm_id = p.get("osm_id")
+        osm_type = p.get("osm_type", "node")
+        maps_url = f"https://www.openstreetmap.org/{osm_type}/{osm_id}" if osm_id else None
+        out.append(MapsSearchResult(
+            name=p.get("display_name", q).split(",")[0],
+            address=p.get("display_name"),
+            city=city,
+            lat=float(p["lat"]),
+            lng=float(p["lon"]),
+            google_maps_url=maps_url,
+            source="nominatim",
+        ))
+    return out
+
+
+@app.get("/admin/maps-search", response_model=list[MapsSearchResult])
+def admin_maps_search(
+    q: str,
+    _: User = Depends(require_admin),
+) -> list[MapsSearchResult]:
+    """Search for a store by name — returns up to 5 candidates from Google Places or Nominatim."""
+    query = f"{q} Ciudad del Este Paraguay"
+    try:
+        if settings.google_maps_api_key:
+            g = _maps_search_google(query)
+            results = [g] if g else []
+        else:
+            results = _maps_search_nominatim(query)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Maps search failed: {exc}") from exc
+
+    if not results:
+        raise HTTPException(status_code=404, detail="Nenhum resultado encontrado.")
+    return results
+
+
 # ── Admin: Stores ─────────────────────────────────────────────────────────────
 
 @app.get("/admin/stores", response_model=list[StoreInfo])
@@ -1313,8 +1430,8 @@ def admin_import_stores(
                 if val is not None and val != getattr(existing, field):
                     setattr(existing, field, val)
                     changed = True
-            # Update photo only if the store has none
-            if not existing.photo_url:
+            # Update photo: always if photo_data provided, otherwise only if store has none
+            if item.photo_data or not existing.photo_url:
                 decoded = _decode_photo(item)
                 if decoded:
                     existing.photo_url = decoded
