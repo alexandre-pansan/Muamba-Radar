@@ -24,6 +24,9 @@ dist/
 .dev-pids
 logs/
 
+# User-uploaded static files
+backend/static/store-photos/
+
 # config.js is committed with empty defaults; setup.ps1 overwrites for local dev
 # (local dev changes to this file are expected and should not be committed)
 
