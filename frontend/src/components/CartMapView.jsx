@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import { getApiBase } from '../api.js'
 
 // Numbered SVG pin icon — number + color
 function makeNumberedPin(num, done) {
@@ -97,7 +98,14 @@ export default function CartMapView({ groups, pickedIds = new Set(), storeOrder 
             icon={makeNumberedPin(num, allPicked)}
           >
             <Popup className="cart-map-popup">
-              <div style={{ minWidth: 170 }}>
+              <div style={{ minWidth: 200 }}>
+                {group.store.photo_url && (
+                  <img
+                    src={group.store.photo_url.startsWith('/static') ? `${getApiBase()}${group.store.photo_url}` : group.store.photo_url}
+                    alt={group.store_name}
+                    style={{ width: '100%', height: 90, objectFit: 'cover', borderRadius: 6, marginBottom: 8, display: 'block' }}
+                  />
+                )}
                 <strong style={{ fontSize: 13, display: 'block', marginBottom: 4 }}>
                   {allPicked ? '✓ ' : ''}{group.store_name}
                 </strong>

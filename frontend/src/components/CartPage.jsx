@@ -319,15 +319,17 @@ export default function CartPage({ onBack }) {
           {/* Total — sticky footer */}
           {!loading && items.length > 0 && (
             <div className="cart-col-total">
-              <div className="cart-col-total-row">
-                <span className="cart-col-total-label">Total</span>
-                <span className="cart-col-total-value">{cartTotalLabel(items)}</span>
-              </div>
-              {cartTotalBRL(items, fxRate) && (
-                <div className="cart-col-total-brl">
-                  {cartTotalBRL(items, fxRate)}
-                  <span className="cart-col-total-disclaimer">cotação aprox., valor no local pode variar</span>
-                </div>
+              <span className="cart-col-total-label">TOTAL ESTIMADO</span>
+              {cartTotalBRL(items, fxRate) ? (
+                <>
+                  <span className="cart-col-total-brl-main">{cartTotalBRL(items, fxRate)}</span>
+                  <div className="cart-col-total-secondary">
+                    <span className="cart-col-total-usd">{cartTotalLabel(items)}</span>
+                    <span className="cart-col-total-disclaimer">cotação aprox., valor no local pode variar</span>
+                  </div>
+                </>
+              ) : (
+                <span className="cart-col-total-brl-main">{cartTotalLabel(items)}</span>
               )}
             </div>
           )}
