@@ -15,7 +15,7 @@ docker container prune -f >> "$LOG" 2>&1
 docker image prune -f >> "$LOG" 2>&1
 
 # Build cache older than 48h
-docker builder prune -f --filter "until=48h" >> "$LOG" 2>&1
+docker builder prune -af >> "$LOG" 2>&1
 
 # System logs older than 14 days
 journalctl --vacuum-time=14d >> "$LOG" 2>&1
