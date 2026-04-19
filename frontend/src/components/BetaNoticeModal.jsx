@@ -42,13 +42,11 @@ const SLIDES = [
   },
   {
     img: null,
-    title: '⚠️ Versão Beta',
-    desc: 'O MuambaRadar está em desenvolvimento ativo. Os preços são obtidos automaticamente e podem conter inconsistências — confirme sempre o preço final na loja antes de comprar.',
     isFinal: true,
   },
 ]
 
-export default function BetaNoticeModal({ open, onClose, isLoggedIn, betaVersion }) {
+export default function BetaNoticeModal({ open, onClose, isLoggedIn, betaVersion, onDonate }) {
   const dialogRef = useRef(null)
   const [current, setCurrent] = useState(0)
   const [dir, setDir] = useState('right')
@@ -87,20 +85,45 @@ export default function BetaNoticeModal({ open, onClose, isLoggedIn, betaVersion
 
       <div className="beta-tour-body">
         <div key={current} className={`beta-tour-slide beta-tour-slide-${dir}`}>
-          {slide.img ? (
-            <div className="beta-tour-img-wrap">
-              <img src={slide.img} alt={slide.title} className="beta-tour-img" />
+          {slide.isFinal ? (
+            <div className="beta-tour-final">
+              <div className="beta-tour-final-top">
+                <span className="beta-tour-final-icon">🛰️</span>
+                <h3 className="beta-tour-final-heading">Tudo pronto para explorar!</h3>
+                <p className="beta-tour-final-beta">
+                  O MuambaRadar está em desenvolvimento ativo. Os preços são coletados automaticamente
+                  e podem conter variações — confirme sempre o valor final diretamente na loja.
+                </p>
+              </div>
+              <div className="beta-tour-final-support">
+                <p className="beta-tour-final-support-text">
+                  Curtiu a ferramenta? Cada contribuição ajuda a manter os servidores no ar
+                  e a evoluir o app com novas funcionalidades. 🙏
+                </p>
+                {onDonate && (
+                  <button className="beta-tour-donate-btn" onClick={onDonate}>
+                    ❤️ Apoiar o MuambaRadar
+                  </button>
+                )}
+              </div>
             </div>
           ) : (
-            <div className="beta-tour-img-wrap beta-tour-img-placeholder">
-              <span style={{ fontSize: '3rem' }}>🚧</span>
-            </div>
+            <>
+              {slide.img ? (
+                <div className="beta-tour-img-wrap">
+                  <img src={slide.img} alt={slide.title} className="beta-tour-img" />
+                </div>
+              ) : (
+                <div className="beta-tour-img-wrap beta-tour-img-placeholder">
+                  <span style={{ fontSize: '3rem' }}>🚧</span>
+                </div>
+              )}
+              <div className="beta-tour-text">
+                <h3 className="beta-tour-title">{slide.title}</h3>
+                <p className="beta-tour-desc">{slide.desc}</p>
+              </div>
+            </>
           )}
-
-          <div className="beta-tour-text">
-            <h3 className="beta-tour-title">{slide.title}</h3>
-            <p className="beta-tour-desc">{slide.desc}</p>
-          </div>
         </div>
 
         <div className="beta-tour-nav">

@@ -498,6 +498,7 @@ function AppShell({ currentUser, setCurrentUser }) {
         betaTitle={betaTitle}
         betaBody1={betaBody1}
         betaBody2={betaBody2}
+        onDonate={() => { setBetaNoticeOpen(false); setDonateOpen(true) }}
       />
 
       <DonateModal
