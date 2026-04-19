@@ -1,6 +1,7 @@
 import React, { useCallback, useState, useEffect, useRef } from 'react'
 import { useI18n } from '../i18n.jsx'
 import { useCart } from '../CartContext.jsx'
+import { getApiBase } from '../api.js'
 import {
   cheapestByCountry,
   estimateSellingPrice,
@@ -47,6 +48,23 @@ function AuthHint({ onLogin, onClose }) {
   )
 }
 
+function StoreAvatar({ offer }) {
+  const info = offer?.store_info
+  if (!info?.photo_url) return <span className="pc-store-avatar-gap" />
+  const src = info.photo_url.startsWith('/static')
+    ? `${getApiBase()}${info.photo_url}`
+    : info.photo_url
+  return (
+    <img
+      className="pc-store-avatar"
+      src={src}
+      alt={info.name}
+      title={info.name}
+      loading="lazy"
+    />
+  )
+}
+
 export default function ProductCard({ group, marginPct, showMargin, idx, onOpenOffers, onNeedAuth }) {
   const { t } = useI18n()
   const { savedUrls, toggle } = useCart()
@@ -85,30 +103,28 @@ export default function ProductCard({ group, marginPct, showMargin, idx, onOpenO
         className="product-card"
         style={{ animationDelay: `${idx * 40}ms` }}
       >
-        {/* Heart button + auth hint */}
-        <div className="pc-heart-wrap">
-          <button
-            className={`pc-heart-btn${isSaved ? ' is-saved' : ''}`}
-            type="button"
-            aria-label={isSaved ? 'Remover da lista' : 'Salvar na lista'}
-            onClick={handleHeart}
-            title={isSaved ? 'Remover da lista de compras' : 'Adicionar à lista de compras'}
-          >
-            <svg viewBox="0 0 24 24" width="15" height="15" fill={isSaved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-            </svg>
-          </button>
-
-          {showHint && (
-            <AuthHint onLogin={handleLogin} onClose={() => setShowHint(false)} />
-          )}
-        </div>
-
-        {/* Image */}
-        <div className={`pc-img${group.product_image_url ? '' : ' no-image'}`}>
+        {/* Hero image */}
+        <div className={`pc-hero${group.product_image_url ? '' : ' no-image'}`}>
           {group.product_image_url && (
             <img src={group.product_image_url} alt={name} loading="lazy" />
           )}
+
+          {/* Heart button */}
+          <div className="pc-heart-wrap">
+            <button
+              className={`pc-heart-btn${isSaved ? ' is-saved' : ''}`}
+              type="button"
+              aria-label={isSaved ? 'Remover da lista' : 'Salvar na lista'}
+              onClick={handleHeart}
+            >
+              <svg viewBox="0 0 24 24" width="15" height="15" fill={isSaved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+              </svg>
+            </button>
+            {showHint && (
+              <AuthHint onLogin={handleLogin} onClose={() => setShowHint(false)} />
+            )}
+          </div>
         </div>
 
         {/* Title block */}
@@ -120,6 +136,7 @@ export default function ProductCard({ group, marginPct, showMargin, idx, onOpenO
         {/* Price rows */}
         <div className="pc-prices">
           <div className={`pc-row pc-row-py${py ? '' : ' is-na'}`}>
+            <StoreAvatar offer={py} />
             <span className="pc-dot py-dot"></span>
             <span className="pc-ctry">PY</span>
             <strong className="pc-val">
@@ -127,11 +144,12 @@ export default function ProductCard({ group, marginPct, showMargin, idx, onOpenO
             </strong>
             {py && (
               <a className="pc-src" href={py.url} target="_blank" rel="noopener noreferrer">
-                {sourceDomain(py.url)}
+                {py.store_info?.name || sourceDomain(py.url)}
               </a>
             )}
           </div>
           <div className={`pc-row pc-row-br${br ? '' : ' is-na'}`}>
+            <StoreAvatar offer={br} />
             <span className="pc-dot br-dot"></span>
             <span className="pc-ctry">BR</span>
             <strong className="pc-val">
@@ -139,7 +157,7 @@ export default function ProductCard({ group, marginPct, showMargin, idx, onOpenO
             </strong>
             {br && (
               <a className="pc-src" href={br.url} target="_blank" rel="noopener noreferrer">
-                {sourceDomain(br.url)}
+                {br.store_info?.name || sourceDomain(br.url)}
               </a>
             )}
           </div>

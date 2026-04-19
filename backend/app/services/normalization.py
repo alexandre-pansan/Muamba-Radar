@@ -3,7 +3,12 @@ from __future__ import annotations
 import re
 import unicodedata
 
-KNOWN_BRANDS = ("apple", "samsung", "xiaomi", "asus", "lenovo", "acer", "nvidia", "amd", "sony", "microsoft", "nintendo", "valve", "sega", "logitech", "thrustmaster", "fanatec", "hori")
+KNOWN_BRANDS = ("apple", "samsung", "xiaomi", "asus", "lenovo", "acer", "nvidia", "amd", "sony", "microsoft", "nintendo", "valve", "sega", "logitech", "thrustmaster", "fanatec", "hori", "jbl", "bose", "harman", "sennheiser", "anker", "philips", "motorola", "lg")
+
+# Brands that should display in all-caps or with non-title capitalisation
+_BRAND_DISPLAY: dict[str, str] = {
+    "jbl": "JBL", "amd": "AMD", "nvidia": "NVIDIA", "lg": "LG",
+}
 
 # Gaming abbreviation expansions — applied before tokenization so "ps5" and
 # "playstation 5" produce identical token sets and numeric guards work correctly.
@@ -87,8 +92,8 @@ def normalize_text(value: str) -> str:
 
 
 def _expand_storage_tokens(value: str) -> str:
-    # Split "128gb" -> "128 gb" and "1tb" -> "1 tb" to improve matching.
-    value = re.sub(r"(\d+)\s*(gb|tb)\b", r"\1 \2", value)
+    # Split "128gb" -> "128 gb", "1tb" -> "1 tb", "100ml" -> "100 ml", "50oz" -> "50 oz"
+    value = re.sub(r"(\d+)\s*(gb|tb|ml|oz|kg|gr?)\b", r"\1 \2", value)
     # Split GPU/CPU model strings: "rtx5070" -> "rtx 5070", "rx6700" -> "rx 6700"
     # Only applies to 3-5 digit numbers attached to letters (avoids short codes like "g16").
     value = re.sub(r"\b([a-z]+)(\d{3,5})\b", r"\1 \2", value)
@@ -114,7 +119,7 @@ def is_refurbished_or_used(title: str) -> bool:
 # Accessory keywords: if these appear in the title but NOT in the query,
 # the result is an accessory for the product — not the product itself.
 _ACCESSORY_PATTERNS = re.compile(
-    r"\b(controle|control|joy.?con|joystick|gamepad|"
+    r"\b(controles?|control|joy.?con|joysticks?|gamepads?|"
     r"cabo|carregador|dock|base|suporte|stand|"
     r"capa|case|bolsa|bag|sleeve|cover|skin|"
     r"pel[ií]cula|protetor|protector|tempered|vidro|"
@@ -124,11 +129,31 @@ _ACCESSORY_PATTERNS = re.compile(
     r"adapt[ae]dor|hub|leitor|reader|"
     # Peripherals that mention console compatibility but are NOT the console
     r"volante|racing\s+wheel|steering\s+wheel|"
-    # Games — "Jogo PS5 X" or "Game PS5 X" is not the console itself
-    # Note: query filter is applied before alias expansion, so "ps5" stays "ps5"
-    r"jogo\s+(ps[1-5]|playstation|xbox|nintendo|switch)|"
+    r"arcade\s*stick|fight(ing)?\s*stick|flight\s*stick|"
+    r"tampa|reprodutor|portal\s+ps|"
+    r"unidade\s+de\s+disco|"
+    r"estacao\s+de\s+carregamento|"
+    r"maleta|mochila|"
+    r"prescricao|"
+    r"decant|fracionad[oa]s?|amostra|miniatura|travel\s*size|"
+    r"kit\s+\w+|combo\s+\w+|"
+    # Games — any title with jogo/juego/game keyword or physical-media marker is a game listing
+    r"jogo|juego|legendado|"
     r"game\s+(ps[1-5]|playstation|xbox|nintendo|switch))\b"
 )
+
+
+_PHYSICAL_GAME_RE  = re.compile(r"\bfisico\b")
+_CONSOLE_MARKER_RE = re.compile(r"\b(console|consola|modelo|oled|lite)\b")
+
+
+def _is_physical_game(norm_title: str, norm_query: str) -> bool:
+    """Detect '[Game Title] [Console] Físico' listings (no jogo/juego keyword)."""
+    if not _PHYSICAL_GAME_RE.search(norm_title):
+        return False
+    if _PHYSICAL_GAME_RE.search(norm_query):
+        return False
+    return not _CONSOLE_MARKER_RE.search(norm_title)
 
 
 _PT_STOP_WORDS = frozenset({
@@ -152,6 +177,8 @@ def matches_query_loose(query: str, title: str) -> bool:
     norm_title  = normalize_text(title)
 
     if _ACCESSORY_PATTERNS.search(norm_title) and not _ACCESSORY_PATTERNS.search(norm_query):
+        return False
+    if _is_physical_game(norm_title, norm_query):
         return False
 
     significant = [t for t in query_tokens if t not in _PT_STOP_WORDS]
@@ -187,6 +214,8 @@ def matches_query(query: str, title: str) -> bool:
     # Reject accessories not mentioned in the query.
     if _ACCESSORY_PATTERNS.search(norm_title) and not _ACCESSORY_PATTERNS.search(norm_query):
         return False
+    if _is_physical_game(norm_title, norm_query):
+        return False
 
     title_tokens = set(tokenize(title))
 
@@ -202,8 +231,14 @@ def matches_query(query: str, title: str) -> bool:
     hits = len(query_expanded & title_expanded)
 
     if numeric_tokens:
-        # Numeric queries (e.g., iphone 15 128gb) stay strict.
-        required_hits = max(2, (len(query_tokens) + 1) // 2)
+        # When the query has a model number, enforce all non-numeric tokens too
+        # if the query is short (≤3 non-numeric words) — prevents "JBL Charge 6"
+        # from matching a "JBL Flip 6" search just because both share brand + number.
+        non_numeric_tokens = [t for t in query_tokens if not re.search(r"\d", t)]
+        if len(non_numeric_tokens) <= 3:
+            required_hits = len(query_tokens)  # all tokens must match
+        else:
+            required_hits = len(numeric_tokens) + max(2, int(len(non_numeric_tokens) * 0.7 + 0.5))
     elif len(query_tokens) <= 2:
         # Short text queries: require all tokens (both "lattafa" AND "yara" must appear).
         required_hits = len(query_tokens)
@@ -224,4 +259,5 @@ def extract_brand_model(title: str) -> tuple[str | None, str | None]:
     if model and (model.lower() in _PLATFORM_TOKENS or re.match(r"^\d+$", model)):
         model = None
 
-    return (brand.title() if brand else None, model.upper() if model else None)
+    brand_display = _BRAND_DISPLAY.get(brand, brand.title()) if brand else None
+    return (brand_display, model.title() if model else None)

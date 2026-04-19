@@ -55,16 +55,11 @@ const RECENT_KEY = 'muamba_recent'
 const RECENT_MAX = 8
 
 function useTheme() {
-  const [theme, setTheme] = useState(() => {
-    const saved = localStorage.getItem('muamba_theme')
-    if (saved === 'dark' || saved === 'light') return saved
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-  })
+  const theme = 'light'
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme)
-    localStorage.setItem('muamba_theme', theme)
-  }, [theme])
-  const toggle = useCallback(() => setTheme(t => t === 'dark' ? 'light' : 'dark'), [])
+    document.documentElement.setAttribute('data-theme', 'light')
+  }, [])
+  const toggle = useCallback(() => {}, [])
   return [theme, toggle]
 }
 

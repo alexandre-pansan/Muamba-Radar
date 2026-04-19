@@ -49,6 +49,7 @@ class OfferModel(BaseModel):
     source: str
     country: str
     store: str
+    store_info: "StoreInfo | None" = None
     title: str
     brand: str | None = None
     model: str | None = None

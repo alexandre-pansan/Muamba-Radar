@@ -625,6 +625,18 @@ def compare(
     all_offers = list(url_map.values())
     log.info("  merged: %d unique offers", len(all_offers))
 
+    # ── 3b. Attach store_info to each offer (batch lookup) ───────────────────
+    all_stores = db.query(Store).all()
+    store_map: dict[str, Store] = {}
+    for s in all_stores:
+        store_map[s.name.lower()] = s
+        for alias in (s.name_aliases or []):
+            store_map[alias.lower()] = s
+    for o in all_offers:
+        s = store_map.get(o.store.lower())
+        if s:
+            o.store_info = StoreInfo.model_validate(s)
+
     # ── 4. Persist new/updated live offers to DB + purge expired rows ────────
     if live_offers:
         _upsert_offers(db, live_offers, now)
