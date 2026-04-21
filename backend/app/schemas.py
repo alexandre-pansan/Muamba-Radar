@@ -319,3 +319,34 @@ class AdminTestSearchResponse(BaseModel):
     total_raw: int
     total_filtered: int
     adapters: list[AdminAdapterResult]
+
+
+# ── Reports ──────────────────────────────────────────────────────────────────
+
+class ReportCreate(BaseModel):
+    report_type: str = Field(..., pattern=r'^(wrong_price|wrong_store|missing_info|other)$')
+    product_title: str = Field(..., min_length=1, max_length=300)
+    offer_url: str | None = Field(default=None, max_length=2000)
+    description: str = Field(..., min_length=5, max_length=1000)
+    reporter_email: str | None = Field(default=None, max_length=200)
+    snapshot: dict | None = None
+
+
+class ReportResponse(BaseModel):
+    id: int
+    user_id: int | None
+    report_type: str
+    product_title: str
+    offer_url: str | None
+    description: str
+    reporter_email: str | None
+    snapshot: dict | None
+    created_at: datetime
+    resolved: bool
+    admin_notes: str | None
+
+    model_config = {"from_attributes": True}
+
+
+class AdminReportResolve(BaseModel):
+    admin_notes: str | None = Field(default=None, max_length=1000)

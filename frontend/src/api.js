@@ -433,6 +433,38 @@ export async function apiAdminImportStores(stores) {
   return res.json()
 }
 
+export async function apiSubmitReport(body) {
+  const res = await fetch(`${getApiBase()}/reports`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.detail || `HTTP ${res.status}`)
+  }
+  return res.json()
+}
+
+export async function apiAdminListReports(resolved = null) {
+  const params = resolved !== null ? `?resolved=${resolved}` : ''
+  const res = await fetch(`${getApiBase()}/admin/reports${params}`, {
+    headers: authHeaders(),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
+export async function apiAdminResolveReport(reportId, adminNotes = null) {
+  const res = await fetch(`${getApiBase()}/admin/reports/${reportId}/resolve`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ admin_notes: adminNotes }),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
 export async function apiTestSearch(query, adapterIds, raw = false) {
   const res = await fetch(`${getApiBase()}/admin/test-search`, {
     method: 'POST',

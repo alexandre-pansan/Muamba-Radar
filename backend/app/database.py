@@ -142,6 +142,29 @@ def init_db() -> None:
         except Exception:
             conn.rollback()
 
+        # data_reports table
+        try:
+            conn.execute(text("""
+                CREATE TABLE data_reports (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+                    report_type TEXT NOT NULL,
+                    product_title TEXT NOT NULL,
+                    offer_url TEXT,
+                    description TEXT NOT NULL,
+                    reporter_email TEXT,
+                    snapshot JSONB,
+                    created_at TIMESTAMPTZ NOT NULL,
+                    resolved BOOLEAN NOT NULL DEFAULT FALSE,
+                    admin_notes TEXT
+                )
+            """))
+            conn.execute(text("CREATE INDEX ix_data_reports_created_at ON data_reports (created_at)"))
+            conn.execute(text("CREATE INDEX ix_data_reports_resolved ON data_reports (resolved)"))
+            conn.commit()
+        except Exception:
+            conn.rollback()
+
     # Seed singleton global_config row
     from app.models import GlobalConfig as _GlobalConfig
     _gc_db = SessionLocal()

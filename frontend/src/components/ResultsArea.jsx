@@ -98,6 +98,7 @@ export default function ResultsArea({
   featuredImages,
   onOpenOffers,
   onNeedAuth,
+  onReport,
 }) {
   const { t } = useI18n()
   const [typeFilter, setTypeFilter] = useState(null)
@@ -366,6 +367,7 @@ export default function ResultsArea({
                 idx={i}
                 onOpenOffers={onOpenOffers}
                 onNeedAuth={onNeedAuth}
+                onReport={onReport}
               />
             ))}
           </div>

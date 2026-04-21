@@ -25,12 +25,13 @@ from app.adapters.registry import get_adapters
 from app.auth import create_access_token, create_refresh_token, get_current_user, get_current_user_optional, hash_password, require_admin, revoke_refresh_token, verify_password, verify_refresh_token
 from app.config import settings
 from app.database import SessionLocal, get_db, init_db
-from app.models import AccessLog, ProductOffer, SearchCache, Store, User, UserCartItem, UserPrefs, UserSearch
+from app.models import AccessLog, DataReport, ProductOffer, SearchCache, Store, User, UserCartItem, UserPrefs, UserSearch
 from app.schemas import (
     # CompareByImageResponseModel,  # image detection deferred
     AdminAdapterResult,
     AdminBetaNoticeTextRequest,
     AdminDonateStatsRequest,
+    AdminReportResolve,
     AdminTestSearchRequest,
     AdminTestSearchResponse,
     CartGroupItem,
@@ -43,6 +44,8 @@ from app.schemas import (
     OfferModel,
     RefreshRequest,
     RegisterRequest,
+    ReportCreate,
+    ReportResponse,
     SortOption,
     SourceInfoModel,
     StoreCreate,
@@ -1100,6 +1103,64 @@ def get_cart_grouped(
             groups[key] = CartGroupItem(store_name=key, store=store_info, items=[])
         groups[key].items.append(_enrich_cart_item(item, db))
     return list(groups.values())
+
+
+# ── Reports ──────────────────────────────────────────────────────────────────
+
+@app.post("/reports", response_model=ReportResponse, status_code=201)
+@limiter.limit("10/minute")
+def submit_report(
+    request: Request,
+    body: ReportCreate,
+    current_user: User | None = Depends(get_current_user_optional),
+    db: Session = Depends(get_db),
+) -> ReportResponse:
+    report = DataReport(
+        user_id=current_user.id if current_user else None,
+        report_type=body.report_type,
+        product_title=body.product_title,
+        offer_url=body.offer_url,
+        description=body.description,
+        reporter_email=body.reporter_email if not current_user else None,
+        snapshot=body.snapshot,
+        created_at=datetime.now(timezone.utc),
+        resolved=False,
+    )
+    db.add(report)
+    db.commit()
+    db.refresh(report)
+    return ReportResponse.model_validate(report)
+
+
+@app.get("/admin/reports", response_model=list[ReportResponse])
+def admin_list_reports(
+    resolved: bool | None = Query(default=None),
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> list[ReportResponse]:
+    q = db.query(DataReport)
+    if resolved is not None:
+        q = q.filter(DataReport.resolved == resolved)
+    reports = q.order_by(DataReport.created_at.desc()).all()
+    return [ReportResponse.model_validate(r) for r in reports]
+
+
+@app.patch("/admin/reports/{report_id}/resolve", response_model=ReportResponse)
+def admin_resolve_report(
+    report_id: int,
+    body: AdminReportResolve,
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> ReportResponse:
+    report = db.get(DataReport, report_id)
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+    report.resolved = True
+    if body.admin_notes is not None:
+        report.admin_notes = body.admin_notes
+    db.commit()
+    db.refresh(report)
+    return ReportResponse.model_validate(report)
 
 
 # ── Admin: Maps search ────────────────────────────────────────────────────────

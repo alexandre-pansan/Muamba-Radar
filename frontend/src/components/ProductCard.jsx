@@ -65,7 +65,7 @@ function StoreAvatar({ offer }) {
   )
 }
 
-export default function ProductCard({ group, marginPct, showMargin, idx, onOpenOffers, onNeedAuth }) {
+export default function ProductCard({ group, marginPct, showMargin, idx, onOpenOffers, onNeedAuth, onReport }) {
   const { t } = useI18n()
   const { savedUrls, toggle } = useCart()
   const [showHint, setShowHint] = useState(false)
@@ -176,6 +176,18 @@ export default function ProductCard({ group, marginPct, showMargin, idx, onOpenO
               )}
             </div>
           )}
+          <button
+            className="report-btn"
+            type="button"
+            aria-label="Reportar dado incorreto"
+            title="Reportar dado incorreto"
+            onClick={e => { e.stopPropagation(); onReport?.(group, py || br) }}
+          >
+            <svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M3 2h10l-2 4 2 4H3V2z"/>
+              <line x1="3" y1="14" x2="3" y2="2"/>
+            </svg>
+          </button>
           <button
             className="expand-btn"
             type="button"

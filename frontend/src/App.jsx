@@ -43,6 +43,7 @@ import TaxCalculator from './components/TaxCalculator.jsx'
 import OffersDialog from './components/OffersDialog.jsx'
 import BetaNoticeModal, { shouldShowBetaNotice } from './components/BetaNoticeModal.jsx'
 import DonateModal from './components/DonateModal.jsx'
+import ReportModal from './components/ReportModal.jsx'
 import CartPage from './components/CartPage.jsx'
 import { CartProvider, useCart } from './CartContext.jsx'
 import {
@@ -96,6 +97,7 @@ function AppShell({ currentUser, setCurrentUser }) {
   const [taxCalcOpen, setTaxCalcOpen] = useState(false)
   const [betaNoticeOpen, setBetaNoticeOpen] = useState(false)
   const [donateOpen, setDonateOpen] = useState(false)
+  const [reportTarget, setReportTarget] = useState(null) // { title, offerUrl, snapshot }
   const [betaVersion, setBetaVersion] = useState(1)
   const [betaTitle, setBetaTitle] = useState('')
   const [betaBody1, setBetaBody1] = useState('')
@@ -351,9 +353,37 @@ function AppShell({ currentUser, setCurrentUser }) {
     setOffersGroup({ group, name, config })
   }
 
+  function openReportModal(group, offer) {
+    const py = group.offers?.find(o => o.country === 'py' && (!offer || o.url === offer.url)) || group.offers?.find(o => o.country === 'py')
+    const br = group.offers?.find(o => o.country === 'br')
+    setReportTarget({
+      title: group.canonical_name || group.family_key || '',
+      offerUrl: offer?.url || null,
+      snapshot: {
+        py_price: py ? { amount_brl: py.price?.amount_brl, store: py.store, url: py.url } : null,
+        br_price: br ? { amount_brl: br.price?.amount_brl, store: br.store, url: br.url } : null,
+      },
+    })
+  }
+
   function closeOffersDialog() {
     setOffersGroup(null)
   }
+
+  // ── Dynamic SEO ─────────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    const base = 'MuambaRadar — Comparador de preços em Ciudad del Este'
+    if (lastQuery) {
+      document.title = `${lastQuery} — preços no Paraguai | MuambaRadar`
+      const desc = document.querySelector('meta[name="description"]')
+      if (desc) desc.setAttribute('content', `Compare preços de ${lastQuery} em lojas de Ciudad del Este. Veja qual loja tem o melhor preço antes de viajar.`)
+    } else {
+      document.title = base
+      const desc = document.querySelector('meta[name="description"]')
+      if (desc) desc.setAttribute('content', 'Compare preços de eletrônicos, perfumes e produtos em lojas de Ciudad del Este antes de viajar. Economize na sua compra no Paraguai.')
+    }
+  }, [lastQuery])
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
@@ -434,6 +464,7 @@ function AppShell({ currentUser, setCurrentUser }) {
             featuredImages={featuredImages}
             onOpenOffers={openOffersDialog}
             onNeedAuth={() => openAuthModal('login')}
+            onReport={openReportModal}
           />
           <footer className="app-footer">
             <span>© {new Date().getFullYear()} MuambaRadar — Comparador de preços informativo. Não vendemos produtos.</span>
@@ -443,6 +474,8 @@ function AppShell({ currentUser, setCurrentUser }) {
             <button className="app-footer-link" onClick={() => setLegalModal('privacy')}>Privacidade</button>
             <span className="app-footer-sep">·</span>
             <button className="app-footer-link" onClick={() => setLegalModal('terms')}>Termos de Uso</button>
+            <span className="app-footer-sep">·</span>
+            <a className="app-footer-link" href="mailto:muambaradar@gmail.com">Contato</a>
           </footer>
         </div>
       </div>
@@ -484,6 +517,7 @@ function AppShell({ currentUser, setCurrentUser }) {
           name={offersGroup.name}
           config={offersGroup.config}
           onClose={closeOffersDialog}
+          onNeedAuth={() => { closeOffersDialog(); openAuthModal('login') }}
         />
       )}
 
@@ -504,6 +538,15 @@ function AppShell({ currentUser, setCurrentUser }) {
       <DonateModal
         open={donateOpen}
         onClose={() => setDonateOpen(false)}
+      />
+
+      <ReportModal
+        open={!!reportTarget}
+        onClose={() => setReportTarget(null)}
+        productTitle={reportTarget?.title || ''}
+        offerUrl={reportTarget?.offerUrl || null}
+        snapshot={reportTarget?.snapshot || null}
+        currentUser={currentUser}
       />
 
       </>

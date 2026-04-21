@@ -1,8 +1,32 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react'
 import { useI18n } from '../i18n.jsx'
+import { useCart } from '../CartContext.jsx'
 import { formatMoney, sourceDomain } from '../utils.js'
 
-export default function OffersDialog({ group, name, config, onClose }) {
+function HeartBtn({ offer, onNeedAuth }) {
+  const { savedUrls, toggle } = useCart()
+  const isSaved = savedUrls.has(offer.url)
+
+  function handleClick(e) {
+    e.stopPropagation()
+    toggle(offer, () => onNeedAuth?.())
+  }
+
+  return (
+    <button
+      className={`od-heart-btn${isSaved ? ' is-saved' : ''}`}
+      type="button"
+      aria-label={isSaved ? 'Remover da lista' : 'Salvar na lista'}
+      onClick={handleClick}
+    >
+      <svg viewBox="0 0 24 24" width="14" height="14" fill={isSaved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+      </svg>
+    </button>
+  )
+}
+
+export default function OffersDialog({ group, name, config, onClose, onNeedAuth }) {
   const { t } = useI18n()
   const dialogRef = useRef(null)
   const [storeFilter, setStoreFilter] = useState(null)
@@ -23,9 +47,7 @@ export default function OffersDialog({ group, name, config, onClose }) {
   }
 
   function handleClose() {
-    if (dialogRef.current) {
-      dialogRef.current.close()
-    }
+    if (dialogRef.current) dialogRef.current.close()
     onClose()
   }
 
@@ -47,6 +69,9 @@ export default function OffersDialog({ group, name, config, onClose }) {
   function OfferRows({ offers, countryClass }) {
     return offers.map((offer, i) => (
       <tr key={i} className={`od-row od-row--${countryClass}`}>
+        <td className="od-save">
+          <HeartBtn offer={offer} onNeedAuth={onNeedAuth} />
+        </td>
         <td className="od-store">{offer.store}</td>
         <td className="od-title" title={offer.title || ''}>{offer.title || ''}</td>
         <td className="od-price">{formatMoney(offer.price.amount, offer.price.currency)}</td>
@@ -105,6 +130,7 @@ export default function OffersDialog({ group, name, config, onClose }) {
         <table className="offers-inner">
           <thead>
             <tr>
+              <th style={{ width: 32 }}></th>
               <th>{t('table.store')}</th>
               <th>{t('table.title')}</th>
               <th>{t('table.price')}</th>
@@ -116,7 +142,7 @@ export default function OffersDialog({ group, name, config, onClose }) {
             {pyOffers.length > 0 && (
               <>
                 <tr className="od-section-row">
-                  <td colSpan={5} className="od-section-label od-section-py">Paraguai</td>
+                  <td colSpan={6} className="od-section-label od-section-py">Paraguai</td>
                 </tr>
                 <OfferRows offers={pyOffers} countryClass="py" />
               </>
@@ -124,14 +150,14 @@ export default function OffersDialog({ group, name, config, onClose }) {
             {brOffers.length > 0 && (
               <>
                 <tr className="od-section-row">
-                  <td colSpan={5} className="od-section-label od-section-br">Brasil</td>
+                  <td colSpan={6} className="od-section-label od-section-br">Brasil</td>
                 </tr>
                 <OfferRows offers={brOffers} countryClass="br" />
               </>
             )}
             {pyOffers.length === 0 && brOffers.length === 0 && (
               <tr>
-                <td colSpan={5} className="od-empty">Nenhuma oferta para "{storeFilter}"</td>
+                <td colSpan={6} className="od-empty">Nenhuma oferta para "{storeFilter}"</td>
               </tr>
             )}
           </tbody>

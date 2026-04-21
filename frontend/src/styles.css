@@ -500,6 +500,135 @@ body {
   text-underline-offset: 2px;
 }
 .app-footer-link:hover { color: var(--text); }
+a.app-footer-link { text-decoration: underline; text-underline-offset: 2px; }
+
+/* ── Report button (ProductCard) ──────────────────────────────────── */
+.report-btn {
+  background: none;
+  border: none;
+  padding: 2px 4px;
+  cursor: pointer;
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+  display: flex;
+  align-items: center;
+}
+.product-card:hover .report-btn { opacity: 1; }
+.report-btn:hover { color: var(--warning); opacity: 1; }
+
+/* ── Report Modal ─────────────────────────────────────────────────── */
+.report-product-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--card-bg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 6px 10px;
+  margin-bottom: 0.75rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.form-group { margin-bottom: 0.75rem; }
+.form-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.form-select, .form-input, .form-textarea {
+  width: 100%;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 7px 10px;
+  font-size: 0.82rem;
+  color: var(--ink);
+  font-family: inherit;
+  box-sizing: border-box;
+}
+.form-select:focus, .form-input:focus, .form-textarea:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+.form-textarea { resize: vertical; min-height: 70px; }
+.report-error { color: var(--danger); font-size: 0.78rem; margin-bottom: 0.5rem; }
+.report-submit-btn {
+  width: 100%;
+  margin-top: 0.25rem;
+  padding: 9px;
+  font-size: 0.85rem;
+}
+.report-success { text-align: center; padding: 1rem 0; }
+.report-success-title { font-weight: 600; font-size: 1rem; margin-bottom: 0.4rem; }
+.report-success-body { color: var(--muted); font-size: 0.85rem; }
+
+/* ── Admin Reports Tab ────────────────────────────────────────────── */
+.reports-list { display: flex; flex-direction: column; gap: 0.75rem; }
+.report-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+}
+.report-card--resolved { opacity: 0.6; }
+.report-card-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+.report-type-badge {
+  background: var(--warning-bg);
+  color: var(--warning);
+  border: 1px solid var(--warning-border);
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 7px;
+  white-space: nowrap;
+}
+.report-product { font-weight: 600; font-size: 0.85rem; flex: 1; }
+.report-date { font-size: 0.72rem; color: var(--muted); white-space: nowrap; }
+.report-description { font-size: 0.82rem; color: var(--ink); margin: 0 0 0.4rem; }
+.report-url { font-size: 0.72rem; color: var(--accent); word-break: break-all; display: block; margin-bottom: 0.4rem; }
+.report-meta { font-size: 0.75rem; color: var(--muted); margin: 0 0 0.4rem; }
+.report-snapshot {
+  font-size: 0.7rem;
+  background: var(--card-bg);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 6px 8px;
+  overflow-x: auto;
+  margin-bottom: 0.5rem;
+  color: var(--muted);
+}
+.report-resolved-badge {
+  font-size: 0.75rem;
+  color: var(--success);
+  font-weight: 600;
+}
+.admin-toggle-label { font-size: 0.82rem; color: var(--text); cursor: pointer; display: flex; align-items: center; gap: 4px; }
+.btn-sm { font-size: 0.78rem; padding: 4px 10px; border-radius: 5px; border: none; cursor: pointer; }
+.btn-success { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); }
+.btn-success:hover { background: var(--success); color: #fff; }
+.btn-primary {
+  background: var(--accent);
+  color: var(--ink-on-accent);
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+}
+.btn-primary:hover { opacity: 0.9; }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* ══════════════════════════════════════════════════════════════════
    UNIFIED MODAL SYSTEM
@@ -2126,6 +2255,21 @@ th.sort-desc::after { content: " \2193"; font-size: 0.7em; }
 .od-brl    { white-space: nowrap; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink); }
 .od-link a { color: var(--accent); text-decoration: none; font-size: 0.8rem; }
 .od-link a:hover { text-decoration: underline; }
+
+.od-save { width: 32px; padding: 0 4px; }
+.od-heart-btn {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+}
+.od-heart-btn:hover { color: var(--py-color); background: var(--py-bg); }
+.od-heart-btn.is-saved { color: var(--py-color); }
 
 /* ── Auth modal internals (uses dialog.modal.modal-sm) ──────────────── */
 

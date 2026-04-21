@@ -20,6 +20,8 @@ import {
   apiAdminExportStores,
   apiAdminImportStores,
   apiAdminMapsSearch,
+  apiAdminListReports,
+  apiAdminResolveReport,
   getApiBase,
 } from '../api.js'
 
@@ -1135,6 +1137,106 @@ function StoresTab() {
   )
 }
 
+// ── Tab: Reports ──────────────────────────────────────────────────────────────
+
+const REPORT_TYPE_LABELS = {
+  wrong_price: 'Preço incorreto',
+  wrong_store: 'Loja incorreta',
+  missing_info: 'Info faltando',
+  other: 'Outro',
+}
+
+function ReportsTab() {
+  const [reports, setReports] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [showResolved, setShowResolved] = useState(false)
+  const [resolving, setResolving] = useState(null)
+
+  async function load() {
+    setLoading(true)
+    setError(null)
+    try {
+      const data = await apiAdminListReports(showResolved ? null : false)
+      setReports(data)
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => { load() }, [showResolved])
+
+  async function handleResolve(id) {
+    setResolving(id)
+    try {
+      await apiAdminResolveReport(id)
+      setReports(r => r.filter(x => x.id !== id))
+    } catch {
+      // ignore
+    } finally {
+      setResolving(null)
+    }
+  }
+
+  if (loading) return <p className="admin-tab-loading">Carregando...</p>
+  if (error)   return <p className="admin-tab-error">{error}</p>
+
+  return (
+    <div className="admin-tab-body">
+      <div className="admin-tab-toolbar">
+        <h2 className="admin-section-title">Reportes de dados incorretos</h2>
+        <label className="admin-toggle-label">
+          <input
+            type="checkbox"
+            checked={showResolved}
+            onChange={e => setShowResolved(e.target.checked)}
+          />
+          {' '}Mostrar resolvidos
+        </label>
+      </div>
+      {reports.length === 0 ? (
+        <p style={{ color: 'var(--muted)', marginTop: '1rem' }}>Nenhum reporte pendente.</p>
+      ) : (
+        <div className="reports-list">
+          {reports.map(r => (
+            <div key={r.id} className={`report-card${r.resolved ? ' report-card--resolved' : ''}`}>
+              <div className="report-card-head">
+                <span className="report-type-badge">{REPORT_TYPE_LABELS[r.report_type] || r.report_type}</span>
+                <span className="report-product">{r.product_title}</span>
+                <span className="report-date">{new Date(r.created_at).toLocaleString('pt-BR')}</span>
+              </div>
+              <p className="report-description">{r.description}</p>
+              {r.offer_url && (
+                <a href={r.offer_url} target="_blank" rel="noopener noreferrer" className="report-url">{r.offer_url}</a>
+              )}
+              {(r.reporter_email || r.user_id) && (
+                <p className="report-meta">
+                  {r.reporter_email ? `Email: ${r.reporter_email}` : `Usuário ID: ${r.user_id}`}
+                </p>
+              )}
+              {r.snapshot && (
+                <pre className="report-snapshot">{JSON.stringify(r.snapshot, null, 2)}</pre>
+              )}
+              {!r.resolved && (
+                <button
+                  className="btn-sm btn-success"
+                  onClick={() => handleResolve(r.id)}
+                  disabled={resolving === r.id}
+                >
+                  {resolving === r.id ? 'Resolvendo…' : '✓ Marcar como resolvido'}
+                </button>
+              )}
+              {r.resolved && <span className="report-resolved-badge">✓ Resolvido</span>}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Main AdminPage ────────────────────────────────────────────────────────────
 
 const TABS = [
@@ -1143,6 +1245,7 @@ const TABS = [
   { id: 'cache',    label: 'Cache'     },
   { id: 'donate',   label: 'Doações'   },
   { id: 'stores',   label: 'Lojas'     },
+  { id: 'reports',  label: 'Reportes'  },
 ]
 
 export default function AdminPage({ onBack }) {
@@ -1174,6 +1277,7 @@ export default function AdminPage({ onBack }) {
         {tab === 'cache'    && <CacheTab />}
         {tab === 'donate'   && <DonateTab />}
         {tab === 'stores'   && <StoresTab />}
+        {tab === 'reports'  && <ReportsTab />}
       </div>
     </div>
   )

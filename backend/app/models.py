@@ -186,6 +186,28 @@ class UserCartItem(Base):
     )
 
 
+class DataReport(Base):
+    """Reporte de dado incorreto enviado por usuário."""
+    __tablename__ = "data_reports"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    report_type: Mapped[str] = mapped_column(Text, nullable=False)  # wrong_price | wrong_store | missing_info | other
+    product_title: Mapped[str] = mapped_column(Text, nullable=False)
+    offer_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    description: Mapped[str] = mapped_column(Text, nullable=False)
+    reporter_email: Mapped[str | None] = mapped_column(Text, nullable=True)
+    snapshot: Mapped[dict | None] = mapped_column(JSONB, nullable=True)  # price/store data shown at report time
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    resolved: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    admin_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    __table_args__ = (
+        Index("ix_data_reports_created_at", "created_at"),
+        Index("ix_data_reports_resolved", "resolved"),
+    )
+
+
 class UnknownProduct(Base):
     """Títulos que não bateram na LUT — alimenta a fila de novos produtos a catalogar."""
     __tablename__ = "unknown_products"
