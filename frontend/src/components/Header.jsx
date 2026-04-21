@@ -3,7 +3,7 @@ import { useI18n } from '../i18n.jsx'
 import { apiFetchFxRate } from '../api.js'
 import { useCart } from '../CartContext.jsx'
 
-function CartDropdown({ onOpenCart, onClose, currentUser, onOpenAuth }) {
+function CartDropdown({ onOpenCart, onClose, currentUser, onOpenAuth, fxRate }) {
   const ref = useRef(null)
   const { items, remove, loading } = useCart()
 
@@ -25,13 +25,20 @@ function CartDropdown({ onOpenCart, onClose, currentUser, onOpenAuth }) {
 
   function formatPrice(amount, currency) {
     if (currency === 'PYG') return `G$ ${Math.round(amount).toLocaleString('pt-BR')}`
+    if (currency === 'USD') return `$ ${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
     return `R$ ${amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
   }
 
-  function cartTotalLabel(items) {
-    const t = {}
-    for (const i of items) t[i.price_currency] = (t[i.price_currency] || 0) + i.price_amount
-    return Object.entries(t).map(([cur, amt]) => formatPrice(amt, cur)).join(' + ')
+  function cartTotals(items) {
+    const totals = {}
+    for (const i of items) totals[i.price_currency] = (totals[i.price_currency] || 0) + i.price_amount
+    const usd = totals['USD'] ? formatPrice(totals['USD'], 'USD') : null
+    const brl = totals['BRL']
+      ? formatPrice(totals['BRL'], 'BRL')
+      : (fxRate && totals['USD'])
+        ? `R$ ${(totals['USD'] * fxRate).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+        : null
+    return { usd, brl }
   }
 
   return (
@@ -105,7 +112,10 @@ function CartDropdown({ onOpenCart, onClose, currentUser, onOpenAuth }) {
         <div className="cart-dropdown-footer">
           <div className="cart-dd-total">
             <span className="cart-dd-total-label">Total estimado</span>
-            <span className="cart-dd-total-value">{cartTotalLabel(items)}</span>
+            <div className="cart-dd-total-values">
+              {cartTotals(items).brl && <span className="cart-dd-total-brl">{cartTotals(items).brl}</span>}
+              {cartTotals(items).usd && <span className="cart-dd-total-usd">{cartTotals(items).usd}</span>}
+            </div>
           </div>
           <button
             className="cart-dropdown-cta"
@@ -285,6 +295,7 @@ export default function Header({
               onClose={() => setCartDropdownOpen(false)}
               currentUser={currentUser}
               onOpenAuth={onOpenAuth}
+              fxRate={fxRate}
             />
           )}
         </div>
