@@ -133,7 +133,7 @@ function CartDropdown({ onOpenCart, onClose, currentUser, onOpenAuth, fxRate }) 
 }
 
 function UserDropdown({
-  currentUser, onOpenSettings, onOpenCalc, onOpenAdmin, onLogout, onClose,
+  currentUser, onOpenSettings, onOpenCalc, onOpenImportCalc, onOpenAdmin, onLogout, onClose,
   theme, onToggleTheme, locale, setLocale,
 }) {
   const ref = useRef(null)
@@ -148,7 +148,8 @@ function UserDropdown({
 
   const items = [
     { icon: '⚙', label: 'Configurações', action: onOpenSettings },
-    { icon: '💰', label: 'Calculadora de Taxas', action: onOpenCalc, mobileOnly: true },
+    { icon: '💰', label: 'Calculadora de Taxas MP', action: onOpenCalc },
+    { icon: '🧾', label: 'Calculadora de Declaração', action: onOpenImportCalc },
     ...(currentUser?.is_admin ? [{ icon: '🔧', label: 'Dev Tools', action: onOpenAdmin }] : []),
     { divider: true },
     { icon: '↩', label: 'Sair', action: onLogout, danger: true },
@@ -167,7 +168,7 @@ function UserDropdown({
         : (
           <button
             key={i}
-            className={`user-dropdown-item${item.danger ? ' danger' : ''}${item.mobileOnly ? ' dropdown-mobile-only' : ''}`}
+            className={`user-dropdown-item${item.danger ? ' danger' : ''}`}
             onClick={() => { item.action(); onClose() }}
           >
             <span className="user-dropdown-item-icon">{item.icon}</span>
@@ -201,6 +202,7 @@ export default function Header({
   onLogout,
   onOpenSettings,
   onOpenCalc,
+  onOpenImportCalc,
   onOpenAdmin,
   onOpenCart,
   cartCount = 0,
@@ -247,15 +249,15 @@ export default function Header({
           </span>
         )}
 
-        {/* Calculadora de taxas — desktop only */}
+        {/* Import duty calculator button */}
         <button
-          className="icon-btn header-calc-btn"
+          className="icon-btn"
           type="button"
-          aria-label="Calculadora de taxas"
-          onClick={onOpenCalc}
-          title="Calculadora de taxas e parcelas"
+          aria-label="Calculadora de Declaração"
+          title="Calculadora de Declaração"
+          onClick={onOpenImportCalc}
         >
-          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <rect x="4" y="2" width="16" height="20" rx="2"/>
             <line x1="8" y1="6" x2="16" y2="6"/>
             <line x1="8" y1="10" x2="10" y2="10"/>
@@ -327,6 +329,7 @@ export default function Header({
                   currentUser={currentUser}
                   onOpenSettings={onOpenSettings}
                   onOpenCalc={onOpenCalc}
+                  onOpenImportCalc={onOpenImportCalc}
                   onOpenAdmin={onOpenAdmin}
                   onLogout={onLogout}
                   onClose={() => setDropdownOpen(false)}

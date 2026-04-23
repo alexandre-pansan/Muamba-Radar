@@ -266,11 +266,12 @@ body {
 
 
 .topbar-fx-rate {
-  display: flex;
-  align-items: baseline;
+  display: inline-flex;
+  align-items: center;
   gap: 3px;
   white-space: nowrap;
-  padding: 4px 10px;
+  height: 34px;
+  padding: 0 10px;
   border-radius: 8px;
   background: var(--chrome-hover);
   border: 1px solid var(--chrome-border);
@@ -5097,6 +5098,24 @@ th.sort-desc::after { content: " \2193"; font-size: 0.7em; }
   font-style: italic;
   color: var(--muted);
   opacity: 0.6;
+}
+
+.cart-import-calc-btn {
+  margin-top: 10px;
+  align-self: flex-start;
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.cart-import-calc-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .cart-page-title {

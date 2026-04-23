@@ -40,6 +40,7 @@ import AdminPage from './components/AdminPage.jsx'
 import PrivacyPage from './components/PrivacyPage.jsx'
 import TermsPage from './components/TermsPage.jsx'
 import TaxCalculator from './components/TaxCalculator.jsx'
+import ImportDutyCalculator from './components/ImportDutyCalculator.jsx'
 import OffersDialog from './components/OffersDialog.jsx'
 import BetaNoticeModal, { shouldShowBetaNotice } from './components/BetaNoticeModal.jsx'
 import DonateModal from './components/DonateModal.jsx'
@@ -95,6 +96,8 @@ function AppShell({ currentUser, setCurrentUser }) {
   const [authModalTab, setAuthModalTab] = useState('login')
   const [userConfigOpen, setUserConfigOpen] = useState(false)
   const [taxCalcOpen, setTaxCalcOpen] = useState(false)
+  const [importCalcOpen, setImportCalcOpen] = useState(false)
+  const [importCalcInitialUSD, setImportCalcInitialUSD] = useState(null)
   const [betaNoticeOpen, setBetaNoticeOpen] = useState(false)
   const [donateOpen, setDonateOpen] = useState(false)
   const [reportTarget, setReportTarget] = useState(null) // { title, offerUrl, snapshot }
@@ -398,6 +401,7 @@ function AppShell({ currentUser, setCurrentUser }) {
         onOpenSettings={() => setUserConfigOpen(true)}
         onOpenAdmin={goAdmin}
         onOpenCalc={() => setTaxCalcOpen(true)}
+        onOpenImportCalc={() => { setImportCalcInitialUSD(null); setImportCalcOpen(true) }}
         onOpenCart={goCart}
         cartCount={cartItems.length}
         onToggleSidebar={() => setSidebarOpen(o => !o)}
@@ -409,7 +413,7 @@ function AppShell({ currentUser, setCurrentUser }) {
       {page === 'admin' ? (
         <AdminPage onBack={goHome} />
       ) : page === 'cart' ? (
-        <CartPage onBack={goHome} />
+        <CartPage onBack={goHome} onOpenImportCalc={(usd) => { setImportCalcInitialUSD(usd ?? null); setImportCalcOpen(true) }} />
       ) : (
       <>
       {sidebarOpen && (
@@ -511,6 +515,7 @@ function AppShell({ currentUser, setCurrentUser }) {
         savedRates={currentPrefs?.tax_rates}
       />
 
+
       {offersGroup && (
         <OffersDialog
           group={offersGroup.group}
@@ -551,6 +556,12 @@ function AppShell({ currentUser, setCurrentUser }) {
 
       </>
       )}
+
+      <ImportDutyCalculator
+        open={importCalcOpen}
+        onClose={() => setImportCalcOpen(false)}
+        initialUSD={importCalcInitialUSD}
+      />
 
     </>
   )

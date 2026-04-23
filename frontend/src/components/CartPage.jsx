@@ -176,7 +176,7 @@ function SortableCard(props) {
   )
 }
 
-export default function CartPage({ onBack }) {
+export default function CartPage({ onBack, onOpenImportCalc }) {
   const { items, loading, remove, clear } = useCart()
   const [sort, setSort]                   = useState('store')
   const [manualOrder, setManualOrder]     = useState(null)  // null = use sort; array of IDs = custom
@@ -320,6 +320,22 @@ export default function CartPage({ onBack }) {
           {!loading && items.length > 0 && (
             <div className="cart-col-total">
               <span className="cart-col-total-label">TOTAL ESTIMADO</span>
+              {onOpenImportCalc && (
+                <button
+                  className="cart-import-calc-btn"
+                  onClick={() => {
+                    let total = 0
+                    for (const i of items) {
+                      if (i.price_currency === 'USD') total += i.price_amount
+                      else if (i.price_currency === 'BRL' && fxRate) total += i.price_amount / fxRate
+                    }
+                    onOpenImportCalc(total > 0 ? total : undefined)
+                  }}
+                  title="Calcular imposto de declaração"
+                >
+                  🧾 Calcular imposto
+                </button>
+              )}
               {cartTotalBRL(items, fxRate) ? (
                 <>
                   <span className="cart-col-total-brl-main">{cartTotalBRL(items, fxRate)}</span>
