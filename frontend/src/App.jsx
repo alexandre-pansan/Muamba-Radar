@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { I18nProvider, useI18n } from './i18n.jsx'
 
-function MobileSearchBar({ query, onQueryChange, sort, onSortChange, onSearch }) {
+function MobileSearchBar({ query, onQueryChange, sort, onSortChange, onSearch, hidden }) {
   const { t } = useI18n()
   return (
-    <div className="mobile-search-bar">
+    <div className={`mobile-search-bar${hidden ? ' mobile-search-bar--hidden' : ''}`}>
       <div className="msb-row">
         <input
           className="msb-input"
@@ -144,6 +144,27 @@ function AppShell({ currentUser, setCurrentUser }) {
 
   // Sidebar mobile open
   const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  // Mobile scroll — hide search bar on scroll down, show scroll-to-top btn
+  const resultsScrollRef = useRef(null)
+  const [searchBarHidden, setSearchBarHidden] = useState(false)
+  const [showScrollTop, setShowScrollTop] = useState(false)
+  const lastScrollY = useRef(0)
+
+  useEffect(() => {
+    const el = resultsScrollRef.current
+    if (!el) return
+    function onScroll() {
+      const y = el.scrollTop
+      const delta = y - lastScrollY.current
+      lastScrollY.current = y
+      if (delta > 8 && y > 60) setSearchBarHidden(true)
+      else if (delta < -8) setSearchBarHidden(false)
+      setShowScrollTop(y > 200)
+    }
+    el.addEventListener('scroll', onScroll, { passive: true })
+    return () => el.removeEventListener('scroll', onScroll)
+  }, [])
 
   // Offers dialog
   const [offersGroup, setOffersGroup] = useState(null) // {group, name, config}
@@ -450,6 +471,7 @@ function AppShell({ currentUser, setCurrentUser }) {
             sort={sort}
             onSortChange={setSort}
             onSearch={runCompare}
+            hidden={searchBarHidden}
           />
           <ResultsArea
             isLoading={isLoading}
@@ -469,7 +491,17 @@ function AppShell({ currentUser, setCurrentUser }) {
             onOpenOffers={openOffersDialog}
             onNeedAuth={() => openAuthModal('login')}
             onReport={openReportModal}
+            scrollRef={resultsScrollRef}
           />
+          {showScrollTop && (
+            <button
+              className="scroll-to-top-btn"
+              onClick={() => resultsScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
+              aria-label="Voltar ao topo"
+            >
+              ↑
+            </button>
+          )}
           <footer className="app-footer">
             <span>© {new Date().getFullYear()} MuambaRadar — Comparador de preços informativo. Não vendemos produtos.</span>
             <span className="app-footer-sep">·</span>

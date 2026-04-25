@@ -262,11 +262,9 @@ export default function Sidebar({
           aria-valuenow={donatePct}
           aria-valuemin={0}
           aria-valuemax={100}
-          aria-label={`R$${donateRaised} de R$${donateGoal} arrecadados este mês`}
         >
           <div className="sb-donate-progress-bar" style={{ width: `${donatePct}%` }} />
         </div>
-        <p className="sb-donate-progress-label">R$ {donateRaised} de R$ {donateGoal}/mês</p>
 
         {/* Button com shimmer */}
         <div className="sb-donate-btn-wrap">

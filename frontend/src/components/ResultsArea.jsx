@@ -99,15 +99,17 @@ export default function ResultsArea({
   onOpenOffers,
   onNeedAuth,
   onReport,
+  scrollRef,
 }) {
   const { t } = useI18n()
   const [typeFilter, setTypeFilter] = useState(null)
   const [concFilter, setConcFilter] = useState(null)
   const [variantFilter, setVariantFilter] = useState(null)
   const [gameFilter, setGameFilter] = useState(null)
+  const [filtersOpen, setFiltersOpen] = useState(false)
 
   // Reset filters when results change
-  useEffect(() => { setTypeFilter(null); setConcFilter(null); setVariantFilter(null); setGameFilter(null) }, [lastQuery])
+  useEffect(() => { setTypeFilter(null); setConcFilter(null); setVariantFilter(null); setGameFilter(null); setFiltersOpen(false) }, [lastQuery])
   // Reset game filter when variant filter changes
   useEffect(() => { setGameFilter(null) }, [variantFilter])
 
@@ -135,6 +137,8 @@ export default function ResultsArea({
   })
   const types = Object.entries(typeMap).sort((a, b) => b[1] - a[1])
   const showTypeFilter = types.length >= 1
+  const activeFilterCount = [typeFilter, concFilter, variantFilter, gameFilter].filter(Boolean).length
+  const hasAnyFilter = showTypeFilter
 
   const typeFiltered = typeFilter
     ? sorted.filter(g => groupType(g) === typeFilter)
@@ -252,9 +256,20 @@ export default function ResultsArea({
               {t('toolbar.view_table')}
             </button>
           </div>
+          {!isLoading && hasAnyFilter && (
+            <button
+              type="button"
+              className={`filter-toggle-btn${filtersOpen ? ' is-open' : ''}${activeFilterCount > 0 ? ' has-active' : ''}`}
+              onClick={() => setFiltersOpen(o => !o)}
+              aria-label="Filtros"
+            >
+              ⊞{activeFilterCount > 0 && <span className="filter-toggle-badge">{activeFilterCount}</span>}
+            </button>
+          )}
         </div>
       </div>
 
+      <div className={`filter-bars-panel${filtersOpen ? ' is-open' : ''}`}>
       {!isLoading && showTypeFilter && (
         <div className="type-filter-bar">
           <button
@@ -335,6 +350,7 @@ export default function ResultsArea({
           ))}
         </div>
       )}
+      </div>
 
       {!isLoading && sorted.length > 0 && detectCategory(lastQuery) === 'perfume' && (
         <div className="category-notice">
@@ -346,7 +362,7 @@ export default function ResultsArea({
         </div>
       )}
 
-      <section className={`results${isLoading ? ' is-loading' : ''}`}>
+      <section ref={scrollRef} className={`results${isLoading ? ' is-loading' : ''}`}>
         {isLoading ? (
           <LoadingScene images={featuredImages} query={lastQuery || ''} />
         ) : viewMode === 'table' && displayed.length > 0 ? (

@@ -1445,9 +1445,26 @@ dialog.modal::backdrop {
 .beta-tour-donate-btn:active { transform: translateY(0); }
 
 @media (max-width: 480px) {
-  .beta-tour-img-wrap { height: 260px; }
-  .beta-tour-final { min-height: unset; }
-  .beta-tour-final-top { padding: 24px 20px 16px; }
+  .beta-tour-modal {
+    height: 95dvh;
+    max-height: 95dvh;
+    border-radius: 16px 16px 0 0;
+    margin: auto auto 0;
+  }
+  .beta-tour-modal .beta-tour-body {
+    flex: 1;
+    overflow: hidden;
+  }
+  .beta-tour-slide {
+    flex: 1;
+  }
+  .beta-tour-img-wrap {
+    flex: 1;
+    height: auto;
+    min-height: 0;
+  }
+  .beta-tour-final { min-height: unset; flex: 1; }
+  .beta-tour-final-top { flex: 1; padding: 24px 20px 16px; }
   .beta-tour-final-support { padding: 16px 20px 18px; }
 }
 
@@ -1796,6 +1813,15 @@ dialog.modal::backdrop {
 
 .view-chip.is-active { background: var(--accent); color: #fff; }
 .view-chip:focus-visible { outline: 2px solid rgba(79,70,229,0.5); outline-offset: 2px; }
+
+/* ── Filter bars panel ─────────────────────────────────────────────── */
+.filter-bars-panel {
+  display: contents; /* desktop: transparent wrapper, no layout impact */
+}
+
+.filter-toggle-btn {
+  display: none; /* hidden on desktop */
+}
 
 /* ── Results scrollable area ────────────────────────────────────────── */
 
@@ -3255,7 +3281,40 @@ th.sort-desc::after { content: " \2193"; font-size: 0.7em; }
     flex-shrink: 0;
     background: var(--chrome-2);
     border-bottom: 1px solid var(--chrome-border);
+    max-height: 200px;
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease, opacity 0.3s ease;
   }
+  .mobile-search-bar--hidden {
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* Floating scroll-to-top button */
+  .scroll-to-top-btn {
+    position: fixed;
+    bottom: 24px;
+    right: 16px;
+    z-index: 200;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: none;
+    background: var(--accent, #4f46e5);
+    color: #fff;
+    font-size: 1.3rem;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.22);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.2s, transform 0.2s;
+  }
+  .scroll-to-top-btn:active { transform: scale(0.93); }
 
   .msb-row {
     display: flex;
@@ -3315,9 +3374,72 @@ th.sort-desc::after { content: " \2193"; font-size: 0.7em; }
   .results { padding: 12px 12px 32px; }
   .results.card-grid { grid-template-columns: 1fr; }
 
-  /* Toolbar */
-  .content-toolbar { flex-direction: column; align-items: stretch; gap: 8px; padding: 10px 14px; }
-  .toolbar-right { flex-wrap: wrap; }
+  /* Toolbar — 2 compact rows on mobile */
+  .content-toolbar { flex-direction: column; align-items: stretch; gap: 4px; padding: 5px 12px; }
+  .toolbar-left { min-width: 0; }
+  .toolbar-left .status { font-size: 0.78rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .toolbar-right { flex-shrink: 0; gap: 6px; flex-wrap: nowrap; }
+  .toolbar-label { display: none; }
+
+  /* Filter toggle button — mobile only */
+  .filter-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 30px;
+    padding: 0 8px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--muted);
+    font-size: 0.85rem;
+    cursor: pointer;
+    position: relative;
+    flex-shrink: 0;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+  .filter-toggle-btn.is-open,
+  .filter-toggle-btn.has-active { border-color: var(--accent); color: var(--accent); }
+  .filter-toggle-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    font-size: 9px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Filter bars panel — collapsed by default on mobile */
+  .filter-bars-panel {
+    display: block;
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.25s ease;
+  }
+  .filter-bars-panel.is-open {
+    max-height: 200px;
+  }
+
+  /* Filter bars — horizontal scroll, single line */
+  .type-filter-bar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 5px 12px;
+    gap: 5px;
+  }
+  .type-filter-bar::-webkit-scrollbar { display: none; }
+  .type-filter-bar--sub { padding-top: 0; padding-bottom: 5px; }
+  .type-chip { font-size: 11px; padding: 3px 9px; }
+  .type-chip-count { font-size: 10px; }
 
   /* Deal summary */
   .deal-summary { grid-template-columns: 1fr !important; }
@@ -3368,9 +3490,9 @@ th.sort-desc::after { content: " \2193"; font-size: 0.7em; }
 
 /* Small mobile (≤ 480px) */
 @media (max-width: 480px) {
-  .toolbar-right { justify-content: space-between; }
-  .toolbar-group { flex: 1; }
-  .toolbar-select { width: 100%; }
+  .toolbar-right { justify-content: flex-end; }
+  .toolbar-group { flex: unset; }
+  .toolbar-select { width: auto; }
 
   /* Hide user name, keep avatar */
   .user-menu-name { display: none; }
