@@ -32,7 +32,13 @@ jobs:
             echo "→ Building and restarting services..."
             docker compose pull --quiet || true
             docker compose build --no-cache
-            docker compose up -d --remove-orphans
+            docker compose up -d --remove-orphans || {
+              echo "=== BACKEND LOGS (last 80 lines) ==="
+              docker logs muamba-radar-backend-1 --tail 80 2>&1 || true
+              echo "=== BACKEND INSPECT ==="
+              docker inspect muamba-radar-backend-1 --format '{{json .State}}' 2>&1 || true
+              exit 1
+            }
 
             echo "→ Cleaning up old images..."
             docker image prune -f
