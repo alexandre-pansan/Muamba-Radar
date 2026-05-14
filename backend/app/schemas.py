@@ -120,11 +120,21 @@ def _validate_password(v: str) -> str:
     return v
 
 
+_USERNAME_RE = re.compile(r'^[a-zA-Z0-9_\-]+$')
+
+
 class RegisterRequest(BaseModel):
     username: str = Field(min_length=3, max_length=50)
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
     name: str | None = Field(default=None, max_length=255)
+
+    @field_validator("username")
+    @classmethod
+    def username_safe_chars(cls, v: str) -> str:
+        if not _USERNAME_RE.match(v):
+            raise ValueError("Username pode conter apenas letras, números, _ e -.")
+        return v
 
     @field_validator("password")
     @classmethod
@@ -133,8 +143,8 @@ class RegisterRequest(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    identifier: str  # email or username
-    password: str
+    identifier: str = Field(max_length=255)
+    password: str = Field(max_length=128)
 
 
 class TokenResponse(BaseModel):
@@ -176,10 +186,21 @@ class UserPrefsModel(BaseModel):
     tax_rates: dict | None = None
 
 
+def _validate_small_dict(v: dict | None, max_bytes: int = 8192) -> dict | None:
+    if v is not None and len(str(v).encode()) > max_bytes:
+        raise ValueError(f"Payload excede o limite de {max_bytes} bytes.")
+    return v
+
+
 class UpdatePrefsRequest(BaseModel):
     show_margin: bool | None = None
     hide_beta_notice: bool | None = None
     tax_rates: dict | None = None
+
+    @field_validator("tax_rates")
+    @classmethod
+    def tax_rates_size(cls, v: dict | None) -> dict | None:
+        return _validate_small_dict(v)
 
 
 class UserSearchItem(BaseModel):
@@ -321,6 +342,15 @@ class AdminTestSearchResponse(BaseModel):
     adapters: list[AdminAdapterResult]
 
 
+class AdminRawFetchResponse(BaseModel):
+    adapter_id: str
+    query: str
+    url: str
+    content_length: int
+    truncated: bool
+    content: str
+
+
 # ── Reports ──────────────────────────────────────────────────────────────────
 
 class ReportCreate(BaseModel):
@@ -330,6 +360,11 @@ class ReportCreate(BaseModel):
     description: str = Field(..., min_length=5, max_length=1000)
     reporter_email: str | None = Field(default=None, max_length=200)
     snapshot: dict | None = None
+
+    @field_validator("snapshot")
+    @classmethod
+    def snapshot_size(cls, v: dict | None) -> dict | None:
+        return _validate_small_dict(v, max_bytes=4096)
 
 
 class ReportResponse(BaseModel):

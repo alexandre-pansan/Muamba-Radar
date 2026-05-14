@@ -122,6 +122,19 @@ _SKU_RE = _re.compile(
 
 _CONSOLE_LUT_KEY_RE = _re.compile(r"^(playstation_[1-9]|xbox_series|xbox_one|nintendo_switch)")
 
+# Category words used by PY stores that don't appear in BR store titles.
+_CATEGORY_PREFIX_RE = _re.compile(
+    r"\b(celular|cel|smartphone|aparelho|tablet|notebook)\b", _re.IGNORECASE
+)
+
+# Patterns to detect specific phone brands for clean BR query generation.
+_IPHONE_RE = _re.compile(
+    r"\biphone\s+(\d{1,2})(?:\s+(pro\s+max|pro\s+plus|pro|plus|max|mini))?\b", _re.IGNORECASE
+)
+_SAMSUNG_RE = _re.compile(
+    r"\b(galaxy\s+[a-z]\d{1,2}(?:\s+(?:ultra|plus|fe|s|e))?)\b", _re.IGNORECASE
+)
+
 
 def _br_queries_from_py_offers(py_offers: list[OfferModel], original_query: str) -> list[str]:
     """
@@ -159,15 +172,30 @@ def _br_queries_from_py_offers(py_offers: list[OfferModel], original_query: str)
                 seen_keys.add(base_key)
                 queries.append(display.lower())
         else:
-            # Non-LUT product: strip SKU codes and storage, use cleaned title
-            cleaned = _SKU_RE.sub(" ", text)
-            cleaned = _re.sub(r"\s+", " ", cleaned).strip()
-            # Cap at first 4 meaningful tokens to avoid over-specific queries
-            tokens = cleaned.split()[:4]
-            cleaned = " ".join(tokens)
-            if cleaned and cleaned not in seen_keys:
-                seen_keys.add(cleaned)
-                queries.append(cleaned)
+            # Non-LUT product: build a clean BR-friendly query.
+
+            # iPhone: extract "apple iphone X variant storage" precisely.
+            iphone_m = _IPHONE_RE.search(text)
+            if iphone_m:
+                number = iphone_m.group(1)
+                variant = (iphone_m.group(2) or "").strip()
+                storage_m = _re.search(r"\b(\d+)\s*(gb|tb)\b", text, _re.IGNORECASE)
+                storage = f" {storage_m.group(1)}{storage_m.group(2)}" if storage_m else ""
+                base_key = f"iphone {number} {variant}".strip()
+                clean = _re.sub(r"\s+", " ", f"apple iphone {number} {variant}{storage}").strip()
+            else:
+                # Generic: strip SKU codes, storage, and PY category prefixes,
+                # then take the first 4 meaningful tokens.
+                cleaned = _SKU_RE.sub(" ", text)
+                cleaned = _CATEGORY_PREFIX_RE.sub(" ", cleaned)
+                cleaned = _re.sub(r"\s+", " ", cleaned).strip()
+                tokens = cleaned.split()[:4]
+                clean = " ".join(tokens)
+                base_key = clean
+
+            if clean and base_key not in seen_keys:
+                seen_keys.add(base_key)
+                queries.append(clean)
 
     if not queries:
         return [original_query]

@@ -40,5 +40,9 @@ class SourceAdapter(ABC):
     def search(self, query: str) -> list[RawOfferModel]:
         raise NotImplementedError
 
+    def fetch_raw(self, query: str) -> tuple[str, str]:
+        """Return (url, raw_content) for debugging. Adapters override this."""
+        raise NotImplementedError(f"{self.__class__.__name__} does not support fetch_raw")
+
     def info(self) -> SourceInfoModel:
         return SourceInfoModel(source=self.source_id, country=self.country, enabled=True)

@@ -27,6 +27,42 @@ def get_db():
         db.close()
 
 
+def _migrate_pii_encryption() -> None:
+    """Re-encrypt plaintext PII rows at startup via raw SQL (bypasses ORM identity map)."""
+    from app.config import settings
+    if not settings.field_encryption_key:
+        return
+    from app.crypto import EncryptedText, blind_index
+
+    _enc = EncryptedText()
+
+    def enc(v):
+        return _enc.process_bind_param(v, None) if v else None
+
+    db = SessionLocal()
+    try:
+        rows = db.execute(
+            text("SELECT id, email, username, name FROM users WHERE email NOT LIKE 'gAAAA%'")
+        ).fetchall()
+        for row in rows:
+            uid, email, username, name = row
+            db.execute(text(
+                "UPDATE users SET email=:e, email_blind=:eb, username=:u, username_blind=:ub, name=:n"
+                " WHERE id=:id"
+            ), {
+                'e':  enc(email),
+                'eb': blind_index(email),
+                'u':  enc(username),
+                'ub': blind_index(username),
+                'n':  enc(name),
+                'id': uid,
+            })
+        if rows:
+            db.commit()
+    finally:
+        db.close()
+
+
 def init_db() -> None:
     import app.models  # noqa: F401  — registers models with Base
 
@@ -142,6 +178,30 @@ def init_db() -> None:
         except Exception:
             conn.rollback()
 
+        # PII encryption blind-index columns
+        for col in [
+            "ALTER TABLE users ADD COLUMN email_blind VARCHAR(64)",
+            "ALTER TABLE users ADD COLUMN username_blind VARCHAR(64)",
+        ]:
+            try:
+                conn.execute(text(col))
+                conn.commit()
+            except Exception:
+                conn.rollback()
+
+        # Replace plaintext unique constraints with blind-index unique indexes
+        for stmt in [
+            "ALTER TABLE users DROP CONSTRAINT IF EXISTS uq_users_email",
+            "DROP INDEX IF EXISTS uq_users_username",
+            "CREATE UNIQUE INDEX IF NOT EXISTS ix_users_email_blind ON users (email_blind) WHERE email_blind IS NOT NULL",
+            "CREATE UNIQUE INDEX IF NOT EXISTS ix_users_username_blind ON users (username_blind) WHERE username_blind IS NOT NULL",
+        ]:
+            try:
+                conn.execute(text(stmt))
+                conn.commit()
+            except Exception:
+                conn.rollback()
+
         # data_reports table
         try:
             conn.execute(text("""
@@ -165,6 +225,8 @@ def init_db() -> None:
         except Exception:
             conn.rollback()
 
+    _migrate_pii_encryption()
+
     # Seed singleton global_config row
     from app.models import GlobalConfig as _GlobalConfig
     _gc_db = SessionLocal()
@@ -184,23 +246,43 @@ def init_db() -> None:
         except Exception:
             conn.rollback()  # table may not exist yet on first boot — Base.metadata.create_all handles it
 
+        # Anonymize IPs older than 30 days — LGPD proportionality (art. 6°, III).
+        # The log metadata (method, path, status, user_id) is kept for Marco Civil;
+        # the IP is NULL'd at raw-SQL level (TypeDecorator not involved).
+        try:
+            conn.execute(text(
+                "UPDATE access_logs SET ip = NULL"
+                " WHERE created_at < NOW() - INTERVAL '30 days' AND ip IS NOT NULL"
+            ))
+            conn.commit()
+        except Exception:
+            conn.rollback()
+
     # ── Seed admin user ───────────────────────────────────────────────────────
     # Credentials are read from ADMIN_EMAIL / ADMIN_PASSWORD env vars.
     # If both are set and no admin exists yet, a first admin account is created.
     # Hardcoded defaults are intentionally absent — set these in .env or secrets manager.
     from datetime import datetime, timezone
     from app.auth import hash_password
+    from app.crypto import blind_index
     from app.models import User
     _db = SessionLocal()
     try:
         admin_email = settings.admin_email.strip()
         admin_password = settings.admin_password.strip()
         if admin_email and admin_password:
-            existing = _db.query(User).filter(User.email == admin_email).first()
+            email_blind = blind_index(admin_email)
+            existing = (
+                _db.query(User).filter(User.email_blind == email_blind).first()
+                if email_blind
+                else _db.query(User).filter(User.email == admin_email).first()
+            )
             if not existing:
                 _db.add(User(
                     email=admin_email,
+                    email_blind=email_blind,
                     username="admin",
+                    username_blind=blind_index("admin"),
                     name="Admin",
                     password_hash=hash_password(admin_password),
                     is_admin=True,

@@ -402,9 +402,22 @@ export default function ResultsArea({
           if (!o.captured_at) return oldest
           return !oldest || o.captured_at < oldest ? o.captured_at : oldest
         }, null)
-        if (!oldestCapture) return null
-        const capturedDate = new Date(oldestCapture).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
-        return <p className="results-capture-info">Capturado em {capturedDate}</p>
+        const pyOffer = allOffers.find(o => o.country === 'py' && o.price?.fx_rate_used)
+        const fxRate = pyOffer?.price?.fx_rate_used
+        const capturedDate = oldestCapture
+          ? new Date(oldestCapture).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+          : null
+        return (
+          <p className="results-capture-info">
+            {capturedDate && <>Capturado em {capturedDate}</>}
+            {capturedDate && fxRate && <span className="results-capture-sep"> · </span>}
+            {fxRate && (
+              <span title="Os preços paraguaios são convertidos para BRL usando essa cotação estimada. Confirme o valor final na loja.">
+                Câmbio PY estimado: R$&nbsp;1&nbsp;≈&nbsp;Gs&nbsp;{Math.round(fxRate).toLocaleString('pt-BR')} ⓘ
+              </span>
+            )}
+          </p>
+        )
       })()}
     </div>
   )

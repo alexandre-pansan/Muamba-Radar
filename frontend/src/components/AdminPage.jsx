@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import {
   apiFetchSources,
   apiTestSearch,
+  apiAdminSearchHistory,
   apiRefreshCache,
   apiAdminListUsers,
   apiAdminDeleteUser,
@@ -286,6 +287,10 @@ function DevToolsTab() {
   const [totalRaw, setTotalRaw] = useState(null)
   const [totalFiltered, setTotalFiltered] = useState(null)
   const [loadError, setLoadError] = useState('')
+  const [history, setHistory] = useState([])
+  const [historyFilter, setHistoryFilter] = useState('')
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const historyRef = React.useRef(null)
 
   useEffect(() => {
     apiFetchSources()
@@ -296,12 +301,46 @@ function DevToolsTab() {
         setChecked(init)
       })
       .catch(e => setLoadError(e.message || 'Failed to fetch'))
+    apiAdminSearchHistory()
+      .then(rows => setHistory(rows))
+      .catch(() => {})
+    function handleClick(e) {
+      if (historyRef.current && !historyRef.current.contains(e.target)) setHistoryOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
   function toggleAll(val) {
     const next = {}
     adapters.forEach(a => { next[a.source] = val })
     setChecked(next)
+  }
+
+  function handleExportCSV() {
+    if (!results) return
+    const rows = [['adapter', 'country', 'title', 'price', 'currency', 'url']]
+    results.forEach(adapter => {
+      const offers = rawMode ? adapter.raw_offers : adapter.sample_offers
+      offers.forEach(o => {
+        rows.push([
+          adapter.adapter_id,
+          adapter.country,
+          `"${(o.title || '').replace(/"/g, '""')}"`,
+          o.price,
+          o.currency,
+          o.url,
+        ])
+      })
+    })
+    const csv = rows.map(r => r.join(',')).join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `busca-${testQuery.trim().replace(/\s+/g, '-')}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   async function handleRun() {
@@ -345,6 +384,45 @@ function DevToolsTab() {
       <div className="dev-tools-left">
         <div className="dev-tools-section">
           <p className="dev-tools-label">Test Search</p>
+
+          {history.length > 0 && (
+            <div className="dev-tools-history-wrap" ref={historyRef}>
+              <button
+                className="dev-tools-history-btn"
+                onClick={() => { setHistoryOpen(o => !o); setHistoryFilter('') }}
+                type="button"
+              >
+                Histórico ({history.length}) {historyOpen ? '▲' : '▼'}
+              </button>
+              {historyOpen && (
+                <div className="dev-tools-history-dropdown">
+                  <input
+                    className="dev-tools-history-search"
+                    placeholder="Filtrar…"
+                    value={historyFilter}
+                    onChange={e => setHistoryFilter(e.target.value)}
+                    autoFocus
+                  />
+                  <div className="dev-tools-history-list">
+                    {history
+                      .filter(r => !historyFilter || r.query.toLowerCase().includes(historyFilter.toLowerCase()))
+                      .map((r, i) => (
+                        <button
+                          key={i}
+                          className="dev-tools-history-item"
+                          onClick={() => { setTestQuery(r.query); setHistoryOpen(false) }}
+                          type="button"
+                        >
+                          <span className="dev-tools-history-query">{r.query}</span>
+                        </button>
+                      ))
+                    }
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           <input
             className="dev-tools-input"
             type="text"
@@ -415,6 +493,11 @@ function DevToolsTab() {
           )}
           {totalFiltered != null && (
             <span className="dev-tools-stat">Filtrado <strong className="text-success">{totalFiltered}</strong></span>
+          )}
+          {results && (
+            <button className="dev-tools-export-btn" onClick={handleExportCSV} title="Exportar CSV">
+              ↓ CSV
+            </button>
           )}
         </div>
         <div className="dev-tools-results-body">

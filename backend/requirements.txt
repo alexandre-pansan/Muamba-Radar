@@ -12,3 +12,4 @@ psycopg2-binary>=2.9
 python-jose[cryptography]>=3.3
 bleach>=6.0.0
 slowapi>=0.1.9
+cryptography>=41.0

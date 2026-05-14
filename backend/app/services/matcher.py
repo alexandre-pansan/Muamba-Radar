@@ -456,8 +456,11 @@ def group_offers(
         # RAM is intentionally excluded from the key: PY listings often include
         # RAM in the title (e.g. "256GB 8GB") while BR listings don't, which
         # would create duplicate groups for the same product.
-        # Voltage IS included: 127V and 220V variants are distinct products.
-        key = ("default", base, storage, voltage)
+        # Voltage IS included only for single-voltage variants: 127V and 220V
+        # are genuinely different products. "Bivolt" means works on both — not
+        # a differentiator, so it's treated as no-voltage for grouping purposes.
+        effective_voltage = voltage if voltage in ("127V", "220V") else None
+        key = ("default", base, storage, effective_voltage)
         grouped.setdefault(key, []).append(offer)
 
     response: list[tuple[str, str, str, float, list[OfferModel], str | None, str | None, str | None]] = []

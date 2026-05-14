@@ -6,6 +6,7 @@ from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, Sma
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.crypto import EncryptedText
 from app.database import Base
 
 
@@ -13,9 +14,11 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    email: Mapped[str] = mapped_column(Text, nullable=False)
-    username: Mapped[str | None] = mapped_column(Text, nullable=True)
-    name: Mapped[str | None] = mapped_column(Text, nullable=True)
+    email: Mapped[str] = mapped_column(EncryptedText, nullable=False)
+    email_blind: Mapped[str | None] = mapped_column(String(64), nullable=True)  # HMAC for unique lookups
+    username: Mapped[str | None] = mapped_column(EncryptedText, nullable=True)
+    username_blind: Mapped[str | None] = mapped_column(String(64), nullable=True)  # HMAC for unique lookups
+    name: Mapped[str | None] = mapped_column(EncryptedText, nullable=True)
     password_hash: Mapped[str] = mapped_column(Text, nullable=False)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
@@ -23,8 +26,9 @@ class User(Base):
     locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     __table_args__ = (
-        UniqueConstraint("email", name="uq_users_email"),
-        UniqueConstraint("username", name="uq_users_username"),
+        # Unique constraints now live on the blind-index columns (set in migrations)
+        Index("ix_users_email_blind", "email_blind", unique=True),
+        Index("ix_users_username_blind", "username_blind", unique=True),
     )
 
 
@@ -106,7 +110,7 @@ class AccessLog(Base):
     method: Mapped[str] = mapped_column(Text, nullable=False)
     path: Mapped[str] = mapped_column(Text, nullable=False)
     status_code: Mapped[int] = mapped_column(SmallInteger, nullable=False)
-    ip: Mapped[str | None] = mapped_column(Text, nullable=True)
+    ip: Mapped[str | None] = mapped_column(EncryptedText, nullable=True)
     user_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     __table_args__ = (
@@ -196,7 +200,7 @@ class DataReport(Base):
     product_title: Mapped[str] = mapped_column(Text, nullable=False)
     offer_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     description: Mapped[str] = mapped_column(Text, nullable=False)
-    reporter_email: Mapped[str | None] = mapped_column(Text, nullable=True)
+    reporter_email: Mapped[str | None] = mapped_column(EncryptedText, nullable=True)
     snapshot: Mapped[dict | None] = mapped_column(JSONB, nullable=True)  # price/store data shown at report time
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     resolved: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

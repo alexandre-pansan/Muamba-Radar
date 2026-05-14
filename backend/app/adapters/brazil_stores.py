@@ -233,6 +233,10 @@ class AmericanasAdapter(SourceAdapter):
     def __init__(self) -> None:
         super().__init__()
 
+    def fetch_raw(self, query: str) -> tuple[str, str]:
+        url = self._search_url(query)
+        return url, self._get(url, headers=_default_headers()).text
+
     def search(self, query: str) -> list[RawOfferModel]:
         try:
             resp = self._get(self._search_url(query), headers=_default_headers())
@@ -382,6 +386,10 @@ class CasasBahiaAdapter(SourceAdapter):
 
     def __init__(self) -> None:
         super().__init__()
+
+    def fetch_raw(self, query: str) -> tuple[str, str]:
+        url = self._search_url(query)
+        return url, self._get(url, headers=_default_headers()).text
 
     def search(self, query: str) -> list[RawOfferModel]:
         try:

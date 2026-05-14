@@ -28,7 +28,7 @@ export default function PrivacyModal({ open, onClose }) {
         <button type="button" className="modal-close" aria-label="Fechar" onClick={onClose}>✕</button>
       </div>
       <div className="modal-body legal-body legal-page-inner">
-        <p className="legal-updated">Última atualização: abril de 2026</p>
+        <p className="legal-updated">Última atualização: maio de 2026</p>
 
         <h2>1. Quem somos</h2>
         <p>
@@ -72,20 +72,29 @@ export default function PrivacyModal({ open, onClose }) {
         <ul>
           <li>Dados de conta: mantidos enquanto a conta existir.</li>
           <li>Histórico de buscas: últimas 50 buscas.</li>
-          <li>Logs de acesso: 6 meses (obrigação legal), após isso são excluídos automaticamente.</li>
+          <li>Logs de acesso: IP anonimizado após 30 dias; demais metadados (método, rota, status) retidos por 6 meses (obrigação legal — Marco Civil art. 15) e então excluídos automaticamente.</li>
           <li>Após exclusão da conta: dados pessoais são apagados imediatamente, exceto logs de acesso (obrigação legal).</li>
         </ul>
 
-        <h2>7. Cookies</h2>
+        <h2>7. Cookies e armazenamento local</h2>
         <p>
-          Utilizamos apenas cookies estritamente necessários para autenticação (token JWT armazenado localmente no navegador).
-          Não utilizamos cookies de rastreamento ou publicidade no momento.
-          Caso venha a utilizar Google Analytics ou AdSense no futuro, este documento será atualizado e um banner de consentimento será exibido.
+          Ao acessar o site pela primeira vez, você verá um banner solicitando seu consentimento para o uso de armazenamento local.
+          Você pode escolher entre:
+        </p>
+        <ul>
+          <li><strong>Aceitar todos:</strong> permite salvar seu histórico de buscas no navegador para acesso sem login.</li>
+          <li><strong>Só essenciais:</strong> apenas o token de autenticação (JWT) é armazenado, necessário para manter a sessão ativa.</li>
+        </ul>
+        <p>
+          Não utilizamos cookies de rastreamento, publicidade ou analytics de terceiros.
+          Você pode alterar ou revogar seu consentimento a qualquer momento limpando o armazenamento local do navegador.
         </p>
 
         <h2>8. Segurança</h2>
         <p>
-          Senhas são armazenadas com hash PBKDF2-SHA256 (600.000 iterações). A comunicação é protegida por HTTPS.
+          Senhas são armazenadas com hash PBKDF2-SHA256 (600.000 iterações).
+          Dados pessoais como e-mail e nome são armazenados com criptografia simétrica (AES-128 via Fernet) no banco de dados.
+          A comunicação é protegida por HTTPS com HSTS.
           Em caso de incidente de segurança com dados pessoais, notificaremos a ANPD e os titulares afetados no prazo previsto em lei.
         </p>
 

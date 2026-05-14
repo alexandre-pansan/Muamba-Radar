@@ -12,6 +12,15 @@ from app.services.normalization import matches_query
 
 STOP_TOKENS = {"de", "da", "do", "e", "com", "para", "pro", "max", "mini", "plus"}
 
+# URL slug tokens that indicate a clearly unrelated product category on the external store.
+_BAD_URL_CATEGORY_RE = re.compile(
+    r"/(vape|cigarro|perfume|fragrance|edt|edp|decant|"
+    r"shampoo|condicionador|cosmetico|maquiagem|roupa|sapato|"
+    r"camiseta|bermuda|tenis|calca|jaqueta|bolsa|carteira|"
+    r"alimento|suplemento|vitamina|proteina|whey|creatina)/",
+    re.IGNORECASE,
+)
+
 # Bidirectional synonym groups: if any token from a group is in the query,
 # all tokens from that group are accepted as matches in the title (and vice-versa).
 # This lets "air fry" match "Fritadeira" and "fritadeira" match "Air Fryer".
@@ -102,6 +111,34 @@ def _is_relevant(query: str, title: str) -> bool:
 def _normalize_product_url(href: str) -> str:
     parts = urlsplit(href)
     return urlunsplit((parts.scheme, parts.netloc, parts.path, "", ""))
+
+
+_GENERIC_URL_TOKENS = frozenset({"produto", "product", "item", "p", "br", "py"})
+
+
+def _url_plausible_for_title(url: str, title: str) -> bool:
+    """Return False if the URL slug has zero overlap with key title tokens.
+
+    Catches cases where comprasparaguai's redirect points to a completely
+    different product on the external store (e.g. iPhone title → vape URL).
+    Only applied when the URL is an external store link (not comprasparaguai itself).
+    """
+    if "comprasparaguai.com.br" in url:
+        return True
+
+    # Reject obviously wrong categories in the path.
+    if _BAD_URL_CATEGORY_RE.search(url):
+        return False
+
+    path = urlsplit(url).path.lower()
+    slug_tokens = set(re.split(r"[^a-z0-9]+", path)) - _GENERIC_URL_TOKENS
+    if not slug_tokens:
+        return True
+
+    title_tokens = set(re.split(r"[^a-z0-9]+", title.lower())) - STOP_TOKENS
+    # Need at least one shared non-trivial token (length > 2) between URL and title.
+    overlap = {t for t in slug_tokens & title_tokens if len(t) > 2}
+    return bool(overlap)
 
 
 def _is_model_url(url: str) -> bool:
@@ -216,7 +253,9 @@ class ComprasParaguaiAdapter(SourceAdapter):
         return f"https://www.comprasparaguai.com.br/busca/?q={quote_plus(query)}"
 
     def _fetch_html(self, url: str) -> str:
-        return self._get(url).text
+        resp = self._get(url)
+        resp.encoding = "utf-8"
+        return resp.text
 
     def _extract_model_urls(self, query: str, soup: BeautifulSoup) -> list[str]:
         model_urls: list[str] = []
@@ -282,6 +321,8 @@ class ComprasParaguaiAdapter(SourceAdapter):
             url = outbound.get("href", "").strip() if outbound else model_url
             if not url:
                 url = model_url
+            if not _url_plausible_for_title(url, title):
+                continue
 
             color = _extract_color(title)
             final_title = f"{title} [{color}]" if color and f"[{color}]" not in title.lower() else title
@@ -348,6 +389,10 @@ class ComprasParaguaiAdapter(SourceAdapter):
                 continue
 
         return all_offers
+
+    def fetch_raw(self, query: str) -> tuple[str, str]:
+        url = self._search_url(query)
+        return url, self._fetch_html(url)  # already forces utf-8
 
     def search(self, query: str) -> list[RawOfferModel]:
         try:
