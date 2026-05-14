@@ -225,6 +225,25 @@ def init_db() -> None:
         except Exception:
             conn.rollback()
 
+        # Purge access_logs older than 6 months (Marco Civil max retention = 6 months)
+        try:
+            conn.execute(text(
+                "DELETE FROM access_logs WHERE created_at < NOW() - INTERVAL '6 months'"
+            ))
+            conn.commit()
+        except Exception:
+            conn.rollback()
+
+        # Anonymize IPs older than 30 days — LGPD proportionality (art. 6°, III).
+        try:
+            conn.execute(text(
+                "UPDATE access_logs SET ip = NULL"
+                " WHERE created_at < NOW() - INTERVAL '30 days' AND ip IS NOT NULL"
+            ))
+            conn.commit()
+        except Exception:
+            conn.rollback()
+
     _migrate_pii_encryption()
 
     # Seed singleton global_config row
@@ -236,27 +255,6 @@ def init_db() -> None:
             _gc_db.commit()
     finally:
         _gc_db.close()
-
-        # Purge access_logs older than 6 months (Marco Civil max retention = 6 months)
-        try:
-            conn.execute(text(
-                "DELETE FROM access_logs WHERE created_at < NOW() - INTERVAL '6 months'"
-            ))
-            conn.commit()
-        except Exception:
-            conn.rollback()  # table may not exist yet on first boot — Base.metadata.create_all handles it
-
-        # Anonymize IPs older than 30 days — LGPD proportionality (art. 6°, III).
-        # The log metadata (method, path, status, user_id) is kept for Marco Civil;
-        # the IP is NULL'd at raw-SQL level (TypeDecorator not involved).
-        try:
-            conn.execute(text(
-                "UPDATE access_logs SET ip = NULL"
-                " WHERE created_at < NOW() - INTERVAL '30 days' AND ip IS NOT NULL"
-            ))
-            conn.commit()
-        except Exception:
-            conn.rollback()
 
     # ── Seed admin user ───────────────────────────────────────────────────────
     # Credentials are read from ADMIN_EMAIL / ADMIN_PASSWORD env vars.
