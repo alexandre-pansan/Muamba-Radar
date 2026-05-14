@@ -46,6 +46,7 @@ import BetaNoticeModal, { shouldShowBetaNotice } from './components/BetaNoticeMo
 import DonateModal from './components/DonateModal.jsx'
 import ReportModal from './components/ReportModal.jsx'
 import CartPage from './components/CartPage.jsx'
+import PrivacyConsent, { getCookieConsent } from './components/PrivacyConsent.jsx'
 import { CartProvider, useCart } from './CartContext.jsx'
 import {
   getToken, setToken, clearToken, apiLogout,
@@ -212,8 +213,8 @@ function AppShell({ currentUser, setCurrentUser }) {
 
   function loadLocalRecents() {
     try {
-      const items = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]')
-      setRecentSearches(items)
+      const raw = localStorage.getItem(RECENT_KEY)
+      setRecentSearches(raw ? JSON.parse(raw) : [])
     } catch {
       setRecentSearches([])
     }
@@ -353,6 +354,7 @@ function AppShell({ currentUser, setCurrentUser }) {
       // Server saves automatically; refresh sidebar
       loadUserSearches()
     } else {
+      if (getCookieConsent() !== 'all') return
       let recents
       try {
         recents = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]')
@@ -594,6 +596,8 @@ function AppShell({ currentUser, setCurrentUser }) {
         onClose={() => setImportCalcOpen(false)}
         initialUSD={importCalcInitialUSD}
       />
+
+      <PrivacyConsent onPrivacy={() => setLegalModal('privacy')} />
 
     </>
   )

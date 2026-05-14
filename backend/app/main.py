@@ -24,8 +24,9 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from app.adapters.registry import get_adapters
 from app.auth import create_access_token, create_refresh_token, get_current_user, get_current_user_optional, hash_password, require_admin, revoke_refresh_token, verify_password, verify_refresh_token
 from app.config import settings
+from app.crypto import blind_index
 from app.database import SessionLocal, get_db, init_db
-from app.models import AccessLog, DataReport, ProductOffer, SearchCache, Store, User, UserCartItem, UserPrefs, UserSearch
+from app.models import AccessLog, DataReport, ProductOffer, RefreshToken, SearchCache, Store, User, UserCartItem, UserPrefs, UserSearch
 from app.schemas import (
     # CompareByImageResponseModel,  # image detection deferred
     AdminAdapterResult,
@@ -33,6 +34,7 @@ from app.schemas import (
     AdminDonateStatsRequest,
     AdminReportResolve,
     AdminTestSearchRequest,
+    AdminRawFetchResponse,
     AdminTestSearchResponse,
     CartGroupItem,
     CartItemCreate,
@@ -77,11 +79,14 @@ app = FastAPI(title="MAMU API", version="0.6.0")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-_cors_origins = ["*"] if settings.cors_origins.strip() == "*" else settings.cors_origins.split()
+_wildcard_cors = settings.cors_origins.strip() == "*"
+_cors_origins = ["*"] if _wildcard_cors else settings.cors_origins.split()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_origins,
-    allow_credentials=True,
+    # Credentials (cookies/Authorization) require explicit origins — never combine
+    # with wildcard or any origin can send credentialed cross-site requests.
+    allow_credentials=not _wildcard_cors,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -136,13 +141,45 @@ _STORE_PHOTOS_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/static", StaticFiles(directory=str(_STATIC_DIR)), name="static")
 
 
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+    return response
+
+
 @app.on_event("startup")
 def on_startup() -> None:
     log.info("MAMU API starting up — DB init")
     init_db()
+    _cleanup_expired_tokens()
     log.info("MAMU API ready")
 
 
+
+
+# ── Token cleanup ────────────────────────────────────────────────────────────
+
+def _cleanup_expired_tokens() -> None:
+    """Delete revoked and expired refresh tokens — run on startup."""
+    try:
+        db = SessionLocal()
+        now = datetime.now(timezone.utc)
+        deleted = (
+            db.query(RefreshToken)
+            .filter((RefreshToken.revoked == True) | (RefreshToken.expires_at < now))
+            .delete(synchronize_session=False)
+        )
+        if deleted:
+            db.commit()
+            log.info("cleanup: removed %d stale refresh tokens", deleted)
+    except Exception as exc:
+        log.warning("cleanup_expired_tokens failed: %s", exc)
+    finally:
+        db.close()
 
 
 # ── Offer DB helpers ──────────────────────────────────────────────────────────
@@ -362,14 +399,24 @@ def featured_images(
 @app.post("/auth/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
 @limiter.limit("5/minute")
 def register(request: Request, body: RegisterRequest, db: Session = Depends(get_db)) -> TokenResponse:
-    email_exists = db.query(User).filter(User.email == body.email).first()
-    username_exists = db.query(User).filter(User.username == body.username).first()
+    email_bi = blind_index(body.email)
+    username_bi = blind_index(body.username) if body.username else None
+    email_exists = (
+        db.query(User).filter(User.email_blind == email_bi).first()
+        if email_bi else db.query(User).filter(User.email == body.email).first()
+    )
+    username_exists = (
+        db.query(User).filter(User.username_blind == username_bi).first()
+        if username_bi else db.query(User).filter(User.username == body.username).first()
+    )
     if email_exists or username_exists:
         # Generic message — don't reveal which field caused the conflict
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Conta já existente.")
     user = User(
         email=body.email,
+        email_blind=email_bi,
         username=body.username,
+        username_blind=username_bi,
         name=body.name,
         password_hash=hash_password(body.password),
         created_at=datetime.now(timezone.utc),
@@ -391,10 +438,17 @@ _LOGIN_LOCKOUT_MINUTES = 15
 @limiter.limit("10/minute")
 def login(request: Request, body: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse:
     # Accept email or username in the identifier field
+    identifier_bi = blind_index(body.identifier)
     if "@" in body.identifier:
-        user = db.query(User).filter(User.email == body.identifier).first()
+        user = (
+            db.query(User).filter(User.email_blind == identifier_bi).first()
+            if identifier_bi else db.query(User).filter(User.email == body.identifier).first()
+        )
     else:
-        user = db.query(User).filter(User.username == body.identifier).first()
+        user = (
+            db.query(User).filter(User.username_blind == identifier_bi).first()
+            if identifier_bi else db.query(User).filter(User.username == body.identifier).first()
+        )
 
     now = datetime.now(timezone.utc)
 
@@ -593,9 +647,11 @@ def user_searches(
 # ── Compare ───────────────────────────────────────────────────────────────────
 
 @app.get("/compare", response_model=CompareResponseModel)
+@limiter.limit("30/minute")
 def compare(
+    request: Request,
     response: Response,
-    q: str = Query(min_length=1, description="Search query, e.g. iphone 15 128gb"),
+    q: str = Query(min_length=1, max_length=200, description="Search query, e.g. iphone 15 128gb"),
     country: CountryFilter = Query(default=CountryFilter.ALL),
     sort: SortOption = Query(default=SortOption.BEST_MATCH),
     db: Session = Depends(get_db),
@@ -728,7 +784,7 @@ def suggestions(
 def search_history(
     limit: int = Query(default=50, ge=1, le=200),
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    _: User = Depends(require_admin),
 ) -> list[dict[str, Any]]:
     rows = (
         db.query(
@@ -756,6 +812,23 @@ def search_history(
         }
         for r in rows
     ]
+
+
+# ── Admin: search history ─────────────────────────────────────────────────────
+
+@app.get("/admin/search-history")
+def admin_search_history(
+    limit: int = Query(default=1000, ge=1, le=5000),
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+) -> list[dict[str, Any]]:
+    from sqlalchemy import func, union
+    cache_q = db.query(SearchCache.query_raw.label("query")).distinct()
+    user_q  = db.query(UserSearch.query.label("query")).distinct()
+    all_queries = sorted(
+        {r.query for r in cache_q.all()} | {r.query for r in user_q.all()}
+    )
+    return [{"query": q} for q in all_queries]
 
 
 # ── Admin: cache refresh ──────────────────────────────────────────────────────
@@ -954,6 +1027,36 @@ def admin_test_search(
         total_raw=sum(r.raw_count for r in results),
         total_filtered=sum(r.filtered_count for r in results),
         adapters=results,
+    )
+
+
+_RAW_FETCH_MAX = 100_000  # chars
+
+@app.get("/admin/raw-fetch", response_model=AdminRawFetchResponse)
+def admin_raw_fetch(
+    adapter_id: str = Query(min_length=1),
+    q: str = Query(min_length=1, max_length=200),
+    _: User = Depends(require_admin),
+) -> AdminRawFetchResponse:
+    """Return the raw HTTP response from an adapter's search URL for debugging."""
+    adapter = next((a for a in get_adapters() if a.source_id == adapter_id), None)
+    if adapter is None:
+        raise HTTPException(status_code=404, detail=f"adapter '{adapter_id}' not found")
+    try:
+        url, content = adapter.fetch_raw(q)
+    except NotImplementedError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"fetch failed: {exc}")
+
+    truncated = len(content) > _RAW_FETCH_MAX
+    return AdminRawFetchResponse(
+        adapter_id=adapter_id,
+        query=q,
+        url=url,
+        content_length=len(content),
+        truncated=truncated,
+        content=content[:_RAW_FETCH_MAX],
     )
 
 
@@ -1360,6 +1463,8 @@ async def admin_upload_store_photo(
     _: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> StoreInfo:
+    _MAX_PHOTO_BYTES = 5 * 1024 * 1024  # 5 MB
+
     store = db.get(Store, store_id)
     if not store:
         raise HTTPException(status_code=404, detail="Store not found")
@@ -1371,7 +1476,9 @@ async def admin_upload_store_photo(
         ext = "jpg"
     filename = f"{uuid.uuid4().hex}.{ext}"
     dest = _STORE_PHOTOS_DIR / filename
-    content = await file.read()
+    content = await file.read(_MAX_PHOTO_BYTES + 1)
+    if len(content) > _MAX_PHOTO_BYTES:
+        raise HTTPException(status_code=413, detail="Imagem excede o limite de 5MB.")
     dest.write_bytes(content)
     # Remove old photo if it was a local upload
     if store.photo_url and store.photo_url.startswith("/static/store-photos/"):

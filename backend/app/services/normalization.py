@@ -146,6 +146,14 @@ _ACCESSORY_PATTERNS = re.compile(
 _PHYSICAL_GAME_RE  = re.compile(r"\bfisico\b")
 _CONSOLE_MARKER_RE = re.compile(r"\b(console|consola|modelo|oled|lite)\b")
 
+# Titles like "Resident Evil 3 - PlayStation 5" — platform as a qualifier suffix
+_GAME_PLATFORM_SUFFIX_RE = re.compile(
+    r'\s+-\s+(?:compat[íi]vel\s+com\s+|compatible\s+with\s+)?'
+    r'(?:playstation|ps|xbox(?:\s+(?:one|series\s+[xs]))?|nintendo\s+switch)\s*[0-9]?',
+    re.IGNORECASE,
+)
+_CONSOLE_START_RE = re.compile(r'^(console|consola|playstation|xbox|nintendo)')
+
 
 def _is_physical_game(norm_title: str, norm_query: str) -> bool:
     """Detect '[Game Title] [Console] Físico' listings (no jogo/juego keyword)."""
@@ -154,6 +162,26 @@ def _is_physical_game(norm_title: str, norm_query: str) -> bool:
     if _PHYSICAL_GAME_RE.search(norm_query):
         return False
     return not _CONSOLE_MARKER_RE.search(norm_title)
+
+
+def is_game_for_platform(query: str, title: str) -> bool:
+    """Return True when a title is a game/content FOR a console, not the console itself.
+
+    Detects pattern: 'Game Title - PlayStation 5' where the platform appears only
+    as a trailing qualifier. If the user's query contains game-specific words
+    (e.g. 'gran turismo ps5'), the title is kept.
+    """
+    if not _GAME_PLATFORM_SUFFIX_RE.search(title):
+        return False
+    main = _GAME_PLATFORM_SUFFIX_RE.split(title)[0].strip()
+    main_norm = normalize_text(main)
+    if _CONSOLE_START_RE.match(main_norm):
+        return False
+    query_tokens = [t for t in normalize_text(query).split() if len(t) > 3]
+    if not query_tokens:
+        return True
+    main_tokens = set(main_norm.split())
+    return not any(t in main_tokens for t in query_tokens)
 
 
 _PT_STOP_WORDS = frozenset({
@@ -179,6 +207,8 @@ def matches_query_loose(query: str, title: str) -> bool:
     if _ACCESSORY_PATTERNS.search(norm_title) and not _ACCESSORY_PATTERNS.search(norm_query):
         return False
     if _is_physical_game(norm_title, norm_query):
+        return False
+    if is_game_for_platform(query, title):
         return False
 
     significant = [t for t in query_tokens if t not in _PT_STOP_WORDS]
@@ -215,6 +245,8 @@ def matches_query(query: str, title: str) -> bool:
     if _ACCESSORY_PATTERNS.search(norm_title) and not _ACCESSORY_PATTERNS.search(norm_query):
         return False
     if _is_physical_game(norm_title, norm_query):
+        return False
+    if is_game_for_platform(query, title):
         return False
 
     title_tokens = set(tokenize(title))

@@ -295,6 +295,10 @@ class GenericStoreAdapter(SourceAdapter):
 
         return hits
 
+    def fetch_raw(self, query: str) -> tuple[str, str]:
+        url = self._candidate_search_urls(query)[0]
+        return url, self._get(url).text
+
     def search(self, query: str) -> list:
         for url in self._candidate_search_urls(query):
             try:

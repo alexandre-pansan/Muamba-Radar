@@ -486,6 +486,24 @@ def _from_html(soup: BeautifulSoup, query: str) -> list[RawOfferModel]:
     return offers
 
 
+# ── Deduplication ─────────────────────────────────────────────────────────────
+
+def _dedup(offers: list[RawOfferModel]) -> list[RawOfferModel]:
+    """Remove duplicates with the same normalized title and price.
+
+    Buscapé returns the same product multiple times via distinct /lead?oid= URLs
+    (one per store offer). Keep the first occurrence of each (title, price) pair.
+    """
+    seen: set[tuple[str, float]] = set()
+    out: list[RawOfferModel] = []
+    for o in offers:
+        key = (_norm(o.title), o.price_amount)
+        if key not in seen:
+            seen.add(key)
+            out.append(o)
+    return out
+
+
 # ── Adapter ────────────────────────────────────────────────────────────────────
 
 class BuscapeAdapter(SourceAdapter):
@@ -495,10 +513,15 @@ class BuscapeAdapter(SourceAdapter):
     def __init__(self) -> None:
         super().__init__()
 
+    def fetch_raw(self, query: str) -> tuple[str, str]:
+        url = f"{_BASE}/search?q={quote_plus(query)}"
+        return url, self._get(url, headers=_HEADERS).text
+
     def search(self, query: str) -> list[RawOfferModel]:
         url = f"{_BASE}/search?q={quote_plus(query)}"
         try:
             resp = self._get(url, headers=_HEADERS)
+            resp.encoding = "utf-8"
         except Exception as exc:
             log.warning("buscape: request failed — %s", exc)
             return []
@@ -509,9 +532,9 @@ class BuscapeAdapter(SourceAdapter):
         if data:
             offers = _from_next_data(data, query)
             if offers:
-                return offers
+                return _dedup(offers)
             log.debug("buscape: __NEXT_DATA__ present but no offers extracted — trying HTML")
         else:
             log.debug("buscape: no __NEXT_DATA__ found — trying HTML")
 
-        return _from_html(soup, query)
+        return _dedup(_from_html(soup, query))

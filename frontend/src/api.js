@@ -477,3 +477,11 @@ export async function apiTestSearch(query, adapterIds, raw = false) {
   }
   return res.json()
 }
+
+export async function apiAdminSearchHistory(limit = 200) {
+  const res = await fetch(`${getApiBase()}/admin/search-history?limit=${limit}`, {
+    headers: authHeaders(),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
