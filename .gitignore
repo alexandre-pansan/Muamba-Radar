@@ -23,6 +23,7 @@ dist/
 # Dev server runtime artifacts
 .dev-pids
 logs/
+scripts/catalog_crawler_state/
 
 # User-uploaded static files
 backend/static/store-photos/
@@ -39,3 +40,6 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+
+#other itens and folder that are not related
+new-frontend-design

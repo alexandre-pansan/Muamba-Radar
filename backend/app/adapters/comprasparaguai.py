@@ -108,12 +108,28 @@ def _is_relevant(query: str, title: str) -> bool:
     return hits >= required
 
 
+def _iter_product_cards(soup: BeautifulSoup):
+    """Yield (title, href) for every product card on a search/category listing page."""
+    for card in soup.select("div.promocao-produtos-item"):
+        a = card.select_one(".promocao-item-nome a[href]")
+        if not a:
+            continue
+        title = a.get_text(" ", strip=True)
+        href = a.get("href", "").strip()
+        if not title or not href:
+            continue
+        yield title, href
+
+
 def _normalize_product_url(href: str) -> str:
     parts = urlsplit(href)
     return urlunsplit((parts.scheme, parts.netloc, parts.path, "", ""))
 
 
-_GENERIC_URL_TOKENS = frozenset({"produto", "product", "item", "p", "br", "py"})
+_GENERIC_URL_TOKENS = frozenset({
+    "produto", "producto", "productos", "product", "products", "item", "p", "br", "py",
+    "codigo", "html", "php", "catalog", "view", "detalle", "detalhe",
+})
 
 
 def _url_plausible_for_title(url: str, title: str) -> bool:
@@ -131,7 +147,12 @@ def _url_plausible_for_title(url: str, title: str) -> bool:
         return False
 
     path = urlsplit(url).path.lower()
-    slug_tokens = set(re.split(r"[^a-z0-9]+", path)) - _GENERIC_URL_TOKENS
+    # Só tokens que carregam significado: loja que usa ID numérico na URL
+    # (/producto/812177, /?s=6935364096151) não tem slug pra comparar — não é sinal
+    # de produto errado.
+    slug_tokens = {
+        t for t in re.split(r"[^a-z0-9]+", path) if len(t) > 2 and not t.isdigit()
+    } - _GENERIC_URL_TOKENS
     if not slug_tokens:
         return True
 
@@ -169,9 +190,11 @@ def _parse_number_pt_br(value: str) -> float | None:
 
 
 def _extract_price(card: Tag, is_perfume: bool = False) -> tuple[float, str] | None:
-    # Low threshold to allow accessories, appliances, and general merchandise
-    min_usd = 5 if is_perfume else 8
-    min_brl = 20 if is_perfume else 30
+    # Só um piso de sanidade: os cards vêm da página de um modelo específico, então
+    # preço baixo é preço real (adaptador a US$ 3,45 existe). O piso antigo (US$ 8)
+    # descartava ~95% das ofertas de acessórios no crawl de catálogo.
+    min_usd = 1
+    min_brl = 5
 
     usd_text = card.get_text(" ", strip=True)
     usd_match = re.search(r"US\$\s*([0-9\.,]+)", usd_text, re.IGNORECASE)
@@ -226,6 +249,19 @@ def _extract_image_url(card: Tag, base_url: str) -> str | None:
     return urljoin(base_url, src)
 
 
+def _heading_label(heading: Tag) -> str | None:
+    """Text of a department/group heading on /categorias/.
+
+    Each heading renders its label twice — a desktop <span>/<a> plus a <button>
+    that repeats the same words for the mobile accordion — so a plain get_text()
+    comes back doubled ("PerfumariaPerfumaria"). Read the first child element,
+    which is the desktop copy, instead of the heading's whole subtree.
+    """
+    first = heading.find(["a", "span", "button"])
+    text = (first or heading).get_text(" ", strip=True)
+    return text or None
+
+
 def _is_perfume_context(query: str, model_url: str = "", model_title: str = "") -> bool:
     combined = _normalize_text(f"{query} {model_url} {model_title}")
     perfume_tokens = (
@@ -261,15 +297,7 @@ class ComprasParaguaiAdapter(SourceAdapter):
         model_urls: list[str] = []
         seen: set[str] = set()
 
-        for card in soup.select("div.promocao-produtos-item"):
-            a = card.select_one(".promocao-item-nome a[href]")
-            if not a:
-                continue
-
-            title = a.get_text(" ", strip=True)
-            href = a.get("href", "").strip()
-            if not title or not href:
-                continue
+        for title, href in _iter_product_cards(soup):
             if not _is_relevant(query, title):
                 continue
 
@@ -287,6 +315,82 @@ class ComprasParaguaiAdapter(SourceAdapter):
 
         return model_urls
 
+    def _extract_category_products(self, soup: BeautifulSoup) -> list[tuple[str, str]]:
+        """Like _extract_model_urls but for category listing pages: no relevance filter, no cap."""
+        products: list[tuple[str, str]] = []
+        seen: set[str] = set()
+
+        for title, href in _iter_product_cards(soup):
+            absolute = _normalize_product_url(urljoin("https://www.comprasparaguai.com.br", href))
+            if not _is_model_url(absolute):
+                continue
+            if absolute in seen:
+                continue
+            seen.add(absolute)
+            products.append((title, absolute))
+
+        return products
+
+    def fetch_category_tree(self) -> list[dict]:
+        """Parse /categorias/ once for the full department → group → leaf-category
+        hierarchy (site-wide index, 8 departments / ~500 leaf categories).
+
+        Walks up from each leaf to its nearest ancestor holding an <h3> (the group
+        block) and then to the one holding an <h2> (the department card).
+
+        The 2026-09 redesign rebuilt this page in Tailwind: the previous positional
+        scan keyed on `content-title` / `link-title-category` / `link-category`, and
+        every one of those classes is gone — it returned zero rows without raising.
+        Only `a.category-link` and the heading tag names are anchored on now. The
+        Tailwind class strings are generated and churn on every redeploy, whereas
+        the nesting (department card > group block > leaf list) is real in this
+        markup — it wasn't in the old one, which is why that scan was positional.
+        """
+        html = self._fetch_html("https://www.comprasparaguai.com.br/categorias/")
+        soup = BeautifulSoup(html, "html.parser")
+
+        rows: list[dict] = []
+        seen: set[str] = set()
+
+        for leaf in soup.select("a.category-link"):
+            href = (leaf.get("href") or "").strip()
+            if not href.startswith("/") or href == "/" or href in seen:
+                continue
+            seen.add(href)
+
+            group: str | None = None
+            department: str | None = None
+            department_url: str | None = None
+            for ancestor in leaf.parents:
+                if group is None:
+                    h3 = ancestor.find("h3")
+                    if h3 is not None:
+                        group = _heading_label(h3)
+                h2 = ancestor.find("h2")
+                if h2 is not None:
+                    department = _heading_label(h2)
+                    link = h2.find("a", href=True)
+                    department_url = link["href"].strip() if link else None
+                    break
+
+            rows.append({
+                "department": department,
+                "department_url": department_url,
+                "group": group,
+                "name": leaf.get_text(strip=True),
+                "url": href,
+            })
+
+        return rows
+
+    def list_category_page(self, category_url: str, page: int) -> list[tuple[str, str]]:
+        """Return [(title, model_url), ...] for one page of a category listing, or [] past the last page."""
+        absolute = urljoin("https://www.comprasparaguai.com.br", category_url)
+        url = absolute if page <= 1 else f"{absolute.rstrip('/')}/?page={page}"
+        html = self._fetch_html(url)
+        soup = BeautifulSoup(html, "html.parser")
+        return self._extract_category_products(soup)
+
     def _extract_offers_from_model_page(self, query: str, model_url: str, model_title: str = "") -> list[RawOfferModel]:
         html = self._fetch_html(model_url)
         soup = BeautifulSoup(html, "html.parser")
@@ -296,6 +400,12 @@ class ComprasParaguaiAdapter(SourceAdapter):
         perfume_context = _is_perfume_context(query, model_url, model_title)
 
         offer_cards = soup.select("#container-ofertas .promocao-produtos-item")
+        # Cards dentro de #container-ofertas são as ofertas que o próprio CP casou com
+        # este modelo — o título da loja varia muito ("8/256GB" vs "256GB - RAM 8GB",
+        # sem "Dual Chip"/"Global") e o filtro de relevância derrubava ofertas reais.
+        # Fora do container (modelo sem oferta), a página mostra produtos relacionados,
+        # aí sim o filtro é necessário.
+        trusted = bool(offer_cards)
         if not offer_cards:
             # Some CP product pages use a simplified listing without #container-ofertas.
             offer_cards = soup.select(".promocao-produtos-item")
@@ -304,7 +414,7 @@ class ComprasParaguaiAdapter(SourceAdapter):
             if not title:
                 img = card.select_one(".promocao-item-img img[alt]")
                 title = img.get("alt", "").strip() if img else ""
-            if not title or not _is_relevant(query, title):
+            if not title or (not trusted and not _is_relevant(query, title)):
                 continue
 
             price_data = _extract_price(card, is_perfume=perfume_context)

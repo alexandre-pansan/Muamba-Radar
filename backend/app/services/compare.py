@@ -69,35 +69,46 @@ def _select_group_image(offers: list[OfferModel]) -> str | None:
     return any_with_image[0].image_url if any_with_image else None
 
 
+def _convert_raw_offers(raw_offers: list, query: str, match_query: bool = True) -> list[OfferModel]:
+    """Filter+convert already-fetched RawOfferModels into OfferModels (no adapter call).
+
+    match_query=False pula o filtro por query — pra ofertas que a própria fonte já
+    casou com um modelo específico (página de modelo do CP), onde a "query" é o título
+    longo do modelo e derrubaria ofertas reais com título de loja diferente."""
+    offers: list[OfferModel] = []
+    for raw in raw_offers:
+        if is_refurbished_or_used(raw.title):
+            continue
+        # Use loose matching: the caller already pre-filtered for relevance,
+        # so we only need to guard against obvious mismatches and accessories.
+        if match_query and not matches_query_loose(query, raw.title):
+            continue
+        brand, model = extract_brand_model(raw.title)
+        offers.append(
+            OfferModel(
+                offer_id=_offer_id(raw.source, raw.title, raw.price_amount),
+                source=raw.source,
+                country=raw.country,
+                store=raw.store,
+                title=raw.title,
+                brand=brand,
+                model=model,
+                image_url=raw.image_url,
+                price=build_price(raw.price_amount, raw.price_currency),
+                url=raw.url,
+                captured_at=raw.captured_at,
+            )
+        )
+    return offers
+
+
 def _run_adapters(adapters: list[SourceAdapter], query: str) -> list[OfferModel]:
     """Run a specific set of adapters and return filtered OfferModels."""
     offers: list[OfferModel] = []
     for adapter in adapters:
         raw_offers = adapter.search(query)
         log.info("  adapter %-20s → %d raw offers", adapter.source_id, len(raw_offers))
-        for raw in raw_offers:
-            if is_refurbished_or_used(raw.title):
-                continue
-            # Use loose matching: the adapter already pre-filtered for relevance,
-            # so we only need to guard against obvious mismatches and accessories.
-            if not matches_query_loose(query, raw.title):
-                continue
-            brand, model = extract_brand_model(raw.title)
-            offers.append(
-                OfferModel(
-                    offer_id=_offer_id(raw.source, raw.title, raw.price_amount),
-                    source=raw.source,
-                    country=raw.country,
-                    store=raw.store,
-                    title=raw.title,
-                    brand=brand,
-                    model=model,
-                    image_url=raw.image_url,
-                    price=build_price(raw.price_amount, raw.price_currency),
-                    url=raw.url,
-                    captured_at=raw.captured_at,
-                )
-            )
+        offers.extend(_convert_raw_offers(raw_offers, query))
     return offers
 
 
@@ -262,6 +273,41 @@ def _log_lut_misses(misses: list[tuple[str, str, str]]) -> None:
         log.debug("_log_lut_misses failed", exc_info=True)
 
 
+def build_group_model(
+    product_key: str,
+    family_key: str,
+    canonical_name: str,
+    confidence: float,
+    group_offers_list: list[OfferModel],
+    concentration: str | None,
+    volume_ml: str | None,
+    voltage: str | None,
+    sort: SortOption = SortOption.BEST_MATCH,
+) -> ProductGroupModel:
+    """Build a single ProductGroupModel from one already-grouped tuple (as returned by
+    matcher.group_offers). Shared by build_response_from_offers's per-query loop and by
+    any endpoint that resolves a single known product_key against a seller's live offers
+    (e.g. GET /highlights) without running a full search."""
+    sorted_offers = (
+        sorted(group_offers_list, key=lambda offer: offer.price.amount_brl)
+        if sort == SortOption.LOWEST_PRICE
+        else group_offers_list
+    )
+    return ProductGroupModel(
+        product_key=product_key,
+        family_key=family_key,
+        canonical_name=canonical_name,
+        match_confidence=confidence,
+        product_image_url=_select_group_image(group_offers_list),
+        offers=sorted_offers,
+        preview_offers=_compute_preview_offers(group_offers_list),
+        cheapest=_compute_cheapest(sorted_offers),
+        concentration=concentration,
+        volume_ml=volume_ml,
+        voltage=voltage,
+    )
+
+
 def build_response_from_offers(
     query: str,
     offers: list[OfferModel],
@@ -273,30 +319,10 @@ def build_response_from_offers(
     grouped, lut_misses = group_offers(normalized_query, offers)
     _log_lut_misses(lut_misses)
 
-    groups: list[ProductGroupModel] = []
-    for product_key, family_key, canonical_name, confidence, group_offers_list, concentration, volume_ml, voltage in grouped:
-
-        sorted_offers = (
-            sorted(group_offers_list, key=lambda offer: offer.price.amount_brl)
-            if sort == SortOption.LOWEST_PRICE
-            else group_offers_list
-        )
-
-        groups.append(
-            ProductGroupModel(
-                product_key=product_key,
-                family_key=family_key,
-                canonical_name=canonical_name,
-                match_confidence=confidence,
-                product_image_url=_select_group_image(group_offers_list),
-                offers=sorted_offers,
-                preview_offers=_compute_preview_offers(group_offers_list),
-                cheapest=_compute_cheapest(sorted_offers),
-                concentration=concentration,
-                volume_ml=volume_ml,
-                voltage=voltage,
-            )
-        )
+    groups: list[ProductGroupModel] = [
+        build_group_model(product_key, family_key, canonical_name, confidence, group_offers_list, concentration, volume_ml, voltage, sort)
+        for product_key, family_key, canonical_name, confidence, group_offers_list, concentration, volume_ml, voltage in grouped
+    ]
 
     return CompareResponseModel(query=query, generated_at=datetime.now(UTC), groups=groups)
 

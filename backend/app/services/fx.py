@@ -7,6 +7,7 @@ import logging
 import requests
 from bs4 import BeautifulSoup
 
+from app.adapters.base import _DEFAULT_HEADERS
 from app.config import settings
 from app.schemas import PriceModel
 
@@ -22,7 +23,7 @@ def _fetch_brl_per_usd() -> float | None:
         resp = requests.get(
             "https://www.comprasparaguai.com.br",
             timeout=10,
-            headers={"User-Agent": "Mozilla/5.0 (PriceSourcerer/0.1)"},
+            headers=_DEFAULT_HEADERS,
         )
         resp.raise_for_status()
         soup = BeautifulSoup(resp.text, "html.parser")

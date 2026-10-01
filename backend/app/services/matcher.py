@@ -199,6 +199,31 @@ def _extract_perfume_concentration(title: str) -> str | None:
     return None
 
 
+def _extract_screen_size(title: str) -> str | None:
+    # Operates on the raw title (not normalize_text) — decimal points/commas
+    # in "6.7 polegadas" would otherwise be stripped, breaking the size.
+    match = re.search(r'\b(\d{1,2}[.,]\d)\s*(?:polegadas|pol\.?|")', title, re.IGNORECASE)
+    if match:
+        return f'{match.group(1).replace(",", ".")}"'
+    match = re.search(r'\b(\d{1,2})\s*(?:polegadas|pol\b)', title, re.IGNORECASE)
+    return f'{match.group(1)}"' if match else None
+
+
+def extract_specs(title: str) -> dict[str, str]:
+    """Structured attributes parsed from a title, for cataloguing (ProductOffer.specs)."""
+    storage, ram = _extract_storage_and_ram(title)
+    specs = {
+        "storage": storage,
+        "ram": ram,
+        "color": _extract_color(title),
+        "volume_ml": _extract_volume_ml(title),
+        "voltage": _extract_voltage(title),
+        "perfume_concentration": _extract_perfume_concentration(title),
+        "screen_size": _extract_screen_size(title),
+    }
+    return {key: value for key, value in specs.items() if value is not None}
+
+
 def _is_perfume_offer(offer: OfferModel) -> bool:
     text = normalize_text(offer.title)
     return any(hint in text for hint in PERFUME_HINTS)
