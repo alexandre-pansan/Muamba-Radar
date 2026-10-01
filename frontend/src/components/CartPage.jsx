@@ -1,4 +1,5 @@
 import React, { lazy, Suspense, useState, useEffect, Component } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors,
 } from '@dnd-kit/core'
@@ -10,6 +11,8 @@ import { CSS } from '@dnd-kit/utilities'
 import { useCart } from '../CartContext.jsx'
 import { formatMoney } from '../utils.js'
 import { getApiBase, apiFetchFxRate } from '../api.js'
+import { sortItems, getStoreOrder, buildGroups } from '../cartGrouping.js'
+import CartCouponsModal from './CartCouponsModal.jsx'
 
 const CartMapView = lazy(() => import('./CartMapView.jsx'))
 
@@ -53,36 +56,6 @@ function cartTotalBRL(items, fxRate) {
   return total > 0
     ? `≈ R$ ${total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
     : null
-}
-
-function sortItems(items, sort) {
-  return [...items].sort((a, b) => {
-    if (sort === 'store')      return a.store_name.localeCompare(b.store_name)
-    if (sort === 'price_asc')  return a.price_amount - b.price_amount
-    if (sort === 'price_desc') return b.price_amount - a.price_amount
-    if (sort === 'title')      return a.title.localeCompare(b.title)
-    return 0
-  })
-}
-
-// Returns ordered unique store names from sorted list → used for pin numbers
-function getStoreOrder(sortedItems) {
-  const seen = new Set()
-  const order = []
-  for (const item of sortedItems) {
-    if (!seen.has(item.store_name)) { seen.add(item.store_name); order.push(item.store_name) }
-  }
-  return order
-}
-
-function buildGroups(items) {
-  const groups = {}
-  for (const item of items) {
-    const key = item.store_name
-    if (!groups[key]) groups[key] = { store_name: key, store: item.store, items: [] }
-    groups[key].items.push(item)
-  }
-  return Object.values(groups)
 }
 
 function storePhotoSrc(store) {
@@ -177,12 +150,14 @@ function SortableCard(props) {
 }
 
 export default function CartPage({ onBack, onOpenImportCalc }) {
+  const navigate = useNavigate()
   const { items, loading, remove, clear } = useCart()
   const [sort, setSort]                   = useState('store')
   const [manualOrder, setManualOrder]     = useState(null)  // null = use sort; array of IDs = custom
   const [confirmClear, setConfirmClear]   = useState(false)
   const [pickedIds, setPickedIds]         = useState(new Set())
   const [fxRate, setFxRate]               = useState(null)
+  const [couponsOpen, setCouponsOpen]     = useState(false)
 
   const sensors = useSensors(useSensor(PointerSensor, {
     activationConstraint: { distance: 6 },
@@ -320,6 +295,13 @@ export default function CartPage({ onBack, onOpenImportCalc }) {
           {!loading && items.length > 0 && (
             <div className="cart-col-total">
               <span className="cart-col-total-label">TOTAL ESTIMADO</span>
+              <button
+                className="cart-coupons-btn"
+                onClick={() => setCouponsOpen(true)}
+                title="Cupons das lojas dos seus itens"
+              >
+                🎟️ Meus cupons
+              </button>
               {onOpenImportCalc && (
                 <button
                   className="cart-import-calc-btn"
@@ -358,9 +340,23 @@ export default function CartPage({ onBack, onOpenImportCalc }) {
               <CartMapView groups={groups} pickedIds={pickedIds} storeOrder={storeOrder} />
             </Suspense>
           </MapErrorBoundary>
+          {groups.length > 0 && (
+            <button className="cart-map-expand-btn" onClick={() => navigate('/map')}>
+              📍 Ver rota completa
+            </button>
+          )}
+          <button
+            className="cart-lojista-link-btn"
+            onClick={() => navigate('/lojista')}
+            title="Tem uma loja? Crie cupons de desconto no Painel Lojista"
+          >
+            🎟️ Painel Lojista
+          </button>
         </div>
 
       </div>
+
+      <CartCouponsModal open={couponsOpen} onClose={() => setCouponsOpen(false)} />
     </div>
   )
 }

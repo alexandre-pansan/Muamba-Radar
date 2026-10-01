@@ -39,13 +39,16 @@ async function refreshAccessToken() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refresh_token: rt }),
     })
-    if (!res.ok) { clearToken(); return false }
+    if (!res.ok) {
+      if (res.status === 401) clearToken() // refresh token genuinely invalid/expired/revoked
+      return false
+    }
     const data = await res.json()
     setToken(data.access_token)
     setRefreshToken(data.refresh_token)
     return true
   } catch (_) {
-    clearToken()
+    // network/backend unreachable — keep tokens, this was a transient failure, not a rejection
     return false
   }
 }
@@ -184,6 +187,18 @@ export async function apiFetchSuggestions(q) {
   return res.json()
 }
 
+export async function apiFetchTrending(limit = 8) {
+  const res = await fetch(`${getApiBase()}/trending?limit=${limit}`)
+  if (!res.ok) return []
+  return res.json()
+}
+
+export async function apiFetchHighlights(limit = 8) {
+  const res = await fetch(`${getApiBase()}/highlights?limit=${limit}`)
+  if (!res.ok) return []
+  return res.json()
+}
+
 export async function apiFetchFxRate() {
   try {
     const res = await fetch(`${getApiBase()}/fx`)
@@ -213,6 +228,32 @@ export async function apiRefreshCacheStatus() {
 
 export async function apiRefreshCache() {
   const res = await fetch(`${getApiBase()}/admin/refresh-cache`, {
+    method: 'POST',
+    headers: authHeaders(),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
+export async function apiAdminCrawlerStatus() {
+  const res = await fetch(`${getApiBase()}/admin/crawler/status`, {
+    headers: authHeaders(),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
+export async function apiAdminCrawlerStart() {
+  const res = await fetch(`${getApiBase()}/admin/crawler/start`, {
+    method: 'POST',
+    headers: authHeaders(),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
+export async function apiAdminCrawlerStop() {
+  const res = await fetch(`${getApiBase()}/admin/crawler/stop`, {
     method: 'POST',
     headers: authHeaders(),
   })
@@ -339,6 +380,189 @@ export async function apiFetchCartGrouped() {
     headers: { Authorization: `Bearer ${getToken()}` },
   })
   if (!res.ok) return []
+  return res.json()
+}
+
+export async function apiFetchCartCoupons() {
+  const res = await fetchWithRefresh(`${getApiBase()}/cart/coupons`, {
+    headers: { Authorization: `Bearer ${getToken()}` },
+  })
+  if (!res.ok) return []
+  return res.json()
+}
+
+// ── Favorites (logged-in only — anonymous favorites stay in localStorage) ─────
+
+export async function apiFetchFavorites() {
+  const res = await fetchWithRefresh(`${getApiBase()}/favorites`, {
+    headers: { Authorization: `Bearer ${getToken()}` },
+  })
+  if (!res.ok) return []
+  return res.json()
+}
+
+export async function apiAddFavorite(item) {
+  const res = await fetchWithRefresh(`${getApiBase()}/favorites`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+    body: JSON.stringify(item),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.detail || `HTTP ${res.status}`)
+  }
+  return res.json()
+}
+
+export async function apiRemoveFavorite(itemId) {
+  const res = await fetchWithRefresh(`${getApiBase()}/favorites/${itemId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${getToken()}` },
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+}
+
+// ── Seller / Lojista ────────────────────────────────────────────────────────
+
+async function sellerFetch(path, options = {}) {
+  const res = await fetchWithRefresh(`${getApiBase()}${path}`, {
+    ...options,
+    headers: { ...(options.headers || {}), Authorization: `Bearer ${getToken()}` },
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    const e = new Error(err.detail || `HTTP ${res.status}`)
+    e.status = res.status
+    throw e
+  }
+  return res.status === 204 ? null : res.json()
+}
+
+export async function apiGetSellerProfile() {
+  try {
+    return await sellerFetch('/seller/profile')
+  } catch (err) {
+    if (err.message.includes('404')) return null
+    throw err
+  }
+}
+
+export async function apiCreateSellerProfile(storeName) {
+  return sellerFetch('/seller/profile', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ store_name: storeName }),
+  })
+}
+
+export async function apiSellerStoreSuggestions(q) {
+  return sellerFetch(`/seller/store-suggestions?q=${encodeURIComponent(q)}`)
+}
+
+export async function apiGetSellerOffers() {
+  return sellerFetch('/seller/offers')
+}
+
+export async function apiGetSellerMetrics() {
+  return sellerFetch('/seller/metrics')
+}
+
+export async function apiListSellerHighlights() {
+  return sellerFetch('/seller/highlights')
+}
+
+export async function apiCreateSellerHighlight(body) {
+  return sellerFetch('/seller/highlights', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+}
+
+export async function apiRemoveSellerHighlight(id) {
+  return sellerFetch(`/seller/highlights/${id}`, { method: 'DELETE' })
+}
+
+export async function apiUnlockSellerHighlight(id) {
+  return sellerFetch(`/seller/highlights/${id}/unlock`, { method: 'POST' })
+}
+
+export async function apiListSellerCoupons() {
+  return sellerFetch('/seller/coupons')
+}
+
+export async function apiCreateSellerCoupon(body) {
+  return sellerFetch('/seller/coupons', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+}
+
+export async function apiDeleteSellerCoupon(id) {
+  return sellerFetch(`/seller/coupons/${id}`, { method: 'DELETE' })
+}
+
+export async function apiListSellerBanners() {
+  return sellerFetch('/seller/banners')
+}
+
+export async function apiCreateSellerBanner(body) {
+  return sellerFetch('/seller/banners', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+}
+
+export async function apiDeleteSellerBanner(id) {
+  return sellerFetch(`/seller/banners/${id}`, { method: 'DELETE' })
+}
+
+// ── Billing (Mercado Pago) — real payment, backend Phase 3. sellerFetch() attaches
+// `.status` to thrown errors so callers can special-case 503 "não configurado ainda"
+// and fall back to the Phase 6 lead-capture flow instead of showing a raw error. ────
+
+export async function apiBillingStatus() {
+  const res = await fetch(`${getApiBase()}/billing/status`)
+  if (!res.ok) return { enabled: false }
+  return res.json()
+}
+
+export async function apiBillingSubscribe(planTier) {
+  return sellerFetch('/billing/subscribe', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ plan_tier: planTier }),
+  })
+}
+
+export async function apiBillingSubscriptionStatus() {
+  return sellerFetch('/billing/subscription')
+}
+
+export async function apiBillingCancel() {
+  return sellerFetch('/billing/cancel', { method: 'POST' })
+}
+
+// ── Admin: Sellers ──────────────────────────────────────────────────────────
+
+export async function apiAdminListSellers() {
+  const res = await fetch(`${getApiBase()}/admin/sellers`, { headers: authHeaders() })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
+export async function apiAdminUpdateSeller(sellerId, data) {
+  const res = await fetch(`${getApiBase()}/admin/sellers/${sellerId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.detail || `HTTP ${res.status}`)
+  }
   return res.json()
 }
 

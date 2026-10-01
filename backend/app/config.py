@@ -51,5 +51,12 @@ class Settings(BaseSettings):
     admin_email: str = ""
     admin_password: str = ""
 
+    # Mercado Pago (seller subscription billing — backend Phase 3, docs/monetization-integrations.md §4).
+    # Register a real app at https://www.mercadopago.com.br/developers and set both
+    # values in .env. Leave blank to keep /billing/* endpoints disabled (503) — the
+    # Phase 2 admin-manual plan_tier grant keeps working either way.
+    mp_access_token: str = ""
+    mp_webhook_secret: str = ""  # from the app's webhook config — verifies X-Signature
+
 
 settings = Settings()

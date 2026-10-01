@@ -1,16 +1,21 @@
 from __future__ import annotations
 
 import base64
+import hashlib
+import hmac
+import json
 import logging
 import os
+import subprocess
+import sys
 import time
 import uuid
 import requests
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
-from fastapi import BackgroundTasks, Depends, FastAPI, File, HTTPException, Query, Request, Response, UploadFile, status
+from fastapi import BackgroundTasks, Depends, FastAPI, File, Header, HTTPException, Query, Request, Response, UploadFile, status
 from pydantic import BaseModel
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -22,11 +27,11 @@ from sqlalchemy.orm import Session
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from app.adapters.registry import get_adapters
-from app.auth import create_access_token, create_refresh_token, get_current_user, get_current_user_optional, hash_password, require_admin, revoke_refresh_token, verify_password, verify_refresh_token
+from app.auth import create_access_token, create_refresh_token, get_current_user, get_current_user_optional, hash_password, require_admin, require_seller_plan, revoke_refresh_token, verify_password, verify_refresh_token
 from app.config import settings
 from app.crypto import blind_index
 from app.database import SessionLocal, get_db, init_db
-from app.models import AccessLog, DataReport, ProductOffer, RefreshToken, SearchCache, Store, User, UserCartItem, UserPrefs, UserSearch
+from app.models import AccessLog, DataReport, ProductOffer, RefreshToken, SearchCache, SellerBannerCampaign, SellerCoupon, SellerProductHighlight, SellerProfile, Store, User, UserCartItem, UserFavorite, UserPrefs, UserSearch
 from app.schemas import (
     # CompareByImageResponseModel,  # image detection deferred
     AdminAdapterResult,
@@ -36,18 +41,40 @@ from app.schemas import (
     AdminTestSearchRequest,
     AdminRawFetchResponse,
     AdminTestSearchResponse,
+    BillingStatusResponse,
+    BillingSubscribeRequest,
+    BillingSubscribeResponse,
+    BillingSubscriptionStatus,
+    CartCouponItem,
     CartGroupItem,
     CartItemCreate,
     CartItemResponse,
     CompareResponseModel,
     CountryFilter,
+    CouponInfo,
     # DetectImageResponseModel,  # image detection deferred
+    FavoriteCreate,
+    FavoriteResponse,
     LoginRequest,
     OfferModel,
+    PriceModel,
+    ProductGroupModel,
     RefreshRequest,
     RegisterRequest,
     ReportCreate,
     ReportResponse,
+    SellerBannerCreate,
+    SellerBannerResponse,
+    SellerCouponCreate,
+    SellerCouponResponse,
+    SellerHighlightCreate,
+    SellerHighlightResponse,
+    SellerMetrics,
+    SellerOfferGroup,
+    SellerProfileAdminUpdate,
+    SellerProfileAdminView,
+    SellerProfileCreate,
+    SellerProfileResponse,
     SortOption,
     SourceInfoModel,
     StoreCreate,
@@ -62,9 +89,10 @@ from app.schemas import (
     UserResponse,
     UserSearchItem,
 )
-from app.services.compare import build_compare_response, build_response_from_offers, scrape_offers
+from app.services.compare import build_compare_response, build_group_model, build_response_from_offers, scrape_offers
 # from app.services.image_detect import detect_product_from_image  # image detection deferred
 from app.services.fx import build_price
+from app.services.matcher import group_offers
 from app.services.normalization import matches_query, normalize_text, slugify
 
 logging.basicConfig(
@@ -136,6 +164,15 @@ async def log_requests(request: Request, call_next):
 
 
 _STATIC_DIR = Path(__file__).parent.parent / "static"
+
+_REPO_ROOT = Path(__file__).parent.parent.parent
+_CRAWLER_SCRIPT = _REPO_ROOT / "scripts" / "catalog_crawler.py"
+_CRAWLER_STATE_DIR = _REPO_ROOT / "scripts" / "catalog_crawler_state"
+_CRAWLER_CATEGORIES_FILE = _CRAWLER_STATE_DIR / "categories.json"
+_CRAWLER_CHECKPOINT_FILE = _CRAWLER_STATE_DIR / "checkpoint.json"
+_CRAWLER_STATUS_FILE = _CRAWLER_STATE_DIR / "status.json"
+_CRAWLER_STOP_FLAG = _CRAWLER_STATE_DIR / "stop.flag"
+_CRAWLER_LOG_FILE = _CRAWLER_STATE_DIR / "crawler.log"
 _STORE_PHOTOS_DIR = _STATIC_DIR / "store-photos"
 _STORE_PHOTOS_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/static", StaticFiles(directory=str(_STATIC_DIR)), name="static")
@@ -644,6 +681,83 @@ def user_searches(
     return [UserSearchItem(query=r.query, searched_at=r.searched_at) for r in rows]
 
 
+def _sellers_by_store_name(db: Session, store_names: set[str]) -> dict[str, list[SellerProfile]]:
+    """Maps each lowercased store name to the seller profiles (on an active plan) that
+    claim it. A store name isn't unique — it's self-declared, so more than one seller
+    profile can legitimately share the same store_name: matches ALL of them, not the
+    first. One query regardless of how many names come in."""
+    if not store_names:
+        return {}
+    sellers = db.query(SellerProfile).filter(SellerProfile.plan_tier != "none").all()
+    if not sellers:
+        return {}
+    out: dict[str, list[SellerProfile]] = {}
+    for store in store_names:
+        store_lower = store.lower()
+        matches = [
+            seller for seller in sellers
+            if (name_lower := seller.store_name.lower()) in store_lower or store_lower in name_lower
+        ]
+        if matches:
+            out[store_lower] = matches
+    return out
+
+
+def _enrich_with_seller_data(db: Session, groups: list[ProductGroupModel]) -> None:
+    """Marks groups as highlighted / attaches a coupon when a seller with an active plan
+    matches one of the group's stores — a few batched queries regardless of result-set
+    size, not a per-group lookup. Mutates `groups` in place, including re-sorting so
+    highlighted groups come first (stable sort — otherwise preserves original order)."""
+    if not groups:
+        return
+    store_names = {offer.store for g in groups for offer in g.offers}
+    if not store_names:
+        return
+
+    seller_for_store = _sellers_by_store_name(db, store_names)
+    if not seller_for_store:
+        return
+
+    matched_seller_ids = {s.id for matches in seller_for_store.values() for s in matches}
+    today = date.today()
+    highlighted_keys = {
+        h.product_key
+        for h in db.query(SellerProductHighlight).filter(
+            SellerProductHighlight.seller_profile_id.in_(matched_seller_ids),
+            SellerProductHighlight.cooldown_until.is_(None),
+            SellerProductHighlight.end_date >= today,
+        ).all()
+    }
+
+    coupons_by_seller: dict[int, list[SellerCoupon]] = {}
+    for c in db.query(SellerCoupon).filter(
+        SellerCoupon.seller_profile_id.in_(matched_seller_ids),
+        SellerCoupon.active == True,  # noqa: E712
+    ).all():
+        coupons_by_seller.setdefault(c.seller_profile_id, []).append(c)
+
+    def coupon_for_group(seller_ids: set[int], product_key: str) -> CouponInfo | None:
+        for sid in seller_ids:
+            for c in coupons_by_seller.get(sid, []):
+                if c.product_key is None or c.product_key == product_key:
+                    return CouponInfo(code=c.code, type=c.type, value=c.value)
+        return None
+
+    for group in groups:
+        group_seller_ids = {
+            s.id
+            for offer in group.offers
+            for s in seller_for_store.get(offer.store.lower(), [])
+        }
+        if not group_seller_ids:
+            continue
+        if group.product_key in highlighted_keys:
+            group.is_highlighted = True
+        group.coupon = coupon_for_group(group_seller_ids, group.product_key)
+
+    groups.sort(key=lambda g: not g.is_highlighted)
+
+
 # ── Compare ───────────────────────────────────────────────────────────────────
 
 @app.get("/compare", response_model=CompareResponseModel)
@@ -743,6 +857,10 @@ def compare(
         response.headers["X-Cache"] = "FALLBACK"
 
     result = build_response_from_offers(query=q, offers=all_offers, sort=sort, country=country)
+    try:
+        _enrich_with_seller_data(db, result.groups)
+    except Exception as exc:
+        log.warning("  seller enrichment failed (non-fatal): %s", exc)
     log.info(
         "  → %s  groups=%d  (%.0fms)",
         "MISS" if live_offers else "FALLBACK",
@@ -775,6 +893,91 @@ def suggestions(
             result.append(row.query_raw)
         if len(result) >= 8:
             break
+    return result
+
+
+@app.get("/trending")
+def trending(
+    limit: int = Query(default=8, ge=1, le=20),
+    db: Session = Depends(get_db),
+) -> list[str]:
+    """Real top-searched queries (by SearchCache.hit_count, unexpired rows only — the
+    same signal /suggestions already uses for autocomplete ranking). Home's "Mais
+    pesquisados" section feeds each of these through /compare, same pattern as its
+    "Populares" seed-query carousel. Note: SearchCache rows purge on expiry (~30min TTL
+    by default), so this reflects recent traffic, not a long-lived trending history —
+    an accepted trade-off already baked into how /suggestions works."""
+    now = datetime.now(timezone.utc)
+    rows = (
+        db.query(SearchCache.query_raw, SearchCache.query_norm, SearchCache.hit_count)
+        .filter(SearchCache.expires_at > now)
+        .order_by(SearchCache.hit_count.desc(), SearchCache.created_at.desc())
+        .all()
+    )
+    seen: set[str] = set()
+    result: list[str] = []
+    for row in rows:
+        if row.query_norm not in seen:
+            seen.add(row.query_norm)
+            result.append(row.query_raw)
+        if len(result) >= limit:
+            break
+    return result
+
+
+@app.get("/highlights", response_model=list[ProductGroupModel])
+def get_active_highlights(
+    limit: int = Query(default=8, ge=1, le=20),
+    db: Session = Depends(get_db),
+) -> list[ProductGroupModel]:
+    """Real, currently-active seller highlights (backend Phase 2), resolved against each
+    seller's live offers — not a fabricated "featured products" list. Empty when no
+    seller currently has an active highlight, which Home.jsx shows honestly rather than
+    hiding or backfilling with unrelated products."""
+    today = date.today()
+    now = datetime.now(timezone.utc)
+    rows = (
+        db.query(SellerProductHighlight)
+        .filter(SellerProductHighlight.cooldown_until.is_(None), SellerProductHighlight.end_date >= today)
+        .order_by(SellerProductHighlight.created_at.desc())
+        .limit(limit * 3)  # a few extra since some product_keys may no longer resolve
+        .all()
+    )
+    if not rows:
+        return []
+
+    seller_ids = {r.seller_profile_id for r in rows}
+    sellers = {s.id: s for s in db.query(SellerProfile).filter(SellerProfile.id.in_(seller_ids)).all()}
+
+    by_seller: dict[int, list[SellerProductHighlight]] = {}
+    for r in rows:
+        by_seller.setdefault(r.seller_profile_id, []).append(r)
+
+    result: list[ProductGroupModel] = []
+    seen_keys: set[str] = set()
+    for seller_id, hl_rows in by_seller.items():
+        if len(result) >= limit:
+            break
+        seller = sellers.get(seller_id)
+        if not seller:
+            continue
+        offers = _load_seller_offers(db, seller.store_name, now)
+        if not offers:
+            continue
+        grouped, _ = group_offers("", offers)
+        groups_by_key = {pk: (pk, fk, cn, conf, offs, conc, vol, volt) for pk, fk, cn, conf, offs, conc, vol, volt in grouped}
+        for hl in hl_rows:
+            if hl.product_key in seen_keys:
+                continue
+            g = groups_by_key.get(hl.product_key)
+            if not g:
+                continue
+            model = build_group_model(*g)
+            model.is_highlighted = True
+            result.append(model)
+            seen_keys.add(hl.product_key)
+            if len(result) >= limit:
+                break
     return result
 
 
@@ -934,6 +1137,126 @@ def trigger_refresh_cache(
 @app.get("/admin/refresh-cache/status")
 def refresh_cache_status(_: User = Depends(require_admin)) -> dict:
     return _refresh_progress
+
+
+def _read_json_safe(path: Path) -> dict | None:
+    if not path.exists():
+        return None
+    try:
+        return json.loads(path.read_text())
+    except (json.JSONDecodeError, OSError):
+        return None
+
+
+def _crawler_process_alive(pid: int | None) -> bool:
+    if not pid:
+        return False
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True  # exists, owned by another user — shouldn't happen here, but it's alive
+    except OSError:
+        return False
+    return True
+
+
+@app.get("/admin/crawler/status")
+def crawler_status(_: User = Depends(require_admin)) -> dict:
+    """Status do crawler de catálogo (scripts/catalog_crawler.py) — roda como
+    processo separado no host, não dentro do backend, então lemos o estado dele
+    via arquivos (status.json escrito a cada produto, checkpoint.json a cada página)."""
+    categories_payload = _read_json_safe(_CRAWLER_CATEGORIES_FILE) or {}
+    categories = categories_payload.get("categories", [])
+    checkpoint = _read_json_safe(_CRAWLER_CHECKPOINT_FILE) or {"category_index": 0, "page": 1, "seen_titles": []}
+    status_payload = _read_json_safe(_CRAWLER_STATUS_FILE) or {}
+
+    total_categories = len(categories)
+    category_index = status_payload.get("category_index", checkpoint.get("category_index", 0))
+    current_page = status_payload.get("current_page", checkpoint.get("page", 1))
+    completed_categories = max(0, min(category_index, total_categories))
+
+    is_alive = _crawler_process_alive(status_payload.get("pid"))
+    stale = False
+    if is_alive and status_payload.get("updated_at"):
+        try:
+            updated = datetime.fromisoformat(status_payload["updated_at"])
+            stale = (datetime.now(timezone.utc) - updated) > timedelta(minutes=3)
+        except ValueError:
+            stale = True
+    running = is_alive and not stale and status_payload.get("state") == "running"
+
+    departments: dict[str, dict] = {}
+    for idx, cat in enumerate(categories):
+        dep = cat.get("department") or "—"
+        d = departments.setdefault(dep, {"total": 0, "done": 0})
+        d["total"] += 1
+        if idx < category_index:
+            d["done"] += 1
+    department_list = [{"name": name, "done": d["done"], "total": d["total"]} for name, d in departments.items()]
+
+    current_category = status_payload.get("current_category")
+    if not current_category and 0 <= category_index < total_categories:
+        cat = categories[category_index]
+        current_category = {"department": cat.get("department"), "group": cat.get("group"), "name": cat.get("name"), "url": cat.get("url")}
+
+    log_tail: list[str] = []
+    if _CRAWLER_LOG_FILE.exists():
+        try:
+            with _CRAWLER_LOG_FILE.open("r", errors="replace") as f:
+                log_tail = [line.rstrip("\n") for line in f.readlines()[-40:]]
+        except OSError:
+            pass
+
+    return {
+        "running": running,
+        "state": status_payload.get("state", "idle"),
+        "pid": status_payload.get("pid"),
+        "started_at": status_payload.get("started_at"),
+        "updated_at": status_payload.get("updated_at"),
+        "error": status_payload.get("error"),
+        "total_categories": total_categories,
+        "completed_categories": completed_categories,
+        "current_category": current_category,
+        "current_page": current_page,
+        "current_product": status_payload.get("current_product"),
+        "blocking_streak": status_payload.get("blocking_streak", 0),
+        "blocked_warning": status_payload.get("blocked_warning", False),
+        "products_mapped": status_payload.get("products_mapped", len(checkpoint.get("seen_titles", []))),
+        "offers_this_run": status_payload.get("offers_this_run", 0),
+        "departments": department_list,
+        "log_tail": log_tail,
+        "stop_requested": _CRAWLER_STOP_FLAG.exists(),
+    }
+
+
+@app.post("/admin/crawler/start")
+def crawler_start(_: User = Depends(require_admin)) -> dict:
+    status_payload = _read_json_safe(_CRAWLER_STATUS_FILE) or {}
+    if status_payload.get("state") == "running" and _crawler_process_alive(status_payload.get("pid")):
+        return {"status": "already_running", "pid": status_payload.get("pid")}
+
+    _CRAWLER_STATE_DIR.mkdir(parents=True, exist_ok=True)
+    _CRAWLER_STOP_FLAG.unlink(missing_ok=True)
+    out_log = open(_CRAWLER_STATE_DIR / "crawler.out.log", "a")
+    proc = subprocess.Popen(
+        [sys.executable, str(_CRAWLER_SCRIPT)],
+        cwd=str(_REPO_ROOT / "backend"),
+        stdout=out_log,
+        stderr=subprocess.STDOUT,
+        start_new_session=True,
+    )
+    return {"status": "started", "pid": proc.pid}
+
+
+@app.post("/admin/crawler/stop")
+def crawler_stop(_: User = Depends(require_admin)) -> dict:
+    """Pede uma parada graciosa — o crawler salva o checkpoint no próximo produto
+    e encerra sozinho (não faz kill, pra não perder progresso não salvo)."""
+    _CRAWLER_STATE_DIR.mkdir(parents=True, exist_ok=True)
+    _CRAWLER_STOP_FLAG.write_text(datetime.now(timezone.utc).isoformat())
+    return {"status": "stop_requested"}
 
 
 @app.get("/admin/users", response_model=list[UserResponse])
@@ -1206,6 +1529,809 @@ def get_cart_grouped(
             groups[key] = CartGroupItem(store_name=key, store=store_info, items=[])
         groups[key].items.append(_enrich_cart_item(item, db))
     return list(groups.values())
+
+
+def _cart_item_product_key(item: UserCartItem) -> str | None:
+    """product_key of a cart item, derived by the SAME grouper the search uses
+    (matcher.group_offers) rather than an ad-hoc keyword match — otherwise a coupon
+    restricted to one product would happily attach itself to the wrong cart item."""
+    offer = OfferModel(
+        offer_id=str(item.id),
+        source=item.source,
+        country=item.country,
+        store=item.store_name,
+        title=item.title,
+        price=PriceModel(
+            amount=item.price_amount,
+            currency=item.price_currency,
+            amount_brl=item.price_amount,
+            fx_rate_used=1.0,
+        ),
+        url=item.offer_url,
+        captured_at=item.added_at,
+    )
+    groups, _misses = group_offers(item.title, [offer])
+    return groups[0][0] if groups else None
+
+
+@app.get("/cart/coupons", response_model=list[CartCouponItem])
+def get_cart_coupons(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> list[CartCouponItem]:
+    """Coupons that apply to what's actually in this user's cart — the buyer-facing half
+    of the seller coupon feature (sellers create them under /seller/coupons). Redemption
+    is in the physical store: the site never applies a discount, it just hands over the
+    code so the shopper can show it at the counter."""
+    items = (
+        db.query(UserCartItem)
+        .filter(UserCartItem.user_id == current_user.id)
+        .order_by(UserCartItem.store_name, UserCartItem.added_at.desc())
+        .all()
+    )
+    if not items:
+        return []
+
+    seller_for_store = _sellers_by_store_name(db, {i.store_name for i in items})
+    if not seller_for_store:
+        return []
+
+    matched_seller_ids = {s.id for matches in seller_for_store.values() for s in matches}
+    coupons_by_seller: dict[int, list[SellerCoupon]] = {}
+    for c in db.query(SellerCoupon).filter(
+        SellerCoupon.seller_profile_id.in_(matched_seller_ids),
+        SellerCoupon.active == True,  # noqa: E712
+    ).all():
+        coupons_by_seller.setdefault(c.seller_profile_id, []).append(c)
+    if not coupons_by_seller:
+        return []
+
+    out: list[CartCouponItem] = []
+    seen: set[tuple[str, str]] = set()
+    for item in items:
+        sellers = seller_for_store.get(item.store_name.lower(), [])
+        if not sellers:
+            continue
+        # Only paid for when a product-scoped coupon is actually in play.
+        product_key: str | None = None
+        product_key_resolved = False
+        store_info = _enrich_cart_item(item, db).store
+        for seller in sellers:
+            for c in coupons_by_seller.get(seller.id, []):
+                if c.product_key is not None:
+                    if not product_key_resolved:
+                        product_key = _cart_item_product_key(item)
+                        product_key_resolved = True
+                    if c.product_key != product_key:
+                        continue
+                dedup = (c.code, item.store_name)
+                if dedup in seen:
+                    continue
+                seen.add(dedup)
+                out.append(CartCouponItem(
+                    code=c.code,
+                    type=c.type,
+                    value=c.value,
+                    scope="product" if c.product_key else "store",
+                    store_name=item.store_name,
+                    store=store_info,
+                    product_title=item.title,
+                ))
+    return out
+
+
+# ── Favorites ────────────────────────────────────────────────────────────────
+# Anonymous favoriting stays entirely client-side (localStorage) — these endpoints only
+# serve logged-in users, so their favorites sync across devices instead of being stuck
+# in one browser's storage.
+
+def _enrich_favorite(item: UserFavorite, db: Session) -> FavoriteResponse:
+    store_info = None
+    if item.store_id:
+        s = db.get(Store, item.store_id)
+        if s:
+            store_info = StoreInfo.model_validate(s)
+    else:
+        s = _find_store_match(db, item.store_name, item.country)
+        if s:
+            item.store_id = s.id
+            try:
+                db.commit()
+            except Exception:
+                db.rollback()
+            store_info = StoreInfo.model_validate(s)
+    return FavoriteResponse(
+        id=item.id,
+        offer_url=item.offer_url,
+        source=item.source,
+        country=item.country,
+        store_name=item.store_name,
+        title=item.title,
+        price_amount=item.price_amount,
+        price_currency=item.price_currency,
+        price_amount_brl=item.price_amount_brl,
+        image_url=item.image_url,
+        store_id=item.store_id,
+        store=store_info,
+        added_at=item.added_at,
+    )
+
+
+@app.get("/favorites", response_model=list[FavoriteResponse])
+def get_favorites(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> list[FavoriteResponse]:
+    items = (
+        db.query(UserFavorite)
+        .filter(UserFavorite.user_id == current_user.id)
+        .order_by(UserFavorite.added_at.desc())
+        .all()
+    )
+    return [_enrich_favorite(item, db) for item in items]
+
+
+@app.post("/favorites", response_model=FavoriteResponse, status_code=status.HTTP_201_CREATED)
+def add_favorite(
+    body: FavoriteCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> FavoriteResponse:
+    existing = (
+        db.query(UserFavorite)
+        .filter(UserFavorite.user_id == current_user.id, UserFavorite.offer_url == body.offer_url)
+        .first()
+    )
+    if existing:
+        return _enrich_favorite(existing, db)
+
+    store = _find_store_match(db, body.store_name, body.country)
+    item = UserFavorite(
+        user_id=current_user.id,
+        offer_url=body.offer_url,
+        source=body.source,
+        country=body.country,
+        store_name=body.store_name,
+        title=body.title,
+        price_amount=body.price_amount,
+        price_currency=body.price_currency,
+        price_amount_brl=body.price_amount_brl,
+        image_url=body.image_url,
+        store_id=store.id if store else None,
+        added_at=datetime.now(timezone.utc),
+    )
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+    return _enrich_favorite(item, db)
+
+
+@app.delete("/favorites/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
+def remove_favorite(
+    item_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> None:
+    item = (
+        db.query(UserFavorite)
+        .filter(UserFavorite.id == item_id, UserFavorite.user_id == current_user.id)
+        .first()
+    )
+    if not item:
+        raise HTTPException(status_code=404, detail="Favorite not found")
+    db.delete(item)
+    db.commit()
+
+
+# ── Seller / Lojista ─────────────────────────────────────────────────────────
+# Real backend behind /lojista: a self-declared SellerProfile (no verification gate —
+# is_verified exists for a future flow), gated on plan_tier (admin-set for now, real
+# billing is backend Phase 3). Highlights/coupons only ever target products the seller
+# is confirmed to currently sell (matched against live ProductOffer rows), so nothing
+# here can be faked into affecting search results for products they don't actually carry.
+
+_HIGHLIGHT_UNLOCK_COST = {"diario": 4.90, "semana": 19.90, "programado": 19.90}
+_HIGHLIGHT_DAYS = {"diario": 1, "semana": 7}
+
+
+def _highlight_status(row: SellerProductHighlight, today: date) -> str:
+    if row.cooldown_until:
+        return "cooldown" if row.cooldown_until >= today else "available"
+    return "active" if row.end_date >= today else "available"
+
+
+def _load_seller_offers(db: Session, store_name: str, now: datetime) -> list[OfferModel]:
+    rows = (
+        db.query(ProductOffer)
+        .filter(ProductOffer.expires_at > now, ProductOffer.store.ilike(f"%{store_name}%"))
+        .all()
+    )
+    return [
+        OfferModel(
+            offer_id=f"{row.source}-{slugify(row.title)}-{int(row.price_amount)}",
+            source=row.source,
+            country=row.country,
+            store=row.store,
+            title=row.title,
+            brand=row.brand,
+            model=row.model,
+            image_url=row.image_url,
+            price=build_price(row.price_amount, row.price_currency),
+            url=row.url,
+            captured_at=row.captured_at,
+        )
+        for row in rows
+    ]
+
+
+@app.post("/seller/profile", response_model=SellerProfileResponse, status_code=status.HTTP_201_CREATED)
+def create_seller_profile(
+    body: SellerProfileCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> SellerProfileResponse:
+    existing = db.query(SellerProfile).filter(SellerProfile.user_id == current_user.id).first()
+    if existing:
+        raise HTTPException(status_code=409, detail="Você já tem um perfil de lojista.")
+    profile = SellerProfile(
+        user_id=current_user.id,
+        store_name=body.store_name.strip(),
+        created_at=datetime.now(timezone.utc),
+    )
+    db.add(profile)
+    db.commit()
+    db.refresh(profile)
+    return profile
+
+
+@app.get("/seller/profile", response_model=SellerProfileResponse)
+def get_seller_profile(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> SellerProfileResponse:
+    profile = db.query(SellerProfile).filter(SellerProfile.user_id == current_user.id).first()
+    if not profile:
+        raise HTTPException(status_code=404, detail="Nenhum perfil de lojista encontrado.")
+    return profile
+
+
+@app.get("/seller/store-suggestions", response_model=list[str])
+def seller_store_suggestions(
+    q: str = Query("", max_length=100),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> list[str]:
+    """Autocomplete over store names that actually appear in live scraped data — helps
+    sellers pick a name their real offers will match, instead of typing freely and
+    getting zero results back from GET /seller/offers."""
+    now = datetime.now(timezone.utc)
+    query = db.query(ProductOffer.store).filter(ProductOffer.expires_at > now).distinct()
+    if q:
+        query = query.filter(ProductOffer.store.ilike(f"%{q}%"))
+    return [row[0] for row in query.limit(10).all()]
+
+
+@app.get("/seller/offers", response_model=list[SellerOfferGroup])
+def get_seller_offers(
+    profile: SellerProfile = Depends(require_seller_plan),
+    db: Session = Depends(get_db),
+) -> list[SellerOfferGroup]:
+    now = datetime.now(timezone.utc)
+    offers = _load_seller_offers(db, profile.store_name, now)
+    grouped, _ = group_offers("", offers)
+    result = []
+    for product_key, family_key, canonical_name, confidence, group_offers_list, concentration, volume_ml, voltage in grouped:
+        cheapest = min(group_offers_list, key=lambda o: o.price.amount_brl)
+        result.append(SellerOfferGroup(
+            product_key=product_key,
+            canonical_name=canonical_name,
+            price_amount=cheapest.price.amount,
+            price_currency=cheapest.price.currency,
+        ))
+    return result
+
+
+@app.get("/seller/highlights", response_model=list[SellerHighlightResponse])
+def list_seller_highlights(
+    profile: SellerProfile = Depends(require_seller_plan),
+    db: Session = Depends(get_db),
+) -> list[SellerHighlightResponse]:
+    return (
+        db.query(SellerProductHighlight)
+        .filter(SellerProductHighlight.seller_profile_id == profile.id)
+        .all()
+    )
+
+
+@app.post("/seller/highlights", response_model=SellerHighlightResponse, status_code=status.HTTP_201_CREATED)
+def create_seller_highlight(
+    body: SellerHighlightCreate,
+    profile: SellerProfile = Depends(require_seller_plan),
+    db: Session = Depends(get_db),
+) -> SellerHighlightResponse:
+    today = date.today()
+    existing = (
+        db.query(SellerProductHighlight)
+        .filter(
+            SellerProductHighlight.seller_profile_id == profile.id,
+            SellerProductHighlight.product_key == body.product_key,
+        )
+        .first()
+    )
+    if existing:
+        current_status = _highlight_status(existing, today)
+        if current_status == "active":
+            raise HTTPException(status_code=409, detail="Este produto já está em destaque.")
+        if current_status == "cooldown":
+            raise HTTPException(status_code=403, detail="Produto em carência — libere o cooldown antes de destacar novamente.")
+
+    if body.duration in ("diario", "semana"):
+        start = today
+        end = start + timedelta(days=_HIGHLIGHT_DAYS[body.duration])
+    else:  # programado
+        if not body.start_date or not body.end_date:
+            raise HTTPException(status_code=422, detail="Informe data de início e término.")
+        start, end = body.start_date, body.end_date
+        days = (end - start).days
+        if not (0 < days <= 7):
+            raise HTTPException(status_code=422, detail="O período deve ser de 1 a 7 dias.")
+    cost = _HIGHLIGHT_UNLOCK_COST[body.duration]
+
+    if existing:
+        existing.duration = body.duration
+        existing.start_date = start
+        existing.end_date = end
+        existing.cooldown_until = None
+        existing.unlock_cost = cost
+        row = existing
+    else:
+        row = SellerProductHighlight(
+            seller_profile_id=profile.id,
+            product_key=body.product_key,
+            duration=body.duration,
+            start_date=start,
+            end_date=end,
+            cooldown_until=None,
+            unlock_cost=cost,
+            created_at=datetime.now(timezone.utc),
+        )
+        db.add(row)
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+@app.delete("/seller/highlights/{highlight_id}", response_model=SellerHighlightResponse)
+def remove_seller_highlight(
+    highlight_id: int,
+    profile: SellerProfile = Depends(require_seller_plan),
+    db: Session = Depends(get_db),
+) -> SellerHighlightResponse:
+    """Not a hard delete — the highlight row transitions into its cooldown period
+    (same length as the highlight that just ended), matching the pre-existing frontend
+    fixture's exact business rule, now enforced server-side."""
+    row = (
+        db.query(SellerProductHighlight)
+        .filter(SellerProductHighlight.id == highlight_id, SellerProductHighlight.seller_profile_id == profile.id)
+        .first()
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="Destaque não encontrado.")
+    today = date.today()
+    is_daily = row.duration == "diario"
+    row.cooldown_until = today + timedelta(days=1 if is_daily else 7)
+    row.unlock_cost = 4.90 if is_daily else 19.90
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+@app.post("/seller/highlights/{highlight_id}/unlock", response_model=SellerHighlightResponse)
+def unlock_seller_highlight(
+    highlight_id: int,
+    profile: SellerProfile = Depends(require_seller_plan),
+    db: Session = Depends(get_db),
+) -> SellerHighlightResponse:
+    row = (
+        db.query(SellerProductHighlight)
+        .filter(SellerProductHighlight.id == highlight_id, SellerProductHighlight.seller_profile_id == profile.id)
+        .first()
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="Destaque não encontrado.")
+    if not row.cooldown_until:
+        raise HTTPException(status_code=400, detail="Este produto não está em carência.")
+    # No real payment gateway yet (backend Phase 3) — clears the cooldown directly,
+    # same "simulated payment" the frontend fixture already did, just server-side now.
+    row.cooldown_until = None
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+@app.get("/seller/coupons", response_model=list[SellerCouponResponse])
+def list_seller_coupons(
+    profile: SellerProfile = Depends(require_seller_plan),
+    db: Session = Depends(get_db),
+) -> list[SellerCouponResponse]:
+    return (
+        db.query(SellerCoupon)
+        .filter(SellerCoupon.seller_profile_id == profile.id)
+        .order_by(SellerCoupon.created_at.desc())
+        .all()
+    )
+
+
+@app.post("/seller/coupons", response_model=SellerCouponResponse, status_code=status.HTTP_201_CREATED)
+def create_seller_coupon(
+    body: SellerCouponCreate,
+    profile: SellerProfile = Depends(require_seller_plan),
+    db: Session = Depends(get_db),
+) -> SellerCouponResponse:
+    code = body.code.strip().upper()
+    existing = (
+        db.query(SellerCoupon)
+        .filter(SellerCoupon.seller_profile_id == profile.id, SellerCoupon.code == code)
+        .first()
+    )
+    if existing:
+        raise HTTPException(status_code=409, detail="Você já tem um cupom com esse código.")
+    coupon = SellerCoupon(
+        seller_profile_id=profile.id,
+        code=code,
+        type=body.type,
+        value=body.value,
+        product_key=body.product_key,
+        active=True,
+        created_at=datetime.now(timezone.utc),
+    )
+    db.add(coupon)
+    db.commit()
+    db.refresh(coupon)
+    return coupon
+
+
+@app.delete("/seller/coupons/{coupon_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_seller_coupon(
+    coupon_id: int,
+    profile: SellerProfile = Depends(require_seller_plan),
+    db: Session = Depends(get_db),
+) -> None:
+    coupon = (
+        db.query(SellerCoupon)
+        .filter(SellerCoupon.id == coupon_id, SellerCoupon.seller_profile_id == profile.id)
+        .first()
+    )
+    if not coupon:
+        raise HTTPException(status_code=404, detail="Cupom não encontrado.")
+    db.delete(coupon)
+    db.commit()
+
+
+@app.get("/seller/banners", response_model=list[SellerBannerResponse])
+def list_seller_banners(
+    profile: SellerProfile = Depends(require_seller_plan),
+    db: Session = Depends(get_db),
+) -> list[SellerBannerResponse]:
+    return (
+        db.query(SellerBannerCampaign)
+        .filter(SellerBannerCampaign.seller_profile_id == profile.id)
+        .order_by(SellerBannerCampaign.created_at.desc())
+        .all()
+    )
+
+
+@app.post("/seller/banners", response_model=SellerBannerResponse, status_code=status.HTTP_201_CREATED)
+def create_seller_banner(
+    body: SellerBannerCreate,
+    profile: SellerProfile = Depends(require_seller_plan),
+    db: Session = Depends(get_db),
+) -> SellerBannerResponse:
+    banner = SellerBannerCampaign(
+        seller_profile_id=profile.id,
+        title=body.title.strip(),
+        start_date=body.start_date,
+        end_date=body.end_date,
+        created_at=datetime.now(timezone.utc),
+    )
+    db.add(banner)
+    db.commit()
+    db.refresh(banner)
+    return banner
+
+
+@app.delete("/seller/banners/{banner_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_seller_banner(
+    banner_id: int,
+    profile: SellerProfile = Depends(require_seller_plan),
+    db: Session = Depends(get_db),
+) -> None:
+    banner = (
+        db.query(SellerBannerCampaign)
+        .filter(SellerBannerCampaign.id == banner_id, SellerBannerCampaign.seller_profile_id == profile.id)
+        .first()
+    )
+    if not banner:
+        raise HTTPException(status_code=404, detail="Campanha não encontrada.")
+    db.delete(banner)
+    db.commit()
+
+
+@app.get("/seller/metrics", response_model=SellerMetrics)
+def get_seller_metrics(
+    profile: SellerProfile = Depends(require_seller_plan),
+    db: Session = Depends(get_db),
+) -> SellerMetrics:
+    """Real signals, not the fixture's fabricated views/purchase-intent formula — counts
+    of live offers, real Favorites (backend Phase 1) and Cart adds matching this store."""
+    now = datetime.now(timezone.utc)
+    today = date.today()
+    pattern = f"%{profile.store_name}%"
+    active_offers = (
+        db.query(ProductOffer)
+        .filter(ProductOffer.expires_at > now, ProductOffer.store.ilike(pattern))
+        .count()
+    )
+    favorites_count = db.query(UserFavorite).filter(UserFavorite.store_name.ilike(pattern)).count()
+    cart_adds_count = db.query(UserCartItem).filter(UserCartItem.store_name.ilike(pattern)).count()
+    active_highlights = (
+        db.query(SellerProductHighlight)
+        .filter(
+            SellerProductHighlight.seller_profile_id == profile.id,
+            SellerProductHighlight.cooldown_until.is_(None),
+            SellerProductHighlight.end_date >= today,
+        )
+        .count()
+    )
+    return SellerMetrics(
+        active_offers=active_offers,
+        favorites_count=favorites_count,
+        cart_adds_count=cart_adds_count,
+        active_highlights=active_highlights,
+    )
+
+
+@app.get("/admin/sellers", response_model=list[SellerProfileAdminView])
+def admin_list_sellers(
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> list[SellerProfileAdminView]:
+    rows = db.query(SellerProfile).order_by(SellerProfile.created_at.desc()).all()
+    result = []
+    for row in rows:
+        seller_user = db.get(User, row.user_id)
+        result.append(SellerProfileAdminView(
+            id=row.id,
+            store_name=row.store_name,
+            store_id=row.store_id,
+            is_verified=row.is_verified,
+            plan_tier=row.plan_tier,
+            plan_expires_at=row.plan_expires_at,
+            created_at=row.created_at,
+            user_id=row.user_id,
+            user_email=seller_user.email if seller_user else "?",
+            user_username=seller_user.username if seller_user else None,
+        ))
+    return result
+
+
+@app.patch("/admin/sellers/{seller_id}", response_model=SellerProfileResponse)
+def admin_update_seller(
+    seller_id: int,
+    body: SellerProfileAdminUpdate,
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> SellerProfileResponse:
+    profile = db.get(SellerProfile, seller_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="Seller profile not found")
+    if body.plan_tier is not None:
+        profile.plan_tier = body.plan_tier
+    if body.is_verified is not None:
+        profile.is_verified = body.is_verified
+    if body.plan_expires_at is not None:
+        profile.plan_expires_at = body.plan_expires_at
+    db.commit()
+    db.refresh(profile)
+    return profile
+
+
+# ── Billing (Mercado Pago) ──────────────────────────────────────────────────
+# Backend Phase 3 — real seller subscriptions. Disabled (503) until MP_ACCESS_TOKEN is
+# set in .env — see config.py. No card data ever touches this server; delegated 100%
+# to Mercado Pago's own hosted checkout. Until this is configured (or for a seller who
+# hasn't subscribed), the Phase 2 admin-manual plan_tier grant via /admin/sellers keeps
+# working exactly as before — this doesn't replace it, just automates it going forward.
+
+_MP_API = "https://api.mercadopago.com"
+_PLAN_PRICES_BRL = {"visibilidade": 99.0, "destaque_pro": 249.0, "dominio_total": 499.0}
+
+
+def _mp_enabled() -> bool:
+    return bool(settings.mp_access_token)
+
+
+def _require_mp_configured() -> None:
+    if not _mp_enabled():
+        raise HTTPException(status_code=503, detail="Pagamentos ainda não configurados neste servidor.")
+
+
+def _verify_mp_signature(x_signature: str | None, x_request_id: str | None, data_id: str) -> bool:
+    """Verifies Mercado Pago's HMAC-SHA256 webhook signature. Manifest format and header
+    parsing per MP's documented scheme — required so a forged POST to this public
+    endpoint can't grant a free plan. Returns False (reject) on any missing piece."""
+    if not settings.mp_webhook_secret or not x_signature or not x_request_id or not data_id:
+        return False
+    parts: dict[str, str] = {}
+    for kv in x_signature.split(","):
+        if "=" in kv:
+            k, v = kv.split("=", 1)
+            parts[k.strip()] = v.strip()
+    ts, v1 = parts.get("ts"), parts.get("v1")
+    if not ts or not v1:
+        return False
+    manifest = f"id:{data_id.lower()};request-id:{x_request_id};ts:{ts};"
+    expected = hmac.new(settings.mp_webhook_secret.encode(), manifest.encode(), hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, v1)
+
+
+@app.get("/billing/status", response_model=BillingStatusResponse)
+def billing_status() -> BillingStatusResponse:
+    """Public — lets the frontend decide upfront whether to offer real checkout or fall
+    back to the lead-capture flow, instead of optimistically trying and swapping UI on 503."""
+    return BillingStatusResponse(enabled=_mp_enabled())
+
+
+@app.post("/billing/subscribe", response_model=BillingSubscribeResponse)
+def billing_subscribe(
+    body: BillingSubscribeRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> BillingSubscribeResponse:
+    _require_mp_configured()
+    profile = db.query(SellerProfile).filter(SellerProfile.user_id == current_user.id).first()
+    if not profile:
+        raise HTTPException(status_code=404, detail="Crie um perfil de lojista primeiro.")
+
+    payload = {
+        "reason": f"MuambaRADAR — Plano {body.plan_tier}",
+        "external_reference": f"{profile.id}:{body.plan_tier}",
+        "payer_email": current_user.email,
+        "auto_recurring": {
+            "frequency": 1,
+            "frequency_type": "months",
+            "transaction_amount": _PLAN_PRICES_BRL[body.plan_tier],
+            "currency_id": "BRL",
+        },
+        "back_url": "https://muambaradar.com/lojista",
+        "status": "pending",
+    }
+    try:
+        resp = requests.post(
+            f"{_MP_API}/preapproval",
+            headers={"Authorization": f"Bearer {settings.mp_access_token}"},
+            json=payload,
+            timeout=15,
+        )
+    except requests.RequestException as exc:
+        log.warning("MP subscribe request failed: %s", exc)
+        raise HTTPException(status_code=502, detail="Erro ao conectar com o Mercado Pago.")
+    if not resp.ok:
+        log.warning("MP subscribe rejected: %s %s", resp.status_code, resp.text[:300])
+        raise HTTPException(status_code=502, detail="Erro ao criar assinatura no Mercado Pago.")
+
+    data = resp.json()
+    profile.subscription_id = data["id"]
+    profile.subscription_status = "pending"
+    db.commit()
+    return BillingSubscribeResponse(checkout_url=data["init_point"])
+
+
+@app.get("/billing/subscription", response_model=BillingSubscriptionStatus)
+def billing_subscription_status(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> BillingSubscriptionStatus:
+    profile = db.query(SellerProfile).filter(SellerProfile.user_id == current_user.id).first()
+    if not profile:
+        raise HTTPException(status_code=404, detail="Nenhum perfil de lojista encontrado.")
+    return BillingSubscriptionStatus(
+        plan_tier=profile.plan_tier,
+        subscription_status=profile.subscription_status,
+        plan_expires_at=profile.plan_expires_at,
+    )
+
+
+@app.post("/billing/cancel", response_model=BillingSubscriptionStatus)
+def billing_cancel(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> BillingSubscriptionStatus:
+    _require_mp_configured()
+    profile = db.query(SellerProfile).filter(SellerProfile.user_id == current_user.id).first()
+    if not profile or not profile.subscription_id:
+        raise HTTPException(status_code=404, detail="Nenhuma assinatura ativa encontrada.")
+    try:
+        resp = requests.put(
+            f"{_MP_API}/preapproval/{profile.subscription_id}",
+            headers={"Authorization": f"Bearer {settings.mp_access_token}"},
+            json={"status": "cancelled"},
+            timeout=15,
+        )
+    except requests.RequestException as exc:
+        log.warning("MP cancel request failed: %s", exc)
+        raise HTTPException(status_code=502, detail="Erro ao conectar com o Mercado Pago.")
+    if not resp.ok:
+        log.warning("MP cancel rejected: %s %s", resp.status_code, resp.text[:300])
+        raise HTTPException(status_code=502, detail="Erro ao cancelar assinatura no Mercado Pago.")
+    profile.subscription_status = "cancelled"
+    profile.plan_tier = "none"
+    db.commit()
+    return BillingSubscriptionStatus(
+        plan_tier=profile.plan_tier,
+        subscription_status=profile.subscription_status,
+        plan_expires_at=profile.plan_expires_at,
+    )
+
+
+@app.post("/billing/webhook")
+async def billing_webhook(
+    request: Request,
+    x_signature: str | None = Header(default=None),
+    x_request_id: str | None = Header(default=None),
+    db: Session = Depends(get_db),
+) -> dict:
+    if not _mp_enabled():
+        raise HTTPException(status_code=503, detail="Pagamentos ainda não configurados neste servidor.")
+
+    body = await request.json()
+    data_id = str((body.get("data") or {}).get("id") or request.query_params.get("data.id") or "")
+    if not _verify_mp_signature(x_signature, x_request_id, data_id):
+        log.warning("MP webhook: assinatura ausente ou inválida — descartado")
+        raise HTTPException(status_code=401, detail="Invalid signature")
+
+    topic = body.get("type") or request.query_params.get("type")
+    if topic not in ("subscription_preapproval", "preapproval"):
+        return {"ok": True}  # unrelated event type — ack and ignore
+
+    try:
+        resp = requests.get(
+            f"{_MP_API}/preapproval/{data_id}",
+            headers={"Authorization": f"Bearer {settings.mp_access_token}"},
+            timeout=15,
+        )
+    except requests.RequestException as exc:
+        log.warning("MP webhook: falha ao consultar preapproval %s: %s", data_id, exc)
+        raise HTTPException(status_code=502, detail="Erro ao consultar assinatura no Mercado Pago.")
+    if not resp.ok:
+        log.warning("MP webhook: preapproval %s retornou %s", data_id, resp.status_code)
+        raise HTTPException(status_code=502, detail="Erro ao consultar assinatura no Mercado Pago.")
+
+    mp_data = resp.json()
+    mp_status = mp_data.get("status")
+    external_ref = mp_data.get("external_reference") or ""
+
+    profile = db.query(SellerProfile).filter(SellerProfile.subscription_id == data_id).first()
+    if not profile and ":" in external_ref:
+        seller_id_str, _, _ = external_ref.partition(":")
+        if seller_id_str.isdigit():
+            profile = db.get(SellerProfile, int(seller_id_str))
+    if not profile:
+        log.warning("MP webhook: nenhum SellerProfile para preapproval %s (external_reference=%r)", data_id, external_ref)
+        return {"ok": True}
+
+    profile.subscription_status = mp_status
+    if mp_status == "authorized":
+        _, _, tier = external_ref.partition(":")
+        if tier in _PLAN_PRICES_BRL:
+            profile.plan_tier = tier
+        # Monthly recurrence — small buffer past the next charge date so a slow/missed
+        # webhook doesn't lapse access early; require_seller_plan re-checks every request.
+        profile.plan_expires_at = datetime.now(timezone.utc) + timedelta(days=32)
+    elif mp_status in ("cancelled", "paused"):
+        profile.plan_tier = "none"
+    db.commit()
+    return {"ok": True}
 
 
 # ── Reports ──────────────────────────────────────────────────────────────────

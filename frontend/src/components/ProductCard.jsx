@@ -1,7 +1,8 @@
 import React, { useCallback, useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useI18n } from '../i18n.jsx'
 import { useCart } from '../CartContext.jsx'
-import { getApiBase } from '../api.js'
+import { useFavorites } from '../FavoritesContext.jsx'
 import {
   cheapestByCountry,
   estimateSellingPrice,
@@ -48,48 +49,42 @@ function AuthHint({ onLogin, onClose }) {
   )
 }
 
-function StoreAvatar({ offer }) {
-  const info = offer?.store_info
-  if (!info?.photo_url) return <span className="pc-store-avatar-gap" />
-  const src = info.photo_url.startsWith('/static')
-    ? `${getApiBase()}${info.photo_url}`
-    : info.photo_url
-  return (
-    <img
-      className="pc-store-avatar"
-      src={src}
-      alt={info.name}
-      title={info.name}
-      loading="lazy"
-    />
-  )
-}
-
-export default function ProductCard({ group, marginPct, showMargin, idx, onOpenOffers, onNeedAuth, onReport }) {
+export default function ProductCard({ group, marginPct, showMargin, idx, onNeedAuth, onReport }) {
   const { t } = useI18n()
-  const { savedUrls, toggle } = useCart()
+  const { savedUrls: cartUrls, toggle: toggleCart } = useCart()
+  const { isFavorited, toggle: toggleFavorite } = useFavorites()
+  const navigate = useNavigate()
   const [showHint, setShowHint] = useState(false)
 
   const py     = cheapestByCountry(group.offers, 'py')
   const br     = cheapestByCountry(group.offers, 'br')
+  // Real savings, not a fabricated discount badge — % cheaper PY is than the cheapest BR offer.
+  const economyPct = (py && br && br.price.amount_brl > 0)
+    ? Math.round(((br.price.amount_brl - py.price.amount_brl) / br.price.amount_brl) * 100)
+    : null
   const sell   = estimateSellingPrice(py, br, marginPct)
   const margin = (py && sell != null)
     ? Math.round(((sell / py.price.amount_brl) - 1) * 100)
     : null
   const config = buildConfigChip(group)
   const name   = familyDisplayName(group)
+  // Real count, not the prototype's curated "X lojas" badge — distinct stores in this group's offers.
+  const storeCount = new Set((group.offers || []).map(o => o.store).filter(Boolean)).size
 
   const cartOffer = py || br
-  const isSaved = cartOffer ? savedUrls.has(cartOffer.url) : false
+  const isFav = cartOffer ? isFavorited(cartOffer.url) : false
+  const isInCart = cartOffer ? cartUrls.has(cartOffer.url) : false
 
-  function handleExpand(e) {
-    e.stopPropagation()
-    onOpenOffers(group, name, config)
-  }
-
+  // Favorites are client-only (no login needed) — see FavoritesContext.jsx.
   function handleHeart(e) {
     e.stopPropagation()
-    if (cartOffer) toggle(cartOffer, () => setShowHint(true))
+    if (cartOffer) toggleFavorite(cartOffer)
+  }
+
+  // Cart is the real, server-backed list — still needs login.
+  function handleCartClick(e) {
+    e.stopPropagation()
+    if (cartOffer) toggleCart(cartOffer, () => setShowHint(true))
   }
 
   function handleLogin() {
@@ -97,34 +92,54 @@ export default function ProductCard({ group, marginPct, showMargin, idx, onOpenO
     onNeedAuth?.()
   }
 
+  function handleViewDetails() {
+    if (group.product_key) navigate(`/product/${group.product_key}`, { state: { group } })
+  }
+
   return (
     <div className="product-card-wrap">
       <article
         className="product-card"
-        style={{ animationDelay: `${idx * 40}ms` }}
+        style={{ animationDelay: `${idx * 40}ms`, cursor: group.product_key ? 'pointer' : 'default' }}
+        onClick={group.product_key ? handleViewDetails : undefined}
+        role={group.product_key ? 'link' : undefined}
+        tabIndex={group.product_key ? 0 : undefined}
+        onKeyDown={group.product_key ? (e => { if (e.key === 'Enter') handleViewDetails() }) : undefined}
       >
+        {/* Real seller highlight — backend Phase 2, only set when a lojista with an
+            active plan actually highlighted this exact product (see /compare enrichment). */}
+        {group.is_highlighted && (
+          <div className="pc-highlight-ribbon">⭐ Destaque</div>
+        )}
+
         {/* Hero image */}
         <div className={`pc-hero${group.product_image_url ? '' : ' no-image'}`}>
           {group.product_image_url && (
             <img src={group.product_image_url} alt={name} loading="lazy" />
           )}
 
-          {/* Heart button */}
+          {storeCount > 1 && (
+            <span className="pc-store-count-badge">⭐ {storeCount} lojas</span>
+          )}
+
+          {/* Heart button — favorites, client-only, no login needed */}
           <div className="pc-heart-wrap">
             <button
-              className={`pc-heart-btn${isSaved ? ' is-saved' : ''}`}
+              className={`pc-heart-btn${isFav ? ' is-saved' : ''}`}
               type="button"
-              aria-label={isSaved ? 'Remover da lista' : 'Salvar na lista'}
+              aria-label={isFav ? 'Remover dos favoritos' : 'Salvar nos favoritos'}
+              title="Favoritar (salvo neste dispositivo)"
               onClick={handleHeart}
             >
-              <svg viewBox="0 0 24 24" width="15" height="15" fill={isSaved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill={isFav ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
               </svg>
             </button>
-            {showHint && (
-              <AuthHint onLogin={handleLogin} onClose={() => setShowHint(false)} />
-            )}
           </div>
+
+          {economyPct != null && economyPct > 0 && (
+            <span className="pc-economy-badge">-{economyPct}%</span>
+          )}
         </div>
 
         {/* Title block */}
@@ -133,35 +148,35 @@ export default function ProductCard({ group, marginPct, showMargin, idx, onOpenO
           {config && <span className="config-chip">{config}</span>}
         </div>
 
+        <div className="pc-prices-label">Preços de lojas comparadas</div>
+
         {/* Price rows */}
         <div className="pc-prices">
           <div className={`pc-row pc-row-py${py ? '' : ' is-na'}`}>
-            <StoreAvatar offer={py} />
-            <span className="pc-dot py-dot"></span>
             <span className="pc-ctry">PY</span>
+            <span className="pc-row-store">{py?.store_info?.name || (py ? sourceDomain(py.url) : '—')}</span>
             <strong className="pc-val">
-              {py ? formatMoney(py.price.amount_brl, 'BRL') : '—'}
+              {py ? formatMoney(py.price.amount, py.price.currency) : '—'}
             </strong>
-            {py && (
-              <a className="pc-src" href={py.url} target="_blank" rel="noopener noreferrer">
-                {py.store_info?.name || sourceDomain(py.url)}
-              </a>
-            )}
           </div>
+          {py && (
+            <div className="pc-equiv">Equiv. {formatMoney(py.price.amount_brl, 'BRL')}</div>
+          )}
           <div className={`pc-row pc-row-br${br ? '' : ' is-na'}`}>
-            <StoreAvatar offer={br} />
-            <span className="pc-dot br-dot"></span>
             <span className="pc-ctry">BR</span>
-            <strong className="pc-val">
+            <span className="pc-row-store">{br?.store_info?.name || (br ? sourceDomain(br.url) : '—')}</span>
+            <strong className="pc-val pc-val--br">
               {br ? formatMoney(br.price.amount_brl, 'BRL') : '—'}
             </strong>
-            {br && (
-              <a className="pc-src" href={br.url} target="_blank" rel="noopener noreferrer">
-                {br.store_info?.name || sourceDomain(br.url)}
-              </a>
-            )}
           </div>
         </div>
+
+        {/* Real coupon — same enrichment as the highlight ribbon above. */}
+        {group.coupon && (
+          <div className="pc-coupon-chip" title={`Cupom da loja: ${group.coupon.code}`}>
+            🎟️ {group.coupon.code} · {group.coupon.type === 'percent' ? `${group.coupon.value}% OFF` : `US$ ${group.coupon.value} OFF`}
+          </div>
+        )}
 
         {/* Footer */}
         <div className="pc-footer">
@@ -176,26 +191,37 @@ export default function ProductCard({ group, marginPct, showMargin, idx, onOpenO
               )}
             </div>
           )}
-          <button
-            className="report-btn"
-            type="button"
-            aria-label="Reportar dado incorreto"
-            title="Reportar dado incorreto"
-            onClick={e => { e.stopPropagation(); onReport?.(group, py || br) }}
-          >
-            <svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M3 2h10l-2 4 2 4H3V2z"/>
-              <line x1="3" y1="14" x2="3" y2="2"/>
-            </svg>
-          </button>
-          <button
-            className="expand-btn"
-            type="button"
-            aria-label={`Ver ${group.offers.length} oferta${group.offers.length !== 1 ? 's' : ''}`}
-            onClick={handleExpand}
-          >
-            &#x25BE; {group.offers.length}
-          </button>
+
+          <div className="pc-footer-row">
+            <span className="pc-comparisons">
+              {group.offers.length} comparaç{group.offers.length !== 1 ? 'ões' : 'ão'}
+            </span>
+            <button
+              className="report-btn"
+              type="button"
+              aria-label="Reportar dado incorreto"
+              title="Reportar dado incorreto"
+              onClick={e => { e.stopPropagation(); onReport?.(group, py || br) }}
+            >
+              <svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M3 2h10l-2 4 2 4H3V2z"/>
+                <line x1="3" y1="14" x2="3" y2="2"/>
+              </svg>
+            </button>
+          </div>
+
+          <div className="pc-cart-btn-wrap">
+            <button
+              className={`pc-cart-btn${isInCart ? ' is-saved' : ''}`}
+              type="button"
+              onClick={handleCartClick}
+            >
+              {isInCart ? '✓ No carrinho' : '+ Carrinho'}
+            </button>
+            {showHint && (
+              <AuthHint onLogin={handleLogin} onClose={() => setShowHint(false)} />
+            )}
+          </div>
         </div>
       </article>
     </div>

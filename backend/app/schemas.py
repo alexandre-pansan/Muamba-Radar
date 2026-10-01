@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime
+from datetime import date, datetime
 from enum import Enum
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
@@ -65,6 +65,14 @@ class CheapestModel(BaseModel):
     br_offer_id: str | None = None
 
 
+class CouponInfo(BaseModel):
+    """Public-facing coupon summary attached to a ProductGroupModel — marketing-facing
+    by design, carries no seller identity/PII."""
+    code: str
+    type: str  # percent|usd
+    value: float
+
+
 class ProductGroupModel(BaseModel):
     product_key: str
     family_key: str = ""          # base model without storage/RAM, for UI clustering
@@ -79,6 +87,9 @@ class ProductGroupModel(BaseModel):
     volume_ml: str | None = None       # e.g. "100ml"
     # Appliance voltage variant (None for non-appliance groups)
     voltage: str | None = None         # e.g. "127V", "220V", "Bivolt"
+    # Seller highlight/coupon enrichment (backend Phase 2) — both intentionally public.
+    is_highlighted: bool = False
+    coupon: CouponInfo | None = None
 
 
 class CompareResponseModel(BaseModel):
@@ -255,6 +266,168 @@ class CartGroupItem(BaseModel):
     store_name: str
     store: StoreInfo | None = None
     items: list[CartItemResponse]
+
+
+class CartCouponItem(BaseModel):
+    """Um cupom de lojista que vale para algum item do carrinho do usuário. O resgate é
+    presencial na loja física — o site não processa desconto nenhum, só mostra o código."""
+    code: str
+    type: str  # percent|usd
+    value: float
+    scope: str  # "product" (cupom de um produto específico) | "store" (vale pra loja toda)
+    store_name: str
+    store: StoreInfo | None = None
+    product_title: str  # item do carrinho que disparou o cupom
+
+
+# ── Favorites ────────────────────────────────────────────────────────────────
+
+class FavoriteCreate(BaseModel):
+    offer_url: str
+    source: str
+    country: str
+    store_name: str
+    title: str
+    price_amount: float
+    price_currency: str
+    price_amount_brl: float | None = None
+    image_url: str | None = None
+
+
+class FavoriteResponse(BaseModel):
+    model_config = {"from_attributes": True}
+    id: int
+    offer_url: str
+    source: str
+    country: str
+    store_name: str
+    title: str
+    price_amount: float
+    price_currency: str
+    price_amount_brl: float | None = None
+    image_url: str | None = None
+    store_id: int | None = None
+    store: StoreInfo | None = None
+    added_at: datetime
+
+
+# ── Seller / Lojista ─────────────────────────────────────────────────────────
+
+class SellerProfileCreate(BaseModel):
+    store_name: str = Field(min_length=1, max_length=200)
+
+
+class SellerProfileResponse(BaseModel):
+    model_config = {"from_attributes": True}
+    id: int
+    store_name: str
+    store_id: int | None = None
+    is_verified: bool
+    plan_tier: str
+    subscription_id: str | None = None
+    subscription_status: str | None = None
+    plan_expires_at: datetime | None = None
+    created_at: datetime
+
+
+class SellerProfileAdminView(SellerProfileResponse):
+    user_id: int
+    user_email: str
+    user_username: str | None = None
+
+
+class SellerProfileAdminUpdate(BaseModel):
+    plan_tier: str | None = Field(default=None, pattern=r"^(none|visibilidade|destaque_pro|dominio_total)$")
+    is_verified: bool | None = None
+    plan_expires_at: datetime | None = None
+
+
+class SellerOfferGroup(BaseModel):
+    """A seller's own current live offers, grouped the same way /compare groups results —
+    what they can actually highlight, since it's sourced from real scraped inventory."""
+    product_key: str
+    canonical_name: str
+    price_amount: float
+    price_currency: str
+
+
+class SellerCouponCreate(BaseModel):
+    code: str = Field(min_length=2, max_length=30)
+    type: str = Field(pattern=r"^(percent|usd)$")
+    value: float = Field(gt=0)
+    product_key: str | None = None
+
+
+class SellerCouponResponse(BaseModel):
+    model_config = {"from_attributes": True}
+    id: int
+    code: str
+    type: str
+    value: float
+    product_key: str | None = None
+    active: bool
+    created_at: datetime
+
+
+class SellerHighlightCreate(BaseModel):
+    product_key: str
+    duration: str = Field(pattern=r"^(diario|semana|programado)$")
+    start_date: date | None = None
+    end_date: date | None = None
+
+
+class SellerHighlightResponse(BaseModel):
+    model_config = {"from_attributes": True}
+    id: int
+    product_key: str
+    duration: str
+    start_date: date
+    end_date: date
+    cooldown_until: date | None = None
+    unlock_cost: float | None = None
+    created_at: datetime
+
+
+class SellerBannerCreate(BaseModel):
+    title: str = Field(min_length=1, max_length=120)
+    start_date: date
+    end_date: date
+
+
+class SellerBannerResponse(BaseModel):
+    model_config = {"from_attributes": True}
+    id: int
+    title: str
+    start_date: date
+    end_date: date
+    created_at: datetime
+
+
+class SellerMetrics(BaseModel):
+    active_offers: int
+    favorites_count: int
+    cart_adds_count: int
+    active_highlights: int
+
+
+# ── Billing (Mercado Pago) ───────────────────────────────────────────────────
+
+class BillingSubscribeRequest(BaseModel):
+    plan_tier: str = Field(pattern=r"^(visibilidade|destaque_pro|dominio_total)$")
+
+
+class BillingSubscribeResponse(BaseModel):
+    checkout_url: str
+
+
+class BillingSubscriptionStatus(BaseModel):
+    plan_tier: str
+    subscription_status: str | None = None
+    plan_expires_at: datetime | None = None
+
+
+class BillingStatusResponse(BaseModel):
+    enabled: bool
 
 
 # ── Admin Stores ─────────────────────────────────────────────────────────────

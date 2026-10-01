@@ -27,6 +27,10 @@ cd "$SCRIPT_DIR/backend"
 
 # UI
 cd "$SCRIPT_DIR/frontend"
-npm run dev 2>&1 | prefix "UI" &
+if command -v npm >/dev/null 2>&1; then
+  npm run dev 2>&1 | prefix "UI" &
+else
+  ./node_modules/.bin/vite 2>&1 | prefix "UI" &
+fi
 
 wait

@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useI18n } from '../i18n.jsx'
 import { apiUpdateMe, apiFetchUserSearches, getApiBase, getToken, apiBumpBetaNotice } from '../api.js'
 import { DEFAULT_RATES, mergeRates } from '../taxRates.js'
-import { PasswordRules } from './AuthModal.jsx'
+import { PasswordRules } from './AuthForms.jsx'
 
 export default function UserConfigModal({
   open,

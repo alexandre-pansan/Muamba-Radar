@@ -4,6 +4,9 @@ import {
   apiTestSearch,
   apiAdminSearchHistory,
   apiRefreshCache,
+  apiAdminCrawlerStatus,
+  apiAdminCrawlerStart,
+  apiAdminCrawlerStop,
   apiAdminListUsers,
   apiAdminDeleteUser,
   apiAdminToggleAdmin,
@@ -588,6 +591,176 @@ function CacheTab() {
 
       {status && (
         <div className={`admin-status-box ${status.ok ? 'is-ok' : 'is-error'}`}>{status.text}</div>
+      )}
+    </div>
+  )
+}
+
+// ── Tab: Crawler de Catálogo ─────────────────────────────────────────────────
+
+const CRAWLER_STATE_LABELS = {
+  idle: 'Parado',
+  running: 'Rodando',
+  stopped: 'Parado (a pedido)',
+  completed: 'Concluído',
+  error: 'Erro',
+  blocked: 'Bloqueado — pausado',
+}
+
+function CrawlerTab() {
+  const [data, setData] = useState(null)
+  const [loadError, setLoadError] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [actionStatus, setActionStatus] = useState(null)
+  const pollRef = useRef(null)
+
+  async function poll() {
+    try {
+      const d = await apiAdminCrawlerStatus()
+      setData(d)
+      setLoadError('')
+    } catch (e) {
+      setLoadError(e.message)
+    }
+  }
+
+  useEffect(() => {
+    poll()
+    pollRef.current = setInterval(poll, 4000)
+    return () => clearInterval(pollRef.current)
+  }, [])
+
+  async function handleStart() {
+    setBusy(true)
+    setActionStatus(null)
+    try {
+      const res = await apiAdminCrawlerStart()
+      setActionStatus(res.status === 'already_running'
+        ? { ok: true, text: 'Já estava rodando.' }
+        : { ok: true, text: `Iniciado (pid ${res.pid}).` })
+      poll()
+    } catch (e) {
+      setActionStatus({ ok: false, text: e.message })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleStop() {
+    setBusy(true)
+    setActionStatus(null)
+    try {
+      await apiAdminCrawlerStop()
+      setActionStatus({ ok: true, text: 'Parada solicitada — vai salvar o checkpoint e encerrar no próximo produto.' })
+      poll()
+    } catch (e) {
+      setActionStatus({ ok: false, text: e.message })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (loadError && !data) return (
+    <div className="dev-tools-load-error">
+      <strong>Backend inacessível:</strong> {loadError}
+    </div>
+  )
+  if (!data) return <p className="admin-tab-loading">Carregando...</p>
+
+  const pct = data.total_categories > 0 ? Math.round((data.completed_categories / data.total_categories) * 100) : 0
+  const cc = data.current_category
+
+  return (
+    <div className="admin-tab-body">
+      <div className="admin-tab-toolbar">
+        <h2 className="admin-section-title">Crawler de Catálogo</h2>
+        <span className={`crawler-state-badge is-${data.state}`}>{CRAWLER_STATE_LABELS[data.state] || data.state}</span>
+      </div>
+      <p className="admin-cache-desc">
+        Varre as categorias do Compras Paraguai em lote e popula o catálogo local (PY + espelho BR). Retomável — pausar salva o checkpoint e continua da mesma categoria/página na próxima vez.
+      </p>
+
+      <div className="crawler-actions">
+        <button className={`dev-tools-run-btn${data.running ? ' is-running' : ''}`} onClick={handleStart} disabled={busy || data.running}>
+          {data.running ? 'Rodando…' : '▶ Iniciar / Continuar'}
+        </button>
+        <button className="admin-ghost-btn" onClick={handleStop} disabled={busy || !data.running || data.stop_requested}>
+          {data.stop_requested ? 'Parando…' : '■ Parar'}
+        </button>
+        <button className="admin-ghost-btn" onClick={poll} title="Atualizar agora">↻</button>
+      </div>
+
+      {actionStatus && (
+        <div className={`admin-status-box ${actionStatus.ok ? 'is-ok' : 'is-error'}`}>{actionStatus.text}</div>
+      )}
+
+      {data.error && (
+        <div className="admin-status-box is-error">Última execução falhou: {data.error}</div>
+      )}
+
+      {data.state === 'blocked' && (
+        <div className="admin-status-box is-error">
+          Pausado automaticamente após {data.blocking_streak} sinais de bloqueio seguidos (403/429/timeout) do Compras Paraguai. Espere um pouco antes de retomar.
+        </div>
+      )}
+
+      {data.state !== 'blocked' && data.blocked_warning && (
+        <div className="admin-status-box is-error">
+          ⚠ Possível bloqueio em andamento ({data.blocking_streak} sinais seguidos) — o crawler está desacelerando sozinho. Se continuar subindo, ele pausa automaticamente.
+        </div>
+      )}
+
+      <div className="cache-progress" style={{ marginTop: 20 }}>
+        <div className="cache-progress-bar-wrap">
+          <div className="cache-progress-bar" style={{ width: `${pct}%` }} />
+        </div>
+        <div className="cache-progress-info">
+          <span>{data.completed_categories} / {data.total_categories} categorias ({pct}%)</span>
+          <span>{data.products_mapped} produtos mapeados · {data.offers_this_run} ofertas nesta sessão</span>
+        </div>
+      </div>
+
+      {cc && (
+        <div className="crawler-current-box">
+          <p className="dev-tools-label">Categoria atual</p>
+          <p className="crawler-current-path">
+            {cc.department || '—'} <span className="crawler-current-sep">›</span> {cc.group || '—'} <span className="crawler-current-sep">›</span> <strong>{cc.name}</strong>
+            <span className="td-muted"> · página {data.current_page}</span>
+          </p>
+          {data.current_product && (
+            <p className="crawler-current-product">↻ {data.current_product}</p>
+          )}
+          {data.updated_at && (
+            <p className="td-muted" style={{ fontSize: 12, marginTop: 4 }}>
+              Última atualização: {new Date(data.updated_at).toLocaleString('pt-BR')}
+            </p>
+          )}
+        </div>
+      )}
+
+      {data.departments?.length > 0 && (
+        <div className="crawler-departments">
+          <p className="dev-tools-label">Mapeamento por departamento</p>
+          {data.departments.map(dep => {
+            const depPct = dep.total > 0 ? Math.round((dep.done / dep.total) * 100) : 0
+            return (
+              <div key={dep.name} className="crawler-dept-row">
+                <span className="crawler-dept-name">{dep.name}</span>
+                <div className="crawler-dept-bar-wrap">
+                  <div className="crawler-dept-bar" style={{ width: `${depPct}%` }} />
+                </div>
+                <span className="crawler-dept-count">{dep.done}/{dep.total}</span>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {data.log_tail?.length > 0 && (
+        <div className="crawler-log-section">
+          <p className="dev-tools-label">Log recente</p>
+          <pre className="crawler-log">{data.log_tail.join('\n')}</pre>
+        </div>
       )}
     </div>
   )
@@ -1326,6 +1499,7 @@ const TABS = [
   { id: 'users',    label: 'Usuários'  },
   { id: 'devtools', label: 'Dev Tools' },
   { id: 'cache',    label: 'Cache'     },
+  { id: 'crawler',  label: 'Crawler'   },
   { id: 'donate',   label: 'Doações'   },
   { id: 'stores',   label: 'Lojas'     },
   { id: 'reports',  label: 'Reportes'  },
@@ -1358,6 +1532,7 @@ export default function AdminPage({ onBack }) {
         {tab === 'users'    && <UsersTab />}
         {tab === 'devtools' && <DevToolsTab />}
         {tab === 'cache'    && <CacheTab />}
+        {tab === 'crawler'  && <CrawlerTab />}
         {tab === 'donate'   && <DonateTab />}
         {tab === 'stores'   && <StoresTab />}
         {tab === 'reports'  && <ReportsTab />}

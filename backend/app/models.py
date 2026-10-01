@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, SmallInteger, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Index, Integer, SmallInteger, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -67,6 +67,7 @@ class ProductOffer(Base):
     price_currency: Mapped[str] = mapped_column(Text, nullable=False)
     brand: Mapped[str | None] = mapped_column(Text, nullable=True)
     model: Mapped[str | None] = mapped_column(Text, nullable=True)
+    specs: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     captured_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
@@ -190,6 +191,110 @@ class UserCartItem(Base):
     )
 
 
+class UserFavorite(Base):
+    """Produto favoritado por um usuário — sincroniza entre dispositivos (ao contrário do
+    localStorage anônimo, que continua funcionando sem login)."""
+    __tablename__ = "user_favorites"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
+    offer_url: Mapped[str] = mapped_column(Text, nullable=False)
+    source: Mapped[str] = mapped_column(Text, nullable=False)
+    country: Mapped[str] = mapped_column(Text, nullable=False)
+    store_name: Mapped[str] = mapped_column(Text, nullable=False)
+    title: Mapped[str] = mapped_column(Text, nullable=False)
+    price_amount: Mapped[float] = mapped_column(Float, nullable=False)
+    price_currency: Mapped[str] = mapped_column(Text, nullable=False)
+    price_amount_brl: Mapped[float | None] = mapped_column(Float, nullable=True)
+    image_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    store_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("stores.id"), nullable=True)
+    added_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "offer_url", name="uq_user_favorites_user_offer"),
+        Index("ix_user_favorites_user_id", "user_id"),
+    )
+
+
+class SellerProfile(Base):
+    """Perfil de lojista de um usuário — auto-declarado (sem verificação hoje), com
+    plan_tier controlado manualmente pelo admin até o billing real (Backend Fase 3)."""
+    __tablename__ = "seller_profiles"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
+    store_name: Mapped[str] = mapped_column(Text, nullable=False)
+    store_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("stores.id"), nullable=True)
+    is_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    plan_tier: Mapped[str] = mapped_column(Text, default="none", nullable=False)  # none|visibilidade|destaque_pro|dominio_total
+    subscription_id: Mapped[str | None] = mapped_column(Text, nullable=True)      # externo (MP), Backend Fase 3
+    subscription_status: Mapped[str | None] = mapped_column(Text, nullable=True)  # idem
+    plan_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("user_id", name="uq_seller_profiles_user_id"),
+    )
+
+
+class SellerCoupon(Base):
+    """Cupom de desconto de um lojista — informativo (não há checkout/redemption real no site)."""
+    __tablename__ = "seller_coupons"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    seller_profile_id: Mapped[int] = mapped_column(Integer, ForeignKey("seller_profiles.id"), nullable=False)
+    code: Mapped[str] = mapped_column(Text, nullable=False)
+    type: Mapped[str] = mapped_column(Text, nullable=False)  # percent|usd
+    value: Mapped[float] = mapped_column(Float, nullable=False)
+    product_key: Mapped[str | None] = mapped_column(Text, nullable=True)  # None = todos os produtos
+    active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("seller_profile_id", "code", name="uq_seller_coupons_profile_code"),
+        Index("ix_seller_coupons_profile_id", "seller_profile_id"),
+    )
+
+
+class SellerProductHighlight(Base):
+    """Destaque de produto de um lojista, com cooldown pós-remoção — mesma lógica de
+    custo/duração já validada no fixture do frontend (Lojista.jsx/lojistaFixture.js),
+    agora com o backend como fonte da verdade."""
+    __tablename__ = "seller_product_highlights"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    seller_profile_id: Mapped[int] = mapped_column(Integer, ForeignKey("seller_profiles.id"), nullable=False)
+    product_key: Mapped[str] = mapped_column(Text, nullable=False)
+    duration: Mapped[str] = mapped_column(Text, nullable=False)  # diario|semana|programado
+    start_date: Mapped[date] = mapped_column(Date, nullable=False)
+    end_date: Mapped[date] = mapped_column(Date, nullable=False)
+    cooldown_until: Mapped[date | None] = mapped_column(Date, nullable=True)
+    unlock_cost: Mapped[float | None] = mapped_column(Float, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    __table_args__ = (
+        Index("ix_seller_highlights_profile_id", "seller_profile_id"),
+        Index("ix_seller_highlights_product_key", "product_key"),
+    )
+
+
+class SellerBannerCampaign(Base):
+    """Campanha de banner de um lojista — registro informativo no painel; não afeta o
+    banner real da home ainda (mesmo corte de escopo do Phase 7 do frontend)."""
+    __tablename__ = "seller_banner_campaigns"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    seller_profile_id: Mapped[int] = mapped_column(Integer, ForeignKey("seller_profiles.id"), nullable=False)
+    title: Mapped[str] = mapped_column(Text, nullable=False)
+    start_date: Mapped[date] = mapped_column(Date, nullable=False)
+    end_date: Mapped[date] = mapped_column(Date, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    __table_args__ = (
+        Index("ix_seller_banners_profile_id", "seller_profile_id"),
+    )
+
+
 class DataReport(Base):
     """Reporte de dado incorreto enviado por usuário."""
     __tablename__ = "data_reports"
@@ -227,4 +332,23 @@ class UnknownProduct(Base):
     __table_args__ = (
         UniqueConstraint("title_norm", "category", name="uq_unknown_products_title_category"),
         Index("ix_unknown_products_category_hits", "category", "hit_count"),
+    )
+
+
+class Category(Base):
+    """Árvore de categorias do Compras Paraguai (departamento > subcategoria > folha),
+    de fetch_category_tree() — alimenta o crawler e os filtros da UI."""
+    __tablename__ = "categories"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    url: Mapped[str] = mapped_column(Text, nullable=False)
+    name: Mapped[str] = mapped_column(Text, nullable=False)
+    group_name: Mapped[str | None] = mapped_column(Text, nullable=True)
+    department: Mapped[str | None] = mapped_column(Text, nullable=True)
+    department_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("url", name="uq_categories_url"),
+        Index("ix_categories_department", "department"),
     )

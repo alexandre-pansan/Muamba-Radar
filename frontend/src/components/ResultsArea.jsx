@@ -3,6 +3,7 @@ import { useI18n } from '../i18n.jsx'
 import LoadingScene from './LoadingScene.jsx'
 import { detectCategory } from '../loadingTexts.js'
 import ProductCard from './ProductCard.jsx'
+import { Breadcrumb, FilterSidebar } from './ui/index.js'
 import {
   sortGroups,
   cheapestByCountry,
@@ -93,6 +94,7 @@ export default function ResultsArea({
   onGroupOrderChange,
   targetMargin,
   showMargin,
+  onMarginChange,
   onRetry,
   onClear,
   featuredImages,
@@ -102,14 +104,29 @@ export default function ResultsArea({
   scrollRef,
 }) {
   const { t } = useI18n()
+  const [marginPickerOpen, setMarginPickerOpen] = useState(false)
   const [typeFilter, setTypeFilter] = useState(null)
   const [concFilter, setConcFilter] = useState(null)
   const [variantFilter, setVariantFilter] = useState(null)
   const [gameFilter, setGameFilter] = useState(null)
   const [filtersOpen, setFiltersOpen] = useState(false)
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [checkboxFilters, setCheckboxFilters] = useState({ price: new Set(), store: new Set() })
 
   // Reset filters when results change
-  useEffect(() => { setTypeFilter(null); setConcFilter(null); setVariantFilter(null); setGameFilter(null); setFiltersOpen(false) }, [lastQuery])
+  useEffect(() => {
+    setTypeFilter(null); setConcFilter(null); setVariantFilter(null); setGameFilter(null); setFiltersOpen(false)
+    setDrawerOpen(false); setCheckboxFilters({ price: new Set(), store: new Set() })
+  }, [lastQuery])
+
+  function toggleCheckboxFilter(sectionKey, value) {
+    setCheckboxFilters(prev => {
+      const next = new Set(prev[sectionKey])
+      if (next.has(value)) next.delete(value)
+      else next.add(value)
+      return { ...prev, [sectionKey]: next }
+    })
+  }
   // Reset game filter when variant filter changes
   useEffect(() => { setGameFilter(null) }, [variantFilter])
 
@@ -205,8 +222,75 @@ export default function ResultsArea({
       })
     : variantFiltered
 
+  // ── Checkbox drawer filters: price range + store (real facets computed from
+  // `displayed`, not the prototype's fabricated ones — see ui/FilterSidebar) ──
+  const PRICE_BUCKETS = [
+    { value: '0-500', label: 'Até R$500', test: v => v <= 500 },
+    { value: '500-2000', label: 'R$500 – R$2.000', test: v => v > 500 && v <= 2000 },
+    { value: '2000-5000', label: 'R$2.000 – R$5.000', test: v => v > 2000 && v <= 5000 },
+    { value: '5000-10000', label: 'R$5.000 – R$10.000', test: v => v > 5000 && v <= 10000 },
+    { value: '10000-Infinity', label: 'Acima de R$10.000', test: v => v > 10000 },
+  ]
+
+  function groupCheapestBRL(g) {
+    const py = cheapestByCountry(g.offers, 'py')
+    const br = cheapestByCountry(g.offers, 'br')
+    const prices = [py?.price?.amount_brl, br?.price?.amount_brl].filter(v => v != null)
+    return prices.length ? Math.min(...prices) : null
+  }
+
+  function groupStores(g) {
+    return [...new Set((g.offers || []).map(o => o.store).filter(Boolean))]
+  }
+
+  const priceOptions = PRICE_BUCKETS
+    .map(b => ({ ...b, count: displayed.filter(g => { const p = groupCheapestBRL(g); return p != null && b.test(p) }).length }))
+    .filter(b => b.count > 0)
+    .map(b => ({ value: b.value, label: `${b.label} (${b.count})` }))
+
+  const storeMap = {}
+  displayed.forEach(g => groupStores(g).forEach(s => { storeMap[s] = (storeMap[s] || 0) + 1 }))
+  const storeOptions = Object.entries(storeMap)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 20)
+    .map(([s, c]) => ({ value: s, label: `${s} (${c})` }))
+
+  const activeDrawerCount = checkboxFilters.price.size + checkboxFilters.store.size
+  const hasDrawerFacets = priceOptions.length > 0 || storeOptions.length > 0
+
+  const finalDisplayed = displayed.filter(g => {
+    if (checkboxFilters.price.size > 0) {
+      const p = groupCheapestBRL(g)
+      const bucket = PRICE_BUCKETS.find(b => p != null && b.test(p))
+      if (!bucket || !checkboxFilters.price.has(bucket.value)) return false
+    }
+    if (checkboxFilters.store.size > 0) {
+      const stores = groupStores(g)
+      if (!stores.some(s => checkboxFilters.store.has(s))) return false
+    }
+    return true
+  })
+
   return (
     <div className="content-area">
+      {drawerOpen && <div className="ui-filter-drawer-backdrop" onClick={() => setDrawerOpen(false)} />}
+      <FilterSidebar
+        className="ui-filter-sidebar--drawer"
+        mobileOpen={drawerOpen}
+        onCloseMobile={() => setDrawerOpen(false)}
+        sections={[
+          ...(priceOptions.length > 0 ? [{ key: 'price', title: 'Faixa de Preço', options: priceOptions }] : []),
+          ...(storeOptions.length > 0 ? [{ key: 'store', title: 'Loja', options: storeOptions }] : []),
+        ]}
+        selected={checkboxFilters}
+        onToggle={toggleCheckboxFilter}
+      />
+      {lastQuery && (
+        <Breadcrumb items={[
+          { label: 'Início', onClick: onClear },
+          { label: `Resultados para "${lastQuery}"` },
+        ]} />
+      )}
       <div className="content-toolbar">
         <div className="toolbar-left">
           <p className={`status${status?.isError ? ' error' : ''}`}>
@@ -223,6 +307,31 @@ export default function ResultsArea({
           )}
         </div>
         <div className="toolbar-right">
+          {showMargin && onMarginChange && (
+            <div className="margin-picker-wrap">
+              <button
+                type="button"
+                className={`drawer-toggle-btn${marginPickerOpen ? ' has-active' : ''}`}
+                onClick={() => setMarginPickerOpen(o => !o)}
+              >
+                {t('sidebar.margin_title')}: {targetMargin}%
+              </button>
+              {marginPickerOpen && (
+                <div className="margin-picker-popover">
+                  {[10, 20, 30, 35, 40, 45, 50].map(m => (
+                    <button
+                      key={m}
+                      type="button"
+                      className={`margin-chip${targetMargin === m ? ' is-active' : ''}`}
+                      onClick={() => { onMarginChange(m); setMarginPickerOpen(false) }}
+                    >
+                      {m}%
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
           <div className="toolbar-group">
             <label className="toolbar-label" htmlFor="groupOrderSelect">{t('toolbar.order_label')}</label>
             <select
@@ -245,15 +354,19 @@ export default function ResultsArea({
               type="button"
               className={`view-chip${viewMode === 'card' ? ' is-active' : ''}`}
               onClick={() => onViewModeChange('card')}
+              aria-label={t('toolbar.view_card')}
+              title={t('toolbar.view_card')}
             >
-              {t('toolbar.view_card')}
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
             </button>
             <button
               type="button"
               className={`view-chip${viewMode === 'table' ? ' is-active' : ''}`}
               onClick={() => onViewModeChange('table')}
+              aria-label={t('toolbar.view_table')}
+              title={t('toolbar.view_table')}
             >
-              {t('toolbar.view_table')}
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
             </button>
           </div>
           {!isLoading && hasAnyFilter && (
@@ -264,6 +377,17 @@ export default function ResultsArea({
               aria-label="Filtros"
             >
               ⊞{activeFilterCount > 0 && <span className="filter-toggle-badge">{activeFilterCount}</span>}
+            </button>
+          )}
+          {!isLoading && hasDrawerFacets && (
+            <button
+              type="button"
+              className={`drawer-toggle-btn${activeDrawerCount > 0 ? ' has-active' : ''}`}
+              onClick={() => setDrawerOpen(true)}
+              aria-label="Filtros de preço e loja"
+              title="Filtros de preço e loja"
+            >
+              Filtros{activeDrawerCount > 0 && <span className="filter-toggle-badge">{activeDrawerCount}</span>}
             </button>
           )}
         </div>
@@ -365,16 +489,16 @@ export default function ResultsArea({
       <section ref={scrollRef} className={`results${isLoading ? ' is-loading' : ''}`}>
         {isLoading ? (
           <LoadingScene images={featuredImages} query={lastQuery || ''} />
-        ) : viewMode === 'table' && displayed.length > 0 ? (
+        ) : viewMode === 'table' && finalDisplayed.length > 0 ? (
           <FlatTable
-            groups={displayed}
+            groups={finalDisplayed}
             marginPct={targetMargin}
             t={t}
             onOpenOffers={onOpenOffers}
           />
-        ) : viewMode === 'card' && displayed.length > 0 ? (
+        ) : viewMode === 'card' && finalDisplayed.length > 0 ? (
           <div className="product-grid">
-            {displayed.map((group, i) => (
+            {finalDisplayed.map((group, i) => (
               <ProductCard
                 key={group.product_key || i}
                 group={group}
@@ -387,17 +511,21 @@ export default function ResultsArea({
               />
             ))}
           </div>
-        ) : !isLoading && displayed.length === 0 && lastData != null ? (
+        ) : !isLoading && finalDisplayed.length === 0 && lastData != null ? (
           <div className="empty-state">
-            <p>Nenhum produto encontrado para "{lastQuery}".</p>
-            <p className="empty-state-hint">Tente buscar por marca, modelo ou tipo de produto.</p>
-            <button type="button" onClick={onClear}>Limpar busca</button>
+            <p>Nenhum produto encontrado{displayed.length > 0 ? ' com esses filtros' : ` para "${lastQuery}"`}.</p>
+            <p className="empty-state-hint">
+              {displayed.length > 0 ? 'Tente remover algum filtro.' : 'Tente buscar por marca, modelo ou tipo de produto.'}
+            </p>
+            <button type="button" onClick={displayed.length > 0 ? () => setCheckboxFilters({ price: new Set(), store: new Set() }) : onClear}>
+              {displayed.length > 0 ? 'Limpar filtros' : 'Limpar busca'}
+            </button>
           </div>
         ) : null}
       </section>
 
-      {!isLoading && displayed.length > 0 && (() => {
-        const allOffers = displayed.flatMap(g => g.offers || [])
+      {!isLoading && finalDisplayed.length > 0 && (() => {
+        const allOffers = finalDisplayed.flatMap(g => g.offers || [])
         const oldestCapture = allOffers.reduce((oldest, o) => {
           if (!o.captured_at) return oldest
           return !oldest || o.captured_at < oldest ? o.captured_at : oldest

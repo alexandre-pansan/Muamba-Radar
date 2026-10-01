@@ -202,6 +202,13 @@ def init_db() -> None:
             except Exception:
                 conn.rollback()
 
+        # Add specs JSONB column to product_offers (structured attrs for catalog crawler)
+        try:
+            conn.execute(text("ALTER TABLE product_offers ADD COLUMN specs JSONB"))
+            conn.commit()
+        except Exception:
+            conn.rollback()
+
         # data_reports table
         try:
             conn.execute(text("""

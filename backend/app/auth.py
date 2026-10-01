@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.database import get_db
-from app.models import RefreshToken, User
+from app.models import RefreshToken, SellerProfile, User
 
 _REFRESH_TOKEN_EXPIRE_DAYS = 30
 
@@ -113,6 +113,22 @@ def require_admin(current_user: User = Depends(get_current_user)) -> User:
     if not current_user.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin only")
     return current_user
+
+
+def require_seller_plan(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> SellerProfile:
+    """Gates seller-only endpoints behind an active plan_tier. Until real billing exists
+    (backend Phase 3), plan_tier is set manually by the admin via /admin/sellers."""
+    profile = db.query(SellerProfile).filter(SellerProfile.user_id == current_user.id).first()
+    if not profile:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Crie um perfil de lojista primeiro.")
+    if profile.plan_tier == "none":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Ative um plano de lojista para usar este recurso.")
+    if profile.plan_expires_at and profile.plan_expires_at < datetime.now(timezone.utc):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Seu plano de lojista expirou.")
+    return profile
 
 
 def get_current_user_optional(
