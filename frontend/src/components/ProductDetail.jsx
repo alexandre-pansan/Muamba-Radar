@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { useParams, useLocation, useNavigate } from 'react-router-dom'
+import { useParams, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { apiCompare } from '../api.js'
 import { useCart } from '../CartContext.jsx'
 import { familyDisplayName, buildConfigChip, formatMoney, sourceDomain } from '../utils.js'
@@ -46,6 +46,7 @@ function OfferRows({ offers, group, countryClass, onNeedAuth }) {
 export default function ProductDetail({ targetMargin, showMargin, onOpenOffers, onNeedAuth, onReport }) {
   const { productKey } = useParams()
   const location = useLocation()
+  const [searchParams] = useSearchParams()
   const navigate = useNavigate()
 
   const [group, setGroup] = useState(location.state?.group || null)
@@ -54,19 +55,19 @@ export default function ProductDetail({ targetMargin, showMargin, onOpenOffers, 
   const [similar, setSimilar] = useState([])
   const [imgFailed, setImgFailed] = useState(false)
 
-  // Fallback for hard refresh / shared link — no backend endpoint exists for a single
-  // product by key outside a /compare result, so we re-derive a search query from the
-  // slug and hope it still matches. Degrades to a "not found" state, never crashes.
+  // Link aberto do zero (F5 em outra aba, link compartilhado): refaz a busca de origem
+  // (?q= na URL) e procura ESTA chave. Sem ?q (links antigos) tenta o slug. Nunca cai
+  // em "primeiro resultado qualquer" — produto errado é pior que "não encontrado".
   useEffect(() => {
     if (location.state?.group) return
     let cancelled = false
     setLoading(true)
     setNotFound(false)
-    const guess = productKey.replace(/-/g, ' ')
+    const guess = searchParams.get('q') || productKey.replace(/[-_]/g, ' ')
     apiCompare(guess, 'best_match')
       .then(({ data }) => {
         if (cancelled) return
-        const found = data.groups?.find(g => g.product_key === productKey) || data.groups?.[0] || null
+        const found = data.groups?.find(g => g.product_key === productKey) || null
         if (found) setGroup(found)
         else setNotFound(true)
       })

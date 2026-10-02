@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react'
+import React, { useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n.jsx'
-import LoadingScene from './LoadingScene.jsx'
+import ResultsSkeleton from './ResultsSkeleton.jsx'
 import { detectCategory } from '../loadingTexts.js'
 import ProductCard from './ProductCard.jsx'
 import { Breadcrumb, FilterSidebar } from './ui/index.js'
@@ -14,7 +15,6 @@ import {
   sourceDomain,
   detectProductType,
   detectVariant,
-  extractBundleGame,
 } from '../utils.js'
 
 function FlatTable({ groups, marginPct, t, onOpenOffers }) {
@@ -82,229 +82,220 @@ function FlatTable({ groups, marginPct, t, onOpenOffers }) {
   )
 }
 
+// ── Ordenação (opções do protótipo; "Venda estimada" só pra quem usa margem) ──
+const SORT_OPTIONS = [
+  { value: 'relevancia', label: 'Melhor Resultado' },
+  { value: 'menor-py', label: 'Menor Preço PY' },
+  { value: 'menor-br', label: 'Menor Preço BR' },
+  { value: 'economia', label: 'Maior Economia' },
+]
+
+// Faixas de preço do protótipo, sobre o menor preço no Paraguai em US$.
+const PRICE_BUCKETS = [
+  { value: '0-100', label: 'Até US$ 100', min: 0, max: 100 },
+  { value: '100-500', label: 'US$ 100 – 500', min: 100, max: 500 },
+  { value: '500-1000', label: 'US$ 500 – 1.000', min: 500, max: 1000 },
+  { value: '1000-2000', label: 'US$ 1.000 – 2.000', min: 1000, max: 2000 },
+  { value: '2000-', label: 'Acima de US$ 2.000', min: 2000, max: Infinity },
+]
+
+// Chave de cada grupo de filtro na URL (?cat=Console&loja=Nissei&loja=Cellshop).
+const FILTER_KEYS = ['cat', 'variante', 'conc', 'preco', 'loja']
+
+function economyPct(g) {
+  const py = cheapestByCountry(g.offers, 'py')
+  const br = cheapestByCountry(g.offers, 'br')
+  if (!py || !br || !(br.price.amount_brl > 0)) return null
+  return ((br.price.amount_brl - py.price.amount_brl) / br.price.amount_brl) * 100
+}
+
+function sortResults(groups, order, targetMargin) {
+  if (order === 'venda') return sortGroups(groups, 'estimated_asc', targetMargin)
+  const base = sortGroups(groups, 'default', targetMargin) // ambos países primeiro, ordem do backend
+  if (order === 'relevancia') return base
+  const key = {
+    'menor-py': g => cheapestByCountry(g.offers, 'py')?.price?.amount_brl,
+    'menor-br': g => cheapestByCountry(g.offers, 'br')?.price?.amount_brl,
+    economia: g => { const e = economyPct(g); return e == null ? null : -e },
+  }[order]
+  if (!key) return base
+  return base
+    .map((g, i) => ({ g, i, k: key(g) }))
+    .sort((a, b) => {
+      if (a.k == null && b.k == null) return a.i - b.i
+      if (a.k == null) return 1
+      if (b.k == null) return -1
+      return a.k - b.k || a.i - b.i
+    })
+    .map(e => e.g)
+}
+
+// ── Facetas: cada uma diz como ler o valor de um grupo de produto ──
+function groupCategory(g) {
+  const candidates = [familyDisplayName(g), g.canonical_name, ...(g.offers || []).map(o => o.title).filter(Boolean)]
+  return candidates.reduce((found, name) => found || detectProductType(name), null)
+}
+
+function groupVariant(g) {
+  const fk = g.family_key || ''
+  if (fk.includes('_bundle')) return 'Bundle'
+  if (fk.includes('_digital')) return 'Digital'
+  const candidates = [familyDisplayName(g), ...(g.offers || []).map(o => o.title).filter(Boolean)]
+  for (const name of candidates) {
+    const v = detectVariant(name)
+    if (v) return v
+  }
+  return null
+}
+
+function groupPyUSD(g) {
+  const py = (g.offers || []).filter(o => (o.country || '').toLowerCase() === 'py' && o.price?.currency === 'USD')
+  return py.length ? Math.min(...py.map(o => o.price.amount)) : null
+}
+
+function groupPriceBucket(g) {
+  const usd = groupPyUSD(g)
+  if (usd == null) return null
+  return PRICE_BUCKETS.find(b => usd >= b.min && usd < b.max)?.value ?? null
+}
+
+function groupPyStores(g) {
+  return [...new Set((g.offers || [])
+    .filter(o => (o.country || '').toLowerCase() === 'py')
+    .map(o => o.store)
+    .filter(Boolean))]
+}
+
+// valores de cada faceta pra um grupo (sempre lista — loja pode ter várias)
+const FACETS = {
+  cat: { title: 'Categoria', values: g => [groupCategory(g)].filter(Boolean) },
+  variante: { title: 'Variante', values: g => [groupVariant(g)].filter(Boolean) },
+  conc: { title: 'Concentração', values: g => [g.concentration].filter(Boolean) },
+  preco: { title: 'Faixa de Preço (US$)', values: g => [groupPriceBucket(g)].filter(Boolean) },
+  loja: { title: 'Loja (Paraguai)', values: g => groupPyStores(g) },
+}
+
+function matches(g, selected, exceptKey) {
+  return FILTER_KEYS.every(key => {
+    if (key === exceptKey) return true
+    const want = selected[key]
+    if (!want || want.size === 0) return true // sem filtro neste grupo
+    return FACETS[key].values(g).some(v => want.has(v)) // OU dentro do grupo
+  })
+}
+
 export default function ResultsArea({
   isLoading,
   lastData,
   lastQuery,
   status,
   isStale,
-  viewMode,
-  onViewModeChange,
-  groupOrder,
-  onGroupOrderChange,
   targetMargin,
   showMargin,
   onMarginChange,
   onRetry,
   onClear,
-  featuredImages,
   onOpenOffers,
   onNeedAuth,
   onReport,
   scrollRef,
 }) {
   const { t } = useI18n()
+  const [params, setParams] = useSearchParams()
   const [marginPickerOpen, setMarginPickerOpen] = useState(false)
-  const [typeFilter, setTypeFilter] = useState(null)
-  const [concFilter, setConcFilter] = useState(null)
-  const [variantFilter, setVariantFilter] = useState(null)
-  const [gameFilter, setGameFilter] = useState(null)
-  const [filtersOpen, setFiltersOpen] = useState(false)
-  const [drawerOpen, setDrawerOpen] = useState(false)
-  const [checkboxFilters, setCheckboxFilters] = useState({ price: new Set(), store: new Set() })
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
 
-  // Reset filters when results change
-  useEffect(() => {
-    setTypeFilter(null); setConcFilter(null); setVariantFilter(null); setGameFilter(null); setFiltersOpen(false)
-    setDrawerOpen(false); setCheckboxFilters({ price: new Set(), store: new Set() })
-  }, [lastQuery])
+  // Ordem, visualização e filtros vivem na URL — recarregar ou compartilhar o link
+  // mantém tudo. `replace` pra cada clique não virar uma entrada no histórico.
+  const order = params.get('ordem') || 'relevancia'
+  const viewMode = params.get('vista') === 'tabela' ? 'table' : 'card'
+  const selected = useMemo(() => {
+    const out = {}
+    for (const key of FILTER_KEYS) out[key] = new Set(params.getAll(key))
+    return out
+  }, [params])
 
-  function toggleCheckboxFilter(sectionKey, value) {
-    setCheckboxFilters(prev => {
-      const next = new Set(prev[sectionKey])
-      if (next.has(value)) next.delete(value)
-      else next.add(value)
-      return { ...prev, [sectionKey]: next }
+  function updateParams(mutate) {
+    setParams(prev => {
+      const next = new URLSearchParams(prev)
+      mutate(next)
+      return next
+    }, { replace: true })
+  }
+
+  function setOrder(value) {
+    updateParams(p => (value === 'relevancia' ? p.delete('ordem') : p.set('ordem', value)))
+  }
+  function setViewMode(mode) {
+    updateParams(p => (mode === 'table' ? p.set('vista', 'tabela') : p.delete('vista')))
+  }
+  function toggleFilter(key, value) {
+    updateParams(p => {
+      const values = new Set(p.getAll(key))
+      values.has(value) ? values.delete(value) : values.add(value)
+      p.delete(key)
+      ;[...values].forEach(v => p.append(key, v))
     })
   }
-  // Reset game filter when variant filter changes
-  useEffect(() => { setGameFilter(null) }, [variantFilter])
+  function clearFilters() {
+    updateParams(p => FILTER_KEYS.forEach(k => p.delete(k)))
+  }
 
   const showClear = Boolean(lastData)
   const showRetry = status?.isError && lastQuery != null
 
-  const sorted = lastData?.groups
-    ? sortGroups(lastData.groups, groupOrder, targetMargin)
-    : []
+  const sorted = useMemo(
+    () => (lastData?.groups ? sortResults(lastData.groups, order, targetMargin) : []),
+    [lastData, order, targetMargin],
+  )
 
-  function groupType(g) {
-    const candidates = [
-      familyDisplayName(g),
-      g.canonical_name,
-      ...(g.offers || []).map(o => o.title).filter(Boolean),
-    ]
-    return candidates.reduce((found, name) => found || detectProductType(name), null)
-  }
+  const displayed = sorted.filter(g => matches(g, selected, null))
 
-  // Detect types present in results — check canonical name + raw offer titles
-  const typeMap = {}
-  sorted.forEach(g => {
-    const type = groupType(g)
-    if (type) typeMap[type] = (typeMap[type] || 0) + 1
-  })
-  const types = Object.entries(typeMap).sort((a, b) => b[1] - a[1])
-  const showTypeFilter = types.length >= 1
-  const activeFilterCount = [typeFilter, concFilter, variantFilter, gameFilter].filter(Boolean).length
-  const hasAnyFilter = showTypeFilter
-
-  const typeFiltered = typeFilter
-    ? sorted.filter(g => groupType(g) === typeFilter)
-    : sorted
-
-  // Concentration sub-filter (perfumes only)
-  const concMap = {}
-  typeFiltered.forEach(g => {
-    if (g.concentration) concMap[g.concentration] = (concMap[g.concentration] || 0) + 1
-  })
-  const concentrations = Object.entries(concMap).sort((a, b) => b[1] - a[1])
-  const showConcFilter = concentrations.length >= 2
-
-  const concFiltered = concFilter
-    ? typeFiltered.filter(g => g.concentration === concFilter)
-    : typeFiltered
-
-  // Variant sub-filter (editions, Pro/Slim/Digital/etc.)
-  function groupVariant(g) {
-    const fk = g.family_key || ''
-    // Use family_key directly for backend-set console modifiers (most specific first)
-    if (fk.includes('_bundle')) return 'Bundle'
-    if (fk.includes('_digital')) return 'Digital'
-    // Fall back to name-based detection for other variants (Slim, Pro, OLED, etc.)
-    const candidates = [
-      familyDisplayName(g),
-      ...(g.offers || []).map(o => o.title).filter(Boolean),
-    ]
-    for (const name of candidates) {
-      const v = detectVariant(name)
-      if (v) return v
+  // Opções de cada faceta com contagem "se marcar isto": conta sobre os resultados
+  // filtrados por todos os OUTROS grupos. Grupo com menos de 2 opções não aparece
+  // (filtro de uma opção só não filtra nada) — a não ser que já esteja marcado.
+  const sections = FILTER_KEYS.map(key => {
+    const pool = sorted.filter(g => matches(g, selected, key))
+    const counts = new Map()
+    sorted.forEach(g => FACETS[key].values(g).forEach(v => counts.has(v) || counts.set(v, 0)))
+    pool.forEach(g => FACETS[key].values(g).forEach(v => counts.set(v, (counts.get(v) || 0) + 1)))
+    let options = [...counts.entries()].map(([value, count]) => ({ value, count }))
+    if (key === 'preco') {
+      options = PRICE_BUCKETS
+        .filter(b => counts.has(b.value))
+        .map(b => ({ value: b.value, label: b.label, count: counts.get(b.value) }))
+    } else {
+      options.sort((a, b) => b.count - a.count || String(a.value).localeCompare(String(b.value)))
+      options = options.slice(0, key === 'loja' ? 15 : 12).map(o => ({ ...o, label: o.value }))
     }
-    return null
-  }
-
-  const variantMap = {}
-  concFiltered.forEach(g => {
-    const v = groupVariant(g)
-    if (v) variantMap[v] = (variantMap[v] || 0) + 1
-  })
-  const variants = Object.entries(variantMap).sort((a, b) => b[1] - a[1])
-  const showVariantFilter = variants.length >= 2
-
-  const variantFiltered = variantFilter
-    ? concFiltered.filter(g => groupVariant(g) === variantFilter)
-    : concFiltered
-
-  // Game sub-filter — shown when Bundle variant is active
-  const showGameFilter = variantFilter === 'Bundle'
-  const gameMap = {}
-  if (showGameFilter) {
-    variantFiltered.forEach(g => {
-      const titles = (g.offers || []).map(o => o.title).filter(Boolean)
-      const game = titles.reduce((found, t) => found || extractBundleGame(t), null)
-      if (game) gameMap[game] = (gameMap[game] || 0) + 1
+    // mantém visível o que está marcado mesmo se saiu do top-N
+    selected[key].forEach(v => {
+      if (!options.some(o => o.value === v)) options.push({ value: v, label: PRICE_BUCKETS.find(b => b.value === v)?.label || v, count: 0 })
     })
-  }
-  const games = Object.entries(gameMap).sort((a, b) => b[1] - a[1])
+    return { key, title: FACETS[key].title, options }
+  }).filter(sec => sec.options.length >= 2 || selected[sec.key].size > 0)
 
-  const displayed = gameFilter
-    ? variantFiltered.filter(g => {
-        const titles = (g.offers || []).map(o => o.title).filter(Boolean)
-        return titles.some(t => extractBundleGame(t) === gameFilter)
-      })
-    : variantFiltered
-
-  // ── Checkbox drawer filters: price range + store (real facets computed from
-  // `displayed`, not the prototype's fabricated ones — see ui/FilterSidebar) ──
-  const PRICE_BUCKETS = [
-    { value: '0-500', label: 'Até R$500', test: v => v <= 500 },
-    { value: '500-2000', label: 'R$500 – R$2.000', test: v => v > 500 && v <= 2000 },
-    { value: '2000-5000', label: 'R$2.000 – R$5.000', test: v => v > 2000 && v <= 5000 },
-    { value: '5000-10000', label: 'R$5.000 – R$10.000', test: v => v > 5000 && v <= 10000 },
-    { value: '10000-Infinity', label: 'Acima de R$10.000', test: v => v > 10000 },
-  ]
-
-  function groupCheapestBRL(g) {
-    const py = cheapestByCountry(g.offers, 'py')
-    const br = cheapestByCountry(g.offers, 'br')
-    const prices = [py?.price?.amount_brl, br?.price?.amount_brl].filter(v => v != null)
-    return prices.length ? Math.min(...prices) : null
-  }
-
-  function groupStores(g) {
-    return [...new Set((g.offers || []).map(o => o.store).filter(Boolean))]
-  }
-
-  const priceOptions = PRICE_BUCKETS
-    .map(b => ({ ...b, count: displayed.filter(g => { const p = groupCheapestBRL(g); return p != null && b.test(p) }).length }))
-    .filter(b => b.count > 0)
-    .map(b => ({ value: b.value, label: `${b.label} (${b.count})` }))
-
-  const storeMap = {}
-  displayed.forEach(g => groupStores(g).forEach(s => { storeMap[s] = (storeMap[s] || 0) + 1 }))
-  const storeOptions = Object.entries(storeMap)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 20)
-    .map(([s, c]) => ({ value: s, label: `${s} (${c})` }))
-
-  const activeDrawerCount = checkboxFilters.price.size + checkboxFilters.store.size
-  const hasDrawerFacets = priceOptions.length > 0 || storeOptions.length > 0
-
-  const finalDisplayed = displayed.filter(g => {
-    if (checkboxFilters.price.size > 0) {
-      const p = groupCheapestBRL(g)
-      const bucket = PRICE_BUCKETS.find(b => p != null && b.test(p))
-      if (!bucket || !checkboxFilters.price.has(bucket.value)) return false
-    }
-    if (checkboxFilters.store.size > 0) {
-      const stores = groupStores(g)
-      if (!stores.some(s => checkboxFilters.store.has(s))) return false
-    }
-    return true
-  })
+  const activeFilterCount = FILTER_KEYS.reduce((n, k) => n + selected[k].size, 0)
+  const sortOptions = showMargin ? [...SORT_OPTIONS, { value: 'venda', label: 'Venda estimada ↑' }] : SORT_OPTIONS
 
   return (
     <div className="content-area">
-      {drawerOpen && <div className="ui-filter-drawer-backdrop" onClick={() => setDrawerOpen(false)} />}
-      <FilterSidebar
-        className="ui-filter-sidebar--drawer"
-        mobileOpen={drawerOpen}
-        onCloseMobile={() => setDrawerOpen(false)}
-        sections={[
-          ...(priceOptions.length > 0 ? [{ key: 'price', title: 'Faixa de Preço', options: priceOptions }] : []),
-          ...(storeOptions.length > 0 ? [{ key: 'store', title: 'Loja', options: storeOptions }] : []),
-        ]}
-        selected={checkboxFilters}
-        onToggle={toggleCheckboxFilter}
-      />
       {lastQuery && (
         <Breadcrumb items={[
           { label: 'Início', onClick: onClear },
           { label: `Resultados para "${lastQuery}"` },
         ]} />
       )}
-      <div className="content-toolbar">
+      <div className="content-toolbar results-toolbar">
         <div className="toolbar-left">
           <p className={`status${status?.isError ? ' error' : ''}`}>
-            {status?.text ?? t('status.ready')}
+            {isLoading || status?.isError || !lastData
+              ? (status?.text ?? t('status.ready'))
+              : `${displayed.length} variante(s) encontrada(s)${activeFilterCount > 0 ? ` de ${sorted.length}` : ''}`}
           </p>
-          {isStale && (
-            <span className="badge-stale">{t('status.stale')}</span>
-          )}
-          {showRetry && (
-            <button className="btn-inline" onClick={onRetry}>{t('btn.retry')}</button>
-          )}
-          {showClear && (
-            <button className="btn-inline btn-muted" onClick={onClear}>{t('btn.clear')}</button>
-          )}
+          {isStale && <span className="badge-stale">{t('status.stale')}</span>}
+          {showRetry && <button className="btn-inline" onClick={onRetry}>{t('btn.retry')}</button>}
+          {showClear && <button className="btn-inline btn-muted" onClick={onClear}>{t('btn.clear')}</button>}
         </div>
         <div className="toolbar-right">
           {showMargin && onMarginChange && (
@@ -332,28 +323,19 @@ export default function ResultsArea({
               )}
             </div>
           )}
-          <div className="toolbar-group">
-            <label className="toolbar-label" htmlFor="groupOrderSelect">{t('toolbar.order_label')}</label>
-            <select
-              id="groupOrderSelect"
-              className="toolbar-select"
-              value={groupOrder}
-              onChange={e => onGroupOrderChange(e.target.value)}
-            >
-              <option value="default">Relevância</option>
-              <option value="estimated_asc">Venda ↑ Menor</option>
-              <option value="estimated_desc">Venda ↓ Maior</option>
-              <option value="py_asc">PY ↑ Menor</option>
-              <option value="py_desc">PY ↓ Maior</option>
-              <option value="name_asc">Nome A→Z</option>
-              <option value="name_desc">Nome Z→A</option>
-            </select>
-          </div>
+          <select
+            className="toolbar-select results-toolbar__sort"
+            value={order}
+            onChange={e => setOrder(e.target.value)}
+            aria-label="Ordenar resultados"
+          >
+            {sortOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
           <div className="view-switch">
             <button
               type="button"
               className={`view-chip${viewMode === 'card' ? ' is-active' : ''}`}
-              onClick={() => onViewModeChange('card')}
+              onClick={() => setViewMode('card')}
               aria-label={t('toolbar.view_card')}
               title={t('toolbar.view_card')}
             >
@@ -362,191 +344,108 @@ export default function ResultsArea({
             <button
               type="button"
               className={`view-chip${viewMode === 'table' ? ' is-active' : ''}`}
-              onClick={() => onViewModeChange('table')}
+              onClick={() => setViewMode('table')}
               aria-label={t('toolbar.view_table')}
               title={t('toolbar.view_table')}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
             </button>
           </div>
-          {!isLoading && hasAnyFilter && (
-            <button
-              type="button"
-              className={`filter-toggle-btn${filtersOpen ? ' is-open' : ''}${activeFilterCount > 0 ? ' has-active' : ''}`}
-              onClick={() => setFiltersOpen(o => !o)}
-              aria-label="Filtros"
-            >
-              ⊞{activeFilterCount > 0 && <span className="filter-toggle-badge">{activeFilterCount}</span>}
-            </button>
-          )}
-          {!isLoading && hasDrawerFacets && (
-            <button
-              type="button"
-              className={`drawer-toggle-btn${activeDrawerCount > 0 ? ' has-active' : ''}`}
-              onClick={() => setDrawerOpen(true)}
-              aria-label="Filtros de preço e loja"
-              title="Filtros de preço e loja"
-            >
-              Filtros{activeDrawerCount > 0 && <span className="filter-toggle-badge">{activeDrawerCount}</span>}
-            </button>
-          )}
         </div>
       </div>
 
-      <div className={`filter-bars-panel${filtersOpen ? ' is-open' : ''}`}>
-      {!isLoading && showTypeFilter && (
-        <div className="type-filter-bar">
-          <button
-            className={`type-chip${!typeFilter ? ' is-active' : ''}`}
-            onClick={() => setTypeFilter(null)}
-          >
-            Todos <span className="type-chip-count">{sorted.length}</span>
-          </button>
-          {types.map(([type, count]) => (
+      <div className="search-layout">
+        {!isLoading && sorted.length > 0 && (
+          <>
+            {mobileFiltersOpen && <div className="filter-backdrop" onClick={() => setMobileFiltersOpen(false)} />}
+            <FilterSidebar
+              sections={sections}
+              selected={selected}
+              onToggle={toggleFilter}
+              onClear={clearFilters}
+              mobileOpen={mobileFiltersOpen}
+              onCloseMobile={() => setMobileFiltersOpen(false)}
+              resultCount={displayed.length}
+            />
             <button
-              key={type}
-              className={`type-chip${typeFilter === type ? ' is-active' : ''}`}
-              onClick={() => { setTypeFilter(t => t === type ? null : type); setConcFilter(null); setVariantFilter(null) }}
+              type="button"
+              className="filter-btn-mobile"
+              onClick={() => setMobileFiltersOpen(true)}
+              aria-label="Abrir filtros"
             >
-              {type} <span className="type-chip-count">{count}</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+              Filtros{activeFilterCount > 0 && ` (${activeFilterCount})`}
             </button>
-          ))}
-        </div>
-      )}
+          </>
+        )}
 
-      {!isLoading && showConcFilter && (
-        <div className="type-filter-bar type-filter-bar--sub">
-          <button
-            className={`type-chip${!concFilter ? ' is-active' : ''}`}
-            onClick={() => setConcFilter(null)}
-          >
-            Todos <span className="type-chip-count">{typeFiltered.length}</span>
-          </button>
-          {concentrations.map(([conc, count]) => (
-            <button
-              key={conc}
-              className={`type-chip${concFilter === conc ? ' is-active' : ''}`}
-              onClick={() => { setConcFilter(c => c === conc ? null : conc); setVariantFilter(null) }}
-            >
-              {conc} <span className="type-chip-count">{count}</span>
-            </button>
-          ))}
-        </div>
-      )}
+        <section ref={scrollRef} className={`results${isLoading ? ' is-loading' : ''}`}>
+          {!isLoading && sorted.length > 0 && detectCategory(lastQuery) === 'perfume' && (
+            <div className="category-notice">
+              <span className="category-notice-icon">🚧</span>
+              <div className="category-notice-body">
+                <span className="category-notice-title">{t('notice.perfume_title')}</span>
+                <span className="category-notice-text">{t('notice.perfume')}</span>
+              </div>
+            </div>
+          )}
 
-      {!isLoading && showVariantFilter && (
-        <div className="type-filter-bar type-filter-bar--sub">
-          <button
-            className={`type-chip${!variantFilter ? ' is-active' : ''}`}
-            onClick={() => setVariantFilter(null)}
-          >
-            Todos <span className="type-chip-count">{concFiltered.length}</span>
-          </button>
-          {variants.map(([variant, count]) => (
-            <button
-              key={variant}
-              className={`type-chip${variantFilter === variant ? ' is-active' : ''}`}
-              onClick={() => setVariantFilter(v => v === variant ? null : variant)}
-            >
-              {variant} <span className="type-chip-count">{count}</span>
-            </button>
-          ))}
-        </div>
-      )}
+          {isLoading ? (
+            <ResultsSkeleton query={lastQuery || ''} />
+          ) : viewMode === 'table' && displayed.length > 0 ? (
+            <FlatTable groups={displayed} marginPct={targetMargin} t={t} onOpenOffers={onOpenOffers} />
+          ) : viewMode === 'card' && displayed.length > 0 ? (
+            <div className="product-grid">
+              {displayed.map((group, i) => (
+                <ProductCard
+                  key={group.product_key || i}
+                  group={group}
+                  marginPct={targetMargin}
+                  showMargin={showMargin}
+                  idx={i}
+                  onOpenOffers={onOpenOffers}
+                  onNeedAuth={onNeedAuth}
+                  onReport={onReport}
+                />
+              ))}
+            </div>
+          ) : lastData != null ? (
+            <div className="empty-state">
+              <p>Nenhum produto encontrado{sorted.length > 0 ? ' com esses filtros' : ` para "${lastQuery}"`}.</p>
+              <p className="empty-state-hint">
+                {sorted.length > 0 ? 'Tente remover algum filtro.' : 'Tente buscar por marca, modelo ou tipo de produto.'}
+              </p>
+              <button type="button" onClick={sorted.length > 0 ? clearFilters : onClear}>
+                {sorted.length > 0 ? 'Limpar filtros' : 'Limpar busca'}
+              </button>
+            </div>
+          ) : null}
 
-      {!isLoading && showGameFilter && games.length >= 1 && (
-        <div className="type-filter-bar type-filter-bar--sub">
-          <span className="filter-bar-label">Jogo:</span>
-          <button
-            className={`type-chip${!gameFilter ? ' is-active' : ''}`}
-            onClick={() => setGameFilter(null)}
-          >
-            Todos <span className="type-chip-count">{variantFiltered.length}</span>
-          </button>
-          {games.map(([game, count]) => (
-            <button
-              key={game}
-              className={`type-chip${gameFilter === game ? ' is-active' : ''}`}
-              onClick={() => setGameFilter(g => g === game ? null : game)}
-            >
-              {game} <span className="type-chip-count">{count}</span>
-            </button>
-          ))}
-        </div>
-      )}
+          {!isLoading && displayed.length > 0 && (() => {
+            const allOffers = displayed.flatMap(g => g.offers || [])
+            const oldestCapture = allOffers.reduce((oldest, o) => {
+              if (!o.captured_at) return oldest
+              return !oldest || o.captured_at < oldest ? o.captured_at : oldest
+            }, null)
+            const pyOffer = allOffers.find(o => o.country === 'py' && o.price?.fx_rate_used)
+            const fxRate = pyOffer?.price?.fx_rate_used
+            const capturedDate = oldestCapture
+              ? new Date(oldestCapture).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+              : null
+            return (
+              <p className="results-capture-info">
+                {capturedDate && <>Capturado em {capturedDate}</>}
+                {capturedDate && fxRate && <span className="results-capture-sep"> · </span>}
+                {fxRate && (
+                  <span title="Os preços paraguaios são convertidos para BRL usando essa cotação estimada. Confirme o valor final na loja.">
+                    Câmbio PY estimado: R$&nbsp;1&nbsp;≈&nbsp;Gs&nbsp;{Math.round(fxRate).toLocaleString('pt-BR')} ⓘ
+                  </span>
+                )}
+              </p>
+            )
+          })()}
+        </section>
       </div>
-
-      {!isLoading && sorted.length > 0 && detectCategory(lastQuery) === 'perfume' && (
-        <div className="category-notice">
-          <span className="category-notice-icon">🚧</span>
-          <div className="category-notice-body">
-            <span className="category-notice-title">{t('notice.perfume_title')}</span>
-            <span className="category-notice-text">{t('notice.perfume')}</span>
-          </div>
-        </div>
-      )}
-
-      <section ref={scrollRef} className={`results${isLoading ? ' is-loading' : ''}`}>
-        {isLoading ? (
-          <LoadingScene images={featuredImages} query={lastQuery || ''} />
-        ) : viewMode === 'table' && finalDisplayed.length > 0 ? (
-          <FlatTable
-            groups={finalDisplayed}
-            marginPct={targetMargin}
-            t={t}
-            onOpenOffers={onOpenOffers}
-          />
-        ) : viewMode === 'card' && finalDisplayed.length > 0 ? (
-          <div className="product-grid">
-            {finalDisplayed.map((group, i) => (
-              <ProductCard
-                key={group.product_key || i}
-                group={group}
-                marginPct={targetMargin}
-                showMargin={showMargin}
-                idx={i}
-                onOpenOffers={onOpenOffers}
-                onNeedAuth={onNeedAuth}
-                onReport={onReport}
-              />
-            ))}
-          </div>
-        ) : !isLoading && finalDisplayed.length === 0 && lastData != null ? (
-          <div className="empty-state">
-            <p>Nenhum produto encontrado{displayed.length > 0 ? ' com esses filtros' : ` para "${lastQuery}"`}.</p>
-            <p className="empty-state-hint">
-              {displayed.length > 0 ? 'Tente remover algum filtro.' : 'Tente buscar por marca, modelo ou tipo de produto.'}
-            </p>
-            <button type="button" onClick={displayed.length > 0 ? () => setCheckboxFilters({ price: new Set(), store: new Set() }) : onClear}>
-              {displayed.length > 0 ? 'Limpar filtros' : 'Limpar busca'}
-            </button>
-          </div>
-        ) : null}
-      </section>
-
-      {!isLoading && finalDisplayed.length > 0 && (() => {
-        const allOffers = finalDisplayed.flatMap(g => g.offers || [])
-        const oldestCapture = allOffers.reduce((oldest, o) => {
-          if (!o.captured_at) return oldest
-          return !oldest || o.captured_at < oldest ? o.captured_at : oldest
-        }, null)
-        const pyOffer = allOffers.find(o => o.country === 'py' && o.price?.fx_rate_used)
-        const fxRate = pyOffer?.price?.fx_rate_used
-        const capturedDate = oldestCapture
-          ? new Date(oldestCapture).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
-          : null
-        return (
-          <p className="results-capture-info">
-            {capturedDate && <>Capturado em {capturedDate}</>}
-            {capturedDate && fxRate && <span className="results-capture-sep"> · </span>}
-            {fxRate && (
-              <span title="Os preços paraguaios são convertidos para BRL usando essa cotação estimada. Confirme o valor final na loja.">
-                Câmbio PY estimado: R$&nbsp;1&nbsp;≈&nbsp;Gs&nbsp;{Math.round(fxRate).toLocaleString('pt-BR')} ⓘ
-              </span>
-            )}
-          </p>
-        )
-      })()}
     </div>
   )
 }

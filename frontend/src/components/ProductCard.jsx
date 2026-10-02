@@ -1,5 +1,5 @@
 import React, { useCallback, useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n.jsx'
 import { useCart } from '../CartContext.jsx'
 import { useFavorites } from '../FavoritesContext.jsx'
@@ -54,6 +54,7 @@ export default function ProductCard({ group, marginPct, showMargin, idx, onNeedA
   const { savedUrls: cartUrls, toggle: toggleCart } = useCart()
   const { isFavorited, toggle: toggleFavorite } = useFavorites()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [showHint, setShowHint] = useState(false)
   // Foto de site de terceiro pode sumir (404) — cai no placeholder "sem imagem".
   const [imgFailed, setImgFailed] = useState(false)
@@ -96,7 +97,10 @@ export default function ProductCard({ group, marginPct, showMargin, idx, onNeedA
   }
 
   function handleViewDetails() {
-    if (group.product_key) navigate(`/product/${group.product_key}`, { state: { group } })
+    // O termo da busca vai junto na URL: abrir o link do zero (F5, link compartilhado)
+    // refaz a mesma busca e acha exatamente este produto pela chave.
+    const q = searchParams.get('q') || familyDisplayName(group)
+    if (group.product_key) navigate(`/product/${group.product_key}?q=${encodeURIComponent(q)}`, { state: { group } })
   }
 
   return (

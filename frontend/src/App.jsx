@@ -77,7 +77,7 @@ import { FavoritesProvider } from './FavoritesContext.jsx'
 import { ToastProvider } from './components/ui/index.js'
 import {
   getToken, getRefreshToken, setToken, apiLogout,
-  apiFetchMe, apiFetchPrefs, apiFetchFeaturedImages,
+  apiFetchMe, apiFetchPrefs,
   apiFetchUserSearches, apiCompare, apiSavePrefs, apiFetchConfig,
 } from './api.js'
 
@@ -117,12 +117,7 @@ function AppShell({ currentUser, setCurrentUser }) {
   const [status, setStatus] = useState(null) // {text, isError}
   const [isLoading, setIsLoading] = useState(false)
   const [isStale, setIsStale] = useState(false)
-  const [viewMode, setViewMode] = useState('card') // 'card' | 'table'
-  const [groupOrder, setGroupOrder] = useState('estimated_asc')
   const [targetMargin, setTargetMargin] = useState(20)
-
-  // Featured images for loading scene
-  const [featuredImages, setFeaturedImages] = useState([])
 
   // Recent searches
   const [recentSearches, setRecentSearches] = useState([])
@@ -286,14 +281,6 @@ function AppShell({ currentUser, setCurrentUser }) {
     } catch (_) {}
   }
 
-  // ── Featured images ─────────────────────────────────────────────────────────
-
-  useEffect(() => {
-    apiFetchFeaturedImages().then(imgs => {
-      if (imgs && imgs.length) setFeaturedImages(imgs)
-    })
-  }, [])
-
   // ── Donate config (public, no auth needed) ──────────────────────────────────
 
   useEffect(() => {
@@ -316,6 +303,42 @@ function AppShell({ currentUser, setCurrentUser }) {
 
   // ── Search ──────────────────────────────────────────────────────────────────
 
+  // A busca vive na URL (/?q=...): recarregar, voltar/avançar ou compartilhar o link
+  // refaz a mesma busca. Todo gatilho de busca navega; quem roda é o efeito abaixo.
+  const location = useLocation()
+  const [searchParams] = useSearchParams()
+  const urlQuery = location.pathname === '/' ? (searchParams.get('q') || '').trim() : ''
+  const lastRunQuery = useRef(null)
+
+  function goSearch(searchQuery) {
+    const q = (searchQuery ?? query).trim()
+    if (!q) {
+      setStatus({ text: t('status.type_first'), isError: true })
+      return
+    }
+    setQuery(q)
+    if (location.pathname === '/' && urlQuery === q) {
+      runCompare(q) // mesmo termo de novo = buscar de novo
+    } else {
+      navigate(`/?q=${encodeURIComponent(q)}`)
+    }
+  }
+
+  useEffect(() => {
+    if (location.pathname !== '/') return
+    if (!urlQuery) {
+      if (lastRunQuery.current !== null) {
+        lastRunQuery.current = null
+        resetResults()
+      }
+      return
+    }
+    if (urlQuery !== lastRunQuery.current) {
+      setQuery(urlQuery)
+      runCompare(urlQuery)
+    }
+  }, [location.pathname, urlQuery]) // eslint-disable-line react-hooks/exhaustive-deps
+
   async function runCompare(searchQuery) {
     const q = (searchQuery ?? query).trim()
     if (!q) {
@@ -323,6 +346,7 @@ function AppShell({ currentUser, setCurrentUser }) {
       return
     }
     setLastQuery(q)
+    lastRunQuery.current = q
     setIsLoading(true)
     setIsStale(false)
     setStatus({ text: t('status.comparing'), isError: false })
@@ -340,10 +364,6 @@ function AppShell({ currentUser, setCurrentUser }) {
 
       saveRecentSearch(q)
 
-      // Refresh images in background
-      apiFetchFeaturedImages().then(imgs => {
-        if (imgs && imgs.length) setFeaturedImages(imgs)
-      })
     } catch (err) {
       setStatus({ text: t('status.compare_failed', { msg: err.message }), isError: true })
     } finally {
@@ -358,12 +378,16 @@ function AppShell({ currentUser, setCurrentUser }) {
     }
   }
 
-  function handleClear() {
+  function resetResults() {
     setLastData(null)
     setLastQuery(null)
     setQuery('')
     setIsStale(false)
     setStatus({ text: t('status.ready'), isError: false })
+  }
+
+  function handleClear() {
+    navigate('/')
   }
 
   function saveRecentSearch(q) {
@@ -386,8 +410,7 @@ function AppShell({ currentUser, setCurrentUser }) {
   }
 
   function handleRecentClick(q) {
-    setQuery(q)
-    runCompare(q)
+    goSearch(q)
   }
 
   // ── Offers dialog ───────────────────────────────────────────────────────────
@@ -445,14 +468,14 @@ function AppShell({ currentUser, setCurrentUser }) {
         onOpenFavorites={goFavorites}
         onOpenProfile={currentUser ? goProfile : undefined}
         onOpenHelp={() => setHelpOpen(true)}
-        onCategorySearch={(q) => { navigate('/'); setQuery(q); runCompare(q) }}
+        onCategorySearch={goSearch}
         cartCount={cartItems.length}
         theme={theme}
         onToggleTheme={toggleTheme}
         onGoHome={goHome}
         query={query}
         onQueryChange={setQuery}
-        onSearch={(q) => { navigate('/'); runCompare(q) }}
+        onSearch={goSearch}
         recentSearches={recentSearches}
       />
 
@@ -502,12 +525,12 @@ function AppShell({ currentUser, setCurrentUser }) {
             onQueryChange={setQuery}
             sort={sort}
             onSortChange={setSort}
-            onSearch={runCompare}
+            onSearch={goSearch}
             hidden={searchBarHidden}
           />
           {!lastData && !isLoading ? (
             <Home
-              onSearch={runCompare}
+              onSearch={goSearch}
               recentSearches={recentSearches}
               onRecentClick={handleRecentClick}
               targetMargin={targetMargin}
@@ -523,16 +546,11 @@ function AppShell({ currentUser, setCurrentUser }) {
               lastQuery={lastQuery}
               status={status}
               isStale={isStale}
-              viewMode={viewMode}
-              onViewModeChange={setViewMode}
-              groupOrder={groupOrder}
-              onGroupOrderChange={setGroupOrder}
               targetMargin={targetMargin}
               showMargin={showMargin}
               onMarginChange={setTargetMargin}
               onRetry={handleRetry}
               onClear={handleClear}
-              featuredImages={featuredImages}
               onOpenOffers={openOffersDialog}
               onNeedAuth={() => openAuthModal('login')}
               onReport={openReportModal}
