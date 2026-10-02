@@ -779,6 +779,9 @@ def _enrich_with_seller_data(db: Session, groups: list[ProductGroupModel]) -> No
 
 # ── Compare ───────────────────────────────────────────────────────────────────
 
+MAX_COMPARE_GROUPS = 500
+
+
 @app.get("/compare", response_model=CompareResponseModel)
 @limiter.limit("30/minute")
 def compare(
@@ -880,6 +883,13 @@ def compare(
         _enrich_with_seller_data(db, result.groups)
     except Exception as exc:
         log.warning("  seller enrichment failed (non-fatal): %s", exc)
+    # Busca ampla ("perfume") acha ~6 mil produtos / 20 MB de JSON — ninguém navega
+    # isso e o navegador sofre pra baixar e montar. Manda os mais relevantes (a ordem
+    # já é de relevância, com destaques primeiro) e avisa o total pro front sugerir
+    # refinar a busca.
+    if len(result.groups) > MAX_COMPARE_GROUPS:
+        result.total_groups = len(result.groups)
+        result.groups = result.groups[:MAX_COMPARE_GROUPS]
     log.info(
         "  → %s  groups=%d  (%.0fms)",
         "MISS" if live_offers else "FALLBACK",

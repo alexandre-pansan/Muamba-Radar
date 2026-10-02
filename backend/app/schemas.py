@@ -96,6 +96,9 @@ class CompareResponseModel(BaseModel):
     query: str
     generated_at: datetime
     groups: list[ProductGroupModel]
+    # Quantos produtos a busca achou no total, quando `groups` foi cortado no teto
+    # (busca ampla como "perfume" acha milhares). None = veio tudo.
+    total_groups: int | None = None
 
 
 class ImageCandidateModel(BaseModel):

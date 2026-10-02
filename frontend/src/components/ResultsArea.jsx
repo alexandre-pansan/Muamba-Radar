@@ -1,10 +1,12 @@
-import React, { useMemo, useState } from 'react'
+import React, { useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n.jsx'
 import ResultsSkeleton from './ResultsSkeleton.jsx'
 import { detectCategory } from '../loadingTexts.js'
 import ProductCard from './ProductCard.jsx'
 import { Breadcrumb, FilterSidebar } from './ui/index.js'
+import VirtualGrid from './ui/VirtualGrid.jsx'
 import {
   sortGroups,
   cheapestByCountry,
@@ -17,7 +19,30 @@ import {
   detectVariant,
 } from '../utils.js'
 
-function FlatTable({ groups, marginPct, t, onOpenOffers }) {
+const TABLE_ROW_HEIGHT = 49
+
+/** Tabela virtualizada: linhas espaçadoras em cima/embaixo, só as visíveis no DOM. */
+function FlatTable({ groups, marginPct, t, onOpenOffers, scrollRef }) {
+  const bodyRef = useRef(null)
+  const [scrollMargin, setScrollMargin] = useState(0)
+  useLayoutEffect(() => {
+    const body = bodyRef.current
+    const scroller = scrollRef?.current
+    if (!body || !scroller) return
+    setScrollMargin(body.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop)
+  }, [scrollRef, groups])
+
+  const virtualizer = useVirtualizer({
+    count: groups.length,
+    getScrollElement: () => scrollRef?.current || null,
+    estimateSize: () => TABLE_ROW_HEIGHT,
+    overscan: Math.max(10, Math.ceil((scrollRef?.current?.clientHeight || 800) / TABLE_ROW_HEIGHT)),
+    scrollMargin,
+  })
+  const rows = virtualizer.getVirtualItems()
+  const padTop = rows.length ? rows[0].start - scrollMargin : 0
+  const padBottom = rows.length ? virtualizer.getTotalSize() - (rows[rows.length - 1].end - scrollMargin) : 0
+
   return (
     <div className="flat-table-wrap">
       <table className="flat-table">
@@ -34,8 +59,11 @@ function FlatTable({ groups, marginPct, t, onOpenOffers }) {
             <th>{t('table.offers')}</th>
           </tr>
         </thead>
-        <tbody>
-          {groups.map((group, i) => {
+        <tbody ref={bodyRef}>
+          {padTop > 0 && <tr aria-hidden="true"><td colSpan={9} style={{ height: padTop, padding: 0, border: 'none' }} /></tr>}
+          {rows.map(vRow => {
+            const i = vRow.index
+            const group = groups[i]
             const py     = cheapestByCountry(group.offers, 'py')
             const br     = cheapestByCountry(group.offers, 'br')
             const sell   = estimateSellingPrice(py, br, marginPct)
@@ -46,7 +74,7 @@ function FlatTable({ groups, marginPct, t, onOpenOffers }) {
             const name   = familyDisplayName(group)
 
             return (
-              <tr key={group.product_key || i} style={{ animationDelay: `${i * 20}ms` }}>
+              <tr key={group.product_key || i}>
                 <td className="ft-model">{name}</td>
                 <td><span className="config-chip">{config}</span></td>
                 <td className="ft-py">{py ? formatMoney(py.price.amount_brl, 'BRL') : '—'}</td>
@@ -76,6 +104,7 @@ function FlatTable({ groups, marginPct, t, onOpenOffers }) {
               </tr>
             )
           })}
+          {padBottom > 0 && <tr aria-hidden="true"><td colSpan={9} style={{ height: padBottom, padding: 0, border: 'none' }} /></tr>}
         </tbody>
       </table>
     </div>
@@ -175,12 +204,15 @@ const FACETS = {
   loja: { title: 'Loja (Paraguai)', values: g => groupPyStores(g) },
 }
 
-function matches(g, selected, exceptKey) {
+// entry = { group, values: { cat: [...], loja: [...], ... } } — valores calculados uma
+// vez por resultado (detectar categoria/variante varre os títulos das ofertas; refazer
+// isso a cada clique em milhares de produtos travava a página).
+function matches(entry, selected, exceptKey) {
   return FILTER_KEYS.every(key => {
     if (key === exceptKey) return true
     const want = selected[key]
     if (!want || want.size === 0) return true // sem filtro neste grupo
-    return FACETS[key].values(g).some(v => want.has(v)) // OU dentro do grupo
+    return entry.values[key].some(v => want.has(v)) // OU dentro do grupo
   })
 }
 
@@ -249,16 +281,26 @@ export default function ResultsArea({
     [lastData, order, targetMargin],
   )
 
-  const displayed = sorted.filter(g => matches(g, selected, null))
+  const indexed = useMemo(
+    () => sorted.map(group => ({
+      group,
+      values: Object.fromEntries(FILTER_KEYS.map(k => [k, FACETS[k].values(group)])),
+    })),
+    [sorted],
+  )
+  const displayed = useMemo(
+    () => indexed.filter(e => matches(e, selected, null)).map(e => e.group),
+    [indexed, selected],
+  )
 
   // Opções de cada faceta com contagem "se marcar isto": conta sobre os resultados
   // filtrados por todos os OUTROS grupos. Grupo com menos de 2 opções não aparece
   // (filtro de uma opção só não filtra nada) — a não ser que já esteja marcado.
-  const sections = FILTER_KEYS.map(key => {
-    const pool = sorted.filter(g => matches(g, selected, key))
+  const sections = useMemo(() => FILTER_KEYS.map(key => {
+    const pool = indexed.filter(e => matches(e, selected, key))
     const counts = new Map()
-    sorted.forEach(g => FACETS[key].values(g).forEach(v => counts.has(v) || counts.set(v, 0)))
-    pool.forEach(g => FACETS[key].values(g).forEach(v => counts.set(v, (counts.get(v) || 0) + 1)))
+    indexed.forEach(e => e.values[key].forEach(v => counts.has(v) || counts.set(v, 0)))
+    pool.forEach(e => e.values[key].forEach(v => counts.set(v, (counts.get(v) || 0) + 1)))
     let options = [...counts.entries()].map(([value, count]) => ({ value, count }))
     if (key === 'preco') {
       options = PRICE_BUCKETS
@@ -273,7 +315,7 @@ export default function ResultsArea({
       if (!options.some(o => o.value === v)) options.push({ value: v, label: PRICE_BUCKETS.find(b => b.value === v)?.label || v, count: 0 })
     })
     return { key, title: FACETS[key].title, options }
-  }).filter(sec => sec.options.length >= 2 || selected[sec.key].size > 0)
+  }).filter(sec => sec.options.length >= 2 || selected[sec.key].size > 0), [indexed, selected])
 
   const activeFilterCount = FILTER_KEYS.reduce((n, k) => n + selected[k].size, 0)
   const sortOptions = showMargin ? [...SORT_OPTIONS, { value: 'venda', label: 'Venda estimada ↑' }] : SORT_OPTIONS
@@ -380,6 +422,13 @@ export default function ResultsArea({
         )}
 
         <section ref={scrollRef} className={`results${isLoading ? ' is-loading' : ''}`}>
+          {!isLoading && lastData?.total_groups > sorted.length && (
+            <div className="results-capped">
+              <strong>Mostrando os {sorted.length} produtos mais relevantes de {lastData.total_groups.toLocaleString('pt-BR')}.</strong>
+              {' '}Busca muito ampla — use os filtros ou seja mais específico (ex.: marca e modelo) para achar o que procura.
+            </div>
+          )}
+
           {!isLoading && sorted.length > 0 && detectCategory(lastQuery) === 'perfume' && (
             <div className="category-notice">
               <span className="category-notice-icon">🚧</span>
@@ -393,22 +442,24 @@ export default function ResultsArea({
           {isLoading ? (
             <ResultsSkeleton query={lastQuery || ''} />
           ) : viewMode === 'table' && displayed.length > 0 ? (
-            <FlatTable groups={displayed} marginPct={targetMargin} t={t} onOpenOffers={onOpenOffers} />
+            <FlatTable groups={displayed} marginPct={targetMargin} t={t} onOpenOffers={onOpenOffers} scrollRef={scrollRef} />
           ) : viewMode === 'card' && displayed.length > 0 ? (
-            <div className="product-grid">
-              {displayed.map((group, i) => (
+            <VirtualGrid
+              items={displayed}
+              scrollRef={scrollRef}
+              getKey={(group, i) => group.product_key || i}
+              renderItem={(group, i) => (
                 <ProductCard
-                  key={group.product_key || i}
                   group={group}
                   marginPct={targetMargin}
                   showMargin={showMargin}
-                  idx={i}
+                  idx={i % 8}
                   onOpenOffers={onOpenOffers}
                   onNeedAuth={onNeedAuth}
                   onReport={onReport}
                 />
-              ))}
-            </div>
+              )}
+            />
           ) : lastData != null ? (
             <div className="empty-state">
               <p>Nenhum produto encontrado{sorted.length > 0 ? ' com esses filtros' : ` para "${lastQuery}"`}.</p>

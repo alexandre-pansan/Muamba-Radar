@@ -6653,6 +6653,18 @@ a.cart-item__price-br:hover { text-decoration: underline; }
 }
 .search-layout > .results { min-width: 0; }
 
+.results-capped {
+  margin-bottom: 4px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--accent-2);
+  background: var(--card);
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.results-capped strong { color: var(--ink); }
+
 .filter-sidebar {
   width: 260px;
   flex-shrink: 0;
