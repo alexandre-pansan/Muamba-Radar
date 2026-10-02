@@ -4,11 +4,24 @@ import { buildPixPayload, PIX_KEY, PIX_NAME, PIX_CITY } from '../pix.js'
 
 const PRESETS = [5, 10, 25, 50]
 
-// Quem faz o MuambaRadar — aparece no rodapé do modal de doação.
+// Quem faz o MuambaRadar — aparece no rodapé do modal de doação. As fotos ficam em
+// public/images/team (as URLs do LinkedIn são assinadas e expiram em semanas).
 const MAKERS = [
-  { initials: 'AP', name: 'Alexandre Pansan Jr.', role: 'Dev & criador', linkedin: 'alexandrepansan' },
-  { initials: 'ER', name: 'Enrico Reolon P.', role: 'Designer & criador', linkedin: 'enrico-r-8871202ab' },
+  { initials: 'AP', name: 'Alexandre Pansan Jr.', role: 'Dev & criador', linkedin: 'alexandrepansan', photo: '/images/team/alexandre.jpg' },
+  { initials: 'ER', name: 'Enrico Reolon P.', role: 'Designer & criador', linkedin: 'enrico-r-8871202ab', photo: '/images/team/enrico.jpg' },
 ]
+
+/** Foto da pessoa; se não carregar, as iniciais no círculo colorido. */
+function MakerAvatar({ maker }) {
+  const [failed, setFailed] = useState(false)
+  return (
+    <div className="donate-maker-avatar" aria-hidden="true">
+      {maker.photo && !failed
+        ? <img src={maker.photo} alt="" loading="lazy" onError={() => setFailed(true)} />
+        : maker.initials}
+    </div>
+  )
+}
 
 export default function DonateModal({ open, onClose }) {
   const dialogRef  = useRef(null)
@@ -126,7 +139,7 @@ export default function DonateModal({ open, onClose }) {
           <div className="donate-maker-right">
             {MAKERS.map(m => (
               <div className="donate-maker-person" key={m.linkedin}>
-                <div className="donate-maker-avatar" aria-hidden="true">{m.initials}</div>
+                <MakerAvatar maker={m} />
                 <div className="donate-maker-meta">
                   <span className="donate-maker-name">{m.name}</span>
                   <span className="donate-maker-role">{m.role}</span>

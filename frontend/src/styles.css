@@ -1723,6 +1723,13 @@ dialog.modal::backdrop {
   letter-spacing: 0.02em;
 }
 
+.donate-maker-avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
 .donate-maker-meta {
   display: flex;
   flex-direction: column;
