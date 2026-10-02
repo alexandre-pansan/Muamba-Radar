@@ -4,6 +4,12 @@ import { buildPixPayload, PIX_KEY, PIX_NAME, PIX_CITY } from '../pix.js'
 
 const PRESETS = [5, 10, 25, 50]
 
+// Quem faz o MuambaRadar — aparece no rodapé do modal de doação.
+const MAKERS = [
+  { initials: 'AP', name: 'Alexandre Pansan Jr.', role: 'Dev & criador', linkedin: 'alexandrepansan' },
+  { initials: 'ER', name: 'Enrico Reolon P.', role: 'Designer & criador', linkedin: 'enrico-r-8871202ab' },
+]
+
 export default function DonateModal({ open, onClose }) {
   const dialogRef  = useRef(null)
   const canvasRef  = useRef(null)
@@ -118,23 +124,27 @@ export default function DonateModal({ open, onClose }) {
           </div>
 
           <div className="donate-maker-right">
-            <div className="donate-maker-avatar" aria-hidden="true">AP</div>
-            <div className="donate-maker-meta">
-              <span className="donate-maker-name">Alexandre Pansan Jr.</span>
-              <span className="donate-maker-role">Dev & criador</span>
-              <a
-                href="https://www.linkedin.com/in/alexandrepansan/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="donate-maker-linkedin"
-                aria-label="LinkedIn de Alexandre Pansan"
-              >
-                <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden="true">
-                  <path d="M20.45 20.45h-3.554v-5.57c0-1.328-.024-3.036-1.85-3.036-1.851 0-2.134 1.446-2.134 2.94v5.666H9.358V9h3.413v1.561h.049c.475-.9 1.636-1.85 3.368-1.85 3.6 0 4.265 2.37 4.265 5.455v6.284zM5.337 7.433a2.062 2.062 0 1 1 0-4.124 2.062 2.062 0 0 1 0 4.124zm1.782 13.017H3.555V9h3.564v11.45zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.226.792 24 1.771 24h20.451C23.2 24 24 23.226 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
-                </svg>
-                /alexandrepansan
-              </a>
-            </div>
+            {MAKERS.map(m => (
+              <div className="donate-maker-person" key={m.linkedin}>
+                <div className="donate-maker-avatar" aria-hidden="true">{m.initials}</div>
+                <div className="donate-maker-meta">
+                  <span className="donate-maker-name">{m.name}</span>
+                  <span className="donate-maker-role">{m.role}</span>
+                  <a
+                    href={`https://www.linkedin.com/in/${m.linkedin}/`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="donate-maker-linkedin"
+                    aria-label={`LinkedIn de ${m.name}`}
+                  >
+                    <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden="true">
+                      <path d="M20.45 20.45h-3.554v-5.57c0-1.328-.024-3.036-1.85-3.036-1.851 0-2.134 1.446-2.134 2.94v5.666H9.358V9h3.413v1.561h.049c.475-.9 1.636-1.85 3.368-1.85 3.6 0 4.265 2.37 4.265 5.455v6.284zM5.337 7.433a2.062 2.062 0 1 1 0-4.124 2.062 2.062 0 0 1 0 4.124zm1.782 13.017H3.555V9h3.564v11.45zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.226.792 24 1.771 24h20.451C23.2 24 24 23.226 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                    </svg>
+                    /{m.linkedin}
+                  </a>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>

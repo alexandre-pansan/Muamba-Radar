@@ -1698,6 +1698,12 @@ dialog.modal::backdrop {
 
 .donate-maker-right {
   display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.donate-maker-person {
+  display: flex;
   align-items: center;
   gap: 10px;
 }
