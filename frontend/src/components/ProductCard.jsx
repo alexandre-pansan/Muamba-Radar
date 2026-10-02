@@ -55,6 +55,9 @@ export default function ProductCard({ group, marginPct, showMargin, idx, onNeedA
   const { isFavorited, toggle: toggleFavorite } = useFavorites()
   const navigate = useNavigate()
   const [showHint, setShowHint] = useState(false)
+  // Foto de site de terceiro pode sumir (404) — cai no placeholder "sem imagem".
+  const [imgFailed, setImgFailed] = useState(false)
+  const hasImage = Boolean(group.product_image_url) && !imgFailed
 
   const py     = cheapestByCountry(group.offers, 'py')
   const br     = cheapestByCountry(group.offers, 'br')
@@ -113,9 +116,9 @@ export default function ProductCard({ group, marginPct, showMargin, idx, onNeedA
         )}
 
         {/* Hero image */}
-        <div className={`pc-hero${group.product_image_url ? '' : ' no-image'}`}>
-          {group.product_image_url && (
-            <img src={group.product_image_url} alt={name} loading="lazy" />
+        <div className={`pc-hero${hasImage ? '' : ' no-image'}`}>
+          {hasImage && (
+            <img src={group.product_image_url} alt={name} loading="lazy" onError={() => setImgFailed(true)} />
           )}
 
           {storeCount > 1 && (

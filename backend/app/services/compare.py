@@ -12,6 +12,7 @@ from app.schemas import CheapestModel, CompareResponseModel, CountryFilter, Offe
 from app.services.fx import build_price
 from app.services.matcher import group_offers
 from app.services.normalization import (
+    is_real_store,
     expand_gaming_aliases,
     extract_brand_model,
     is_refurbished_or_used,
@@ -78,6 +79,8 @@ def _convert_raw_offers(raw_offers: list, query: str, match_query: bool = True) 
     offers: list[OfferModel] = []
     for raw in raw_offers:
         if is_refurbished_or_used(raw.title):
+            continue
+        if not is_real_store(raw.store):
             continue
         # Use loose matching: the caller already pre-filtered for relevance,
         # so we only need to guard against obvious mismatches and accessories.

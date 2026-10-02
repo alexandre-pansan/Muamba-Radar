@@ -178,6 +178,40 @@ def init_db() -> None:
         except Exception:
             conn.rollback()
 
+        # Compras Paraguai trocou o bucket das fotos (o antigo responde 404). Mesmos
+        # arquivos, outro prefixo — reescreve as URLs gravadas. Idempotente.
+        old_prefix = "https://media-production-bucket.us-southeast-1.linodeobjects.com/com/media/"
+        new_prefix = "https://bucket-prod.us-ord-10.linodeobjects.com/site/media/"
+        for table in ("product_offers", "user_cart_items", "user_favorites"):
+            try:
+                conn.execute(
+                    text(f"UPDATE {table} SET image_url = replace(image_url, :old, :new) WHERE image_url LIKE :like"),
+                    {"old": old_prefix, "new": new_prefix, "like": old_prefix + "%"},
+                )
+                conn.commit()
+            except Exception:
+                conn.rollback()
+
+        # user_cart_items — quantidade e referência de preço BR por item
+        try:
+            for col in (
+                "quantity INTEGER NOT NULL DEFAULT 1",
+                "br_price_brl DOUBLE PRECISION",
+                "br_store TEXT",
+                "br_url TEXT",
+            ):
+                conn.execute(text(f"ALTER TABLE user_cart_items ADD COLUMN IF NOT EXISTS {col}"))
+            conn.commit()
+        except Exception:
+            conn.rollback()
+
+        # product_offers.specs — specs extraídas pelo crawler de catálogo
+        try:
+            conn.execute(text("ALTER TABLE product_offers ADD COLUMN IF NOT EXISTS specs JSONB"))
+            conn.commit()
+        except Exception:
+            conn.rollback()
+
         # PII encryption blind-index columns
         for col in [
             "ALTER TABLE users ADD COLUMN email_blind VARCHAR(64)",

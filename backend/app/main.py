@@ -93,8 +93,8 @@ from app.schemas import (
 from app.services.compare import build_compare_response, build_group_model, build_response_from_offers, scrape_offers
 # from app.services.image_detect import detect_product_from_image  # image detection deferred
 from app.services.fx import build_price
-from app.services.matcher import group_offers
-from app.services.normalization import matches_query, normalize_text, slugify
+from app.services.matcher import extract_specs, group_offers
+from app.services.normalization import is_real_store, matches_query, normalize_text, slugify
 
 logging.basicConfig(
     level=logging.INFO,
@@ -247,6 +247,8 @@ def _load_db_offers(
 
     offers: list[OfferModel] = []
     for row in rows:
+        if not is_real_store(row.store):  # linhas antigas do catálogo ("ComprasParaguai")
+            continue
         if not matches_query(query_norm, row.title):
             continue
         offers.append(OfferModel(

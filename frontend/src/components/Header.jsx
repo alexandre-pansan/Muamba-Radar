@@ -3,6 +3,7 @@ import { useI18n } from '../i18n.jsx'
 import { apiFetchFxRate, apiFetchSuggestions } from '../api.js'
 import { useCart } from '../CartContext.jsx'
 import { useFavorites } from '../FavoritesContext.jsx'
+import ProductImage from './ui/ProductImage.jsx'
 
 function debounce(fn, ms) {
   let timer
@@ -211,9 +212,7 @@ function CartDropdown({ onOpenCart, onClose, currentUser, onOpenAuth, fxRate }) 
                 <div className="cart-dd-store">{storeName}</div>
                 {preview.map(item => (
                   <div key={item.id} className="cart-dd-item">
-                    {item.image_url && (
-                      <img className="cart-dd-img" src={item.image_url} alt={item.title} loading="lazy" />
-                    )}
+                    <ProductImage className="cart-dd-img" src={item.image_url} title={item.title} />
                     <span className="cart-dd-title" title={item.title}>
                       {item.title.length > 38 ? item.title.slice(0, 38) + '…' : item.title}
                     </span>

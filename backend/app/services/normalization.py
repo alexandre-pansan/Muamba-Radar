@@ -111,6 +111,16 @@ def slugify(value: str) -> str:
     return text.replace(" ", "_") if text else "product"
 
 
+# Sites agregadores/comparadores não são loja: o Compras Paraguai só lista ofertas de
+# lojas reais. Oferta com "loja = ComprasParaguai" é o fallback de quando a loja de
+# verdade não foi identificada no card — não dá pra visitar nem levar ao mapa.
+_NOT_A_STORE = {"comprasparaguai", "compras paraguai", "comprasparaguai com br"}
+
+
+def is_real_store(store: str | None) -> bool:
+    return bool(store) and normalize_text(store) not in _NOT_A_STORE
+
+
 def is_refurbished_or_used(title: str) -> bool:
     normalized = normalize_text(title)
     return any(re.search(pattern, normalized) for pattern in EXCLUDED_CONDITION_PATTERNS)

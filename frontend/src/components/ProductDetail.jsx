@@ -52,6 +52,7 @@ export default function ProductDetail({ targetMargin, showMargin, onOpenOffers, 
   const [loading, setLoading] = useState(!location.state?.group)
   const [notFound, setNotFound] = useState(false)
   const [similar, setSimilar] = useState([])
+  const [imgFailed, setImgFailed] = useState(false)
 
   // Fallback for hard refresh / shared link — no backend endpoint exists for a single
   // product by key outside a /compare result, so we re-derive a search query from the
@@ -119,8 +120,10 @@ export default function ProductDetail({ targetMargin, showMargin, onOpenOffers, 
       ]} />
 
       <div className="pd-hero">
-        <div className={`pd-image${group.product_image_url ? '' : ' no-image'}`}>
-          {group.product_image_url && <img src={group.product_image_url} alt={name} />}
+        <div className={`pd-image${group.product_image_url && !imgFailed ? '' : ' no-image'}`}>
+          {group.product_image_url && !imgFailed && (
+            <img src={group.product_image_url} alt={name} onError={() => setImgFailed(true)} />
+          )}
         </div>
         <div className="pd-info">
           <h1 className="pd-name">{name}</h1>

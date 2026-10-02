@@ -8,7 +8,7 @@ from bs4 import BeautifulSoup, Tag
 
 from app.adapters.base import SourceAdapter
 from app.schemas import RawOfferModel
-from app.services.normalization import matches_query
+from app.services.normalization import is_real_store, matches_query
 
 STOP_TOKENS = {"de", "da", "do", "e", "com", "para", "pro", "max", "mini", "plus"}
 
@@ -425,7 +425,10 @@ class ComprasParaguaiAdapter(SourceAdapter):
             store = _first_text(card, ("img.store-image[alt]", ".ver-detalhes img[alt]"))
             if not store:
                 img_store = card.select_one("img.store-image[alt]") or card.select_one(".ver-detalhes img[alt]")
-                store = img_store.get("alt", "ComprasParaguai").strip() if img_store else "ComprasParaguai"
+                store = img_store.get("alt", "").strip() if img_store else ""
+            if not is_real_store(store):
+                # Sem loja identificável não é oferta utilizável (antes virava "ComprasParaguai").
+                continue
 
             outbound = card.select_one("a.btn-store-redirect[href]")
             url = outbound.get("href", "").strip() if outbound else model_url

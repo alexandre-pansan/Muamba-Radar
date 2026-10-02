@@ -5379,6 +5379,19 @@ th.sort-desc::after { content: " \2193"; font-size: 0.7em; }
   padding: 4px 0;
 }
 
+/* Quadrado com a inicial quando a foto não carrega (ui/ProductImage). */
+.product-image-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-weight: 800;
+  color: var(--muted);
+  background: var(--card-bg);
+  user-select: none;
+}
+
 .cart-dd-img {
   width: 28px; height: 28px;
   object-fit: contain;

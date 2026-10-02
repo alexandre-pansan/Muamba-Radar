@@ -1,5 +1,6 @@
 import React from 'react'
 import { useFavorites } from '../FavoritesContext.jsx'
+import ProductImage from './ui/ProductImage.jsx'
 import { useCart } from '../CartContext.jsx'
 import { formatMoney } from '../utils.js'
 import { EmptyState, Button } from './ui/index.js'
@@ -53,7 +54,7 @@ export default function Favorites({ onNeedAuth }) {
           return (
             <div className="favorite-card" key={fav.offer_url}>
               <div className="favorite-card-image">
-                {fav.image_url ? <img src={fav.image_url} alt={fav.title} loading="lazy" /> : <div className="favorite-card-noimage" />}
+                <ProductImage src={fav.image_url} title={fav.title} />
               </div>
               <div className="favorite-card-info">
                 <p className="favorite-card-title" title={fav.title}>{fav.title}</p>
