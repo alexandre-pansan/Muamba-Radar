@@ -78,3 +78,12 @@ export function totalRouteDistanceKm(orderedGroups, start) {
   }
   return total
 }
+
+// Cor de cada parada da rota (pin no mapa = bolinha numerada na lista). Paleta do
+// protótipo, com o amarelo claro trocado por âmbar: número branco precisa de contraste.
+// Sem verde: verde é o pin de "loja já conferida" no carrinho.
+export const ROUTE_COLORS = ['#F47B20', '#0EA5A4', '#3B82F6', '#E11D48', '#D97706', '#A855F7']
+
+export function routeColor(index) {
+  return ROUTE_COLORS[index % ROUTE_COLORS.length]
+}

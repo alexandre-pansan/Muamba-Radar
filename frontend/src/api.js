@@ -199,6 +199,30 @@ export async function apiFetchHighlights(limit = 8) {
   return res.json()
 }
 
+/** Cards montados só do catálogo (sem raspagem ao vivo). Sem termos = vitrine de
+ * eletrônicos definida no backend. Retorna [{ query, group }]. */
+export async function apiFetchShowcase(queries = [], limit = 8) {
+  const params = new URLSearchParams({ limit: String(limit) })
+  for (const q of queries) params.append('q', q)
+  const res = await fetch(`${getApiBase()}/showcase?${params}`)
+  if (!res.ok) return []
+  return res.json()
+}
+
+/** Rota a pé pelas ruas entre as lojas (OSRM local via backend). points: [[lat, lng], ...].
+ * Retorna { available, distance_m, duration_s, geometry: [[lat, lng]...], order: [i...] }. */
+export async function apiWalkingRoute(points, optimize) {
+  try {
+    const res = await fetch(`${getApiBase()}/walking-route`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ points, optimize }),
+    })
+    if (res.ok) return res.json()
+  } catch (_) {}
+  return { available: false }
+}
+
 export async function apiFetchFxRate() {
   try {
     const res = await fetch(`${getApiBase()}/fx`)

@@ -997,6 +997,110 @@ def get_active_highlights(
     return result
 
 
+# ── Rota a pé (OSRM local) ─────────────────────────────────────────────────────
+
+class WalkingRouteRequest(BaseModel):
+    # [[lat, lng], ...] — as lojas da rota, na ordem atual.
+    points: list[tuple[float, float]] = Field(min_length=2, max_length=25)
+    optimize: bool = False
+
+
+class WalkingRouteResponse(BaseModel):
+    available: bool
+    distance_m: float | None = None
+    duration_s: float | None = None
+    geometry: list[tuple[float, float]] = []
+    order: list[int] = []
+
+
+@app.post("/walking-route", response_model=WalkingRouteResponse)
+@limiter.limit("60/minute")
+def walking_route_endpoint(request: Request, body: WalkingRouteRequest) -> WalkingRouteResponse:
+    """Caminho a pé pelas ruas entre as lojas. available=False quando o roteador
+    está fora — o frontend então desenha a linha reta e mostra a estimativa antiga."""
+    from app.services.routing import walking_route
+
+    for lat, lng in body.points:
+        if not (-90 <= lat <= 90 and -180 <= lng <= 180):
+            raise HTTPException(status_code=422, detail="Coordenada inválida.")
+    result = walking_route([tuple(p) for p in body.points], body.optimize)
+    if result is None:
+        return WalkingRouteResponse(available=False)
+    return WalkingRouteResponse(available=True, **result)
+
+
+# ── Showcase (Home, só catálogo) ──────────────────────────────────────────────
+
+# Vitrine de eletrônicos da Home quando ainda não há buscas reais suficientes pro
+# "Mais pesquisados" (prod começa com SearchCache vazio). Termos específicos de
+# propósito: termo amplo ("JBL", "Smart TV") devolve centenas de grupos aleatórios.
+ELECTRONICS_SHOWCASE = [
+    "iPhone 17 Pro Max", "iPhone 16", "Galaxy S25", "Redmi Note 14",
+    "JBL Flip", "AirPods Pro", "PlayStation 5", "Nintendo Switch 2",
+    "MacBook Air", "Drone DJI Mini", "GoPro Hero", "Apple Watch",
+]
+
+
+class ShowcaseItem(BaseModel):
+    query: str
+    group: ProductGroupModel
+
+
+def _showcase_group(db: Session, query: str, now: datetime) -> ProductGroupModel | None:
+    """Melhor grupo de produto pra um termo, lido só do catálogo (sem raspagem — a
+    Home carregava 8 buscas ao vivo de 7–18s cada). Preferência: tem oferta PY >
+    nome contém todas as palavras do termo ("PlayStation 5", não "PlayStation VR2") >
+    tem preço BR (dá pra mostrar a economia) > mais ofertas (mais lojas vendendo) >
+    nome mais enxuto."""
+    query_norm = normalize_text(query)
+    offers = _load_db_offers(db, query_norm, "all", now)
+    if not offers:
+        return None
+    groups = build_response_from_offers(query, offers, SortOption.BEST_MATCH, CountryFilter.ALL).groups
+    tokens = set(query_norm.split())
+
+    def rank(g: ProductGroupModel):
+        countries = {o.country for o in g.offers}
+        name_tokens = set(normalize_text(g.canonical_name).split())
+        return (
+            "py" in countries,
+            tokens <= name_tokens,
+            "br" in countries,
+            len(g.offers),
+            -len(name_tokens),
+        )
+
+    candidates = [g for g in groups if any(o.country == "py" for o in g.offers)]
+    return max(candidates, key=rank) if candidates else None
+
+
+@app.get("/showcase", response_model=list[ShowcaseItem])
+def showcase(
+    q: list[str] = Query(default=[], max_length=12, description="Termos; vazio = vitrine de eletrônicos"),
+    limit: int = Query(default=8, ge=1, le=12),
+    db: Session = Depends(get_db),
+) -> list[ShowcaseItem]:
+    """Um card por termo, montado do catálogo. Não grava SearchCache — senão a própria
+    Home viraria "Mais pesquisados" de si mesma."""
+    now = datetime.now(timezone.utc)
+    terms = [t.strip()[:200] for t in q if t.strip()] or ELECTRONICS_SHOWCASE
+    result: list[ShowcaseItem] = []
+    seen: set[str] = set()
+    for term in terms:
+        group = _showcase_group(db, term, now)
+        if not group or group.product_key in seen:
+            continue
+        seen.add(group.product_key)
+        result.append(ShowcaseItem(query=term, group=group))
+        if len(result) >= limit:
+            break
+    try:
+        _enrich_with_seller_data(db, [item.group for item in result])
+    except Exception as exc:
+        log.warning("showcase seller enrichment failed (non-fatal): %s", exc)
+    return result
+
+
 # ── History (requires login) ──────────────────────────────────────────────────
 
 @app.get("/history")

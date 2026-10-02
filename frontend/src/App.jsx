@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { I18nProvider, useI18n } from './i18n.jsx'
 import { EmptyState, Button } from './components/ui/index.js'
 
@@ -462,27 +462,29 @@ function AppShell({ currentUser, setCurrentUser }) {
 
       <Routes>
       <Route path="/admin" element={<AdminPage onBack={goHome} />} />
-      <Route path="/cart" element={<CartPage onBack={goHome} onOpenImportCalc={(usd) => { setImportCalcInitialUSD(usd ?? null); setImportCalcOpen(true) }} />} />
-      <Route path="/favorites" element={<Favorites onNeedAuth={() => openAuthModal('login')} />} />
-      <Route path="/map" element={<MapPage />} />
+      <Route path="/cart" element={<RoutePage><CartPage onNeedAuth={() => openAuthModal('login')} /></RoutePage>} />
+      <Route path="/favorites" element={<RoutePage><Favorites onNeedAuth={() => openAuthModal('login')} /></RoutePage>} />
+      <Route path="/map" element={<RoutePage><MapPage /></RoutePage>} />
       <Route path="/product/:productKey" element={
-        <ProductDetail
-          targetMargin={targetMargin}
-          showMargin={showMargin}
-          onOpenOffers={openOffersDialog}
-          onNeedAuth={() => openAuthModal('login')}
-          onReport={openReportModal}
-        />
+        <RoutePage>
+          <ProductDetail
+            targetMargin={targetMargin}
+            showMargin={showMargin}
+            onOpenOffers={openOffersDialog}
+            onNeedAuth={() => openAuthModal('login')}
+            onReport={openReportModal}
+          />
+        </RoutePage>
       } />
-      <Route path="/plans" element={<Plans />} />
-      <Route path="/checkout" element={<Checkout currentUser={currentUser} />} />
-      <Route path="/lojista" element={<Lojista currentUser={currentUser} onNeedAuth={() => openAuthModal('login')} />} />
+      <Route path="/plans" element={<RoutePage><Plans /></RoutePage>} />
+      <Route path="/checkout" element={<RoutePage><Checkout currentUser={currentUser} /></RoutePage>} />
+      <Route path="/lojista" element={<RoutePage><Lojista currentUser={currentUser} onNeedAuth={() => openAuthModal('login')} /></RoutePage>} />
       <Route path="/login" element={
         currentUser
           ? <Navigate to="/profile" replace />
           : <LoginPage onAuthSuccess={handleAuthSuccessFromPage} onOpenLegal={setLegalModal} />
       } />
-      <Route path="/profile" element={<ProfilePage currentUser={currentUser} onLogout={handleLogout} />} />
+      <Route path="/profile" element={<RoutePage><ProfilePage currentUser={currentUser} onLogout={handleLogout} /></RoutePage>} />
       <Route path="/" element={
       <>
       <div className="app-shell">
@@ -664,6 +666,17 @@ function AppInner() {
       </FavoritesProvider>
     </CartProvider>
   )
+}
+
+// O <body> tem overflow:hidden (a Home e o carrinho rolam por dentro), então páginas
+// internas precisam do próprio contêiner de rolagem — sem isso /plans, /checkout,
+// /product etc. ficavam cortadas sem conseguir rolar.
+function RoutePage({ children }) {
+  const { pathname } = useLocation()
+  const ref = useRef(null)
+  // Navegar entre páginas começa do topo, não da posição de rolagem anterior.
+  useEffect(() => { ref.current?.scrollTo(0, 0) }, [pathname])
+  return <div className="route-page" ref={ref}>{children}</div>
 }
 
 export default function App() {

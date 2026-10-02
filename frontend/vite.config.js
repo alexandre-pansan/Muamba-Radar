@@ -14,6 +14,8 @@ export default defineConfig({
       '/suggestions': 'http://localhost:8000',
       '/trending': 'http://localhost:8000',
       '/highlights': 'http://localhost:8000',
+      '/showcase': 'http://localhost:8000',
+      '/walking-route': 'http://localhost:8000',
       '/history': 'http://localhost:8000',
       '/health': 'http://localhost:8000',
       '/featured-images': 'http://localhost:8000',
@@ -31,7 +33,8 @@ export default defineConfig({
         },
       },
       '/fx': 'http://localhost:8000',
-      '/config': 'http://localhost:8000',
+      // Regex com âncora: a chave '/config' sozinha também pegava o /config.js do frontend.
+      '^/config$': 'http://localhost:8000',
       '/reports': 'http://localhost:8000',
       '/admin/': 'http://localhost:8000',
       '/seller/': 'http://localhost:8000',

@@ -58,5 +58,13 @@ class Settings(BaseSettings):
     mp_access_token: str = ""
     mp_webhook_secret: str = ""  # from the app's webhook config — verifies X-Signature
 
+    # Cupons de lojista. Desligado por padrão: com False nenhum cupom aparece em item
+    # nenhum (card, carrinho) e o lojista não consegue criar. Ligue com COUPONS_ENABLED=true.
+    coupons_enabled: bool = False
+
+    # Roteador de rotas a pé (OSRM, serviço "osrm" do docker-compose). Vazio = desligado:
+    # o mapa cai pra linha reta entre as lojas. Dev local: http://localhost:5055
+    osrm_url: str = ""
+
 
 settings = Settings()

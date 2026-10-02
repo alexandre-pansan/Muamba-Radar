@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from 'react'
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
+import React, { useEffect } from 'react'
+import { MapContainer, TileLayer, Marker, Popup, Polyline, Tooltip, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { getApiBase } from '../api.js'
+import { routeColor } from '../cartGrouping.js'
 
-// Numbered SVG pin icon — number + color
+// Pin numerado. A cor segue a parada da rota (mesma cor da bolinha na lista lateral);
+// loja já toda conferida fica verde com ✓ no carrinho.
 function makeNumberedPin(num, done) {
-  const color = done ? '#16a34a' : '#4f46e5'
+  const color = done ? '#16a34a' : num != null ? routeColor(num - 1) : '#64748b'
   const label = num != null ? String(num) : ''
   const fs = label.length > 1 ? 11 : 13
   return L.divIcon({
@@ -42,37 +44,30 @@ function FitBounds({ coords }) {
   return null
 }
 
-const TILES = {
-  dark: {
-    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-    attribution: '&copy; <a href="https://carto.com/attributions">CARTO</a>',
-  },
-  light: {
-    url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-    attribution: '&copy; <a href="https://carto.com/attributions">CARTO</a>',
-  },
+// OpenStreetMap: aberto, sem chave. (Os basemaps da CARTO passaram a exigir API key e
+// devolviam tile com marca d'água "API KEY REQUIRED".) OSM não tem estilo escuro, então
+// o modo escuro é um filtro CSS nos tiles ("Leaflet map theme integration" em styles.css).
+const OSM_TILES = {
+  url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+  maxZoom: 19,
 }
 
-function useTheme() {
-  const [isDark, setIsDark] = useState(
-    () => document.documentElement.getAttribute('data-theme') !== 'light'
-  )
-  useEffect(() => {
-    const obs = new MutationObserver(() => {
-      setIsDark(document.documentElement.getAttribute('data-theme') !== 'light')
-    })
-    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
-    return () => obs.disconnect()
-  }, [])
-  return isDark
-}
-
-export default function CartMapView({ groups, pickedIds = new Set(), storeOrder = [] }) {
-  const isDark = useTheme()
-  const tile = isDark ? TILES.dark : TILES.light
+/**
+ * showRoute: linha ligando as lojas na ordem da rota (página /map).
+ * routeGeometry: caminho real pelas ruas ([[lat, lng], ...], do OSRM). Sem ele, a linha
+ *   é reta entre as lojas (tracejada, pra não parecer trajeto de verdade).
+ * showLabels: nome da loja fixo acima de cada pin.
+ */
+export default function CartMapView({ groups, pickedIds = new Set(), storeOrder = [], showRoute = false, showLabels = false, routeGeometry = null }) {
 
   const withCoords = groups.filter(g => g.store?.lat && g.store?.lng)
   const coords = withCoords.map(g => [g.store.lat, g.store.lng])
+  // Linha em linha reta entre as paradas, na ordem da rota — não é trajeto de rua.
+  const routeCoords = [...withCoords]
+    .filter(g => storeOrder.includes(g.store_name))
+    .sort((a, b) => storeOrder.indexOf(a.store_name) - storeOrder.indexOf(b.store_name))
+    .map(g => [g.store.lat, g.store.lng])
 
   return (
     <MapContainer
@@ -82,12 +77,23 @@ export default function CartMapView({ groups, pickedIds = new Set(), storeOrder 
       scrollWheelZoom={false}
     >
       <TileLayer
-        attribution={tile.attribution}
-        url={tile.url}
-        subdomains="abcd"
-        maxZoom={20}
+        attribution={OSM_TILES.attribution}
+        url={OSM_TILES.url}
+        maxZoom={OSM_TILES.maxZoom}
       />
       <FitBounds coords={coords} />
+      {showRoute && routeGeometry?.length > 1 && (
+        <Polyline
+          positions={routeGeometry}
+          pathOptions={{ color: '#F47B20', weight: 5, opacity: 0.9, lineCap: 'round', lineJoin: 'round' }}
+        />
+      )}
+      {showRoute && !routeGeometry && routeCoords.length > 1 && (
+        <Polyline
+          positions={routeCoords}
+          pathOptions={{ color: '#F47B20', weight: 4, opacity: 0.85, dashArray: '10 8', lineCap: 'round' }}
+        />
+      )}
       {withCoords.map(group => {
         const allPicked = group.items.length > 0 && group.items.every(i => pickedIds.has(i.id))
         const num = storeOrder.indexOf(group.store_name) + 1 || null
@@ -97,6 +103,11 @@ export default function CartMapView({ groups, pickedIds = new Set(), storeOrder 
             position={[group.store.lat, group.store.lng]}
             icon={makeNumberedPin(num, allPicked)}
           >
+            {showLabels && (
+              <Tooltip permanent direction="top" offset={[0, -44]} className="map-pin-label">
+                {group.store_name}
+              </Tooltip>
+            )}
             <Popup className="cart-map-popup">
               <div style={{ minWidth: 200 }}>
                 {group.store.photo_url && (

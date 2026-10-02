@@ -1,16 +1,13 @@
 import React, { useEffect, useState } from 'react'
-import { apiCompare, apiFetchTrending, apiFetchHighlights } from '../api.js'
+import { apiFetchShowcase, apiFetchTrending, apiFetchHighlights } from '../api.js'
 import { HeroBanner, Carousel, ProductCard } from './ui/index.js'
 import { cheapestByCountry } from '../utils.js'
 
-// No backend concept of "trending"/"featured" products exists — this is editorial
-// curation of real, live apiCompare() data, not fabricated numbers. Labeled honestly
-// as "Populares" below rather than implying real trend detection. Kept as a reliable
-// fallback alongside the real "Mais pesquisados"/"Destaques Recomendados" sections below
-// (backend Phase 2+), since those can legitimately be empty on a low-traffic day —
-// SearchCache-driven trending reflects only the last ~30min TTL window, and highlights
-// only exist once a real seller has one active.
-const HOME_SEED_QUERIES = ['iPhone 17', 'RTX 5080', 'PlayStation 5', 'Nintendo Switch 2']
+// Todas as seções de produto da Home vêm do catálogo (GET /showcase) — nada de
+// raspagem ao vivo no carregamento (eram 8 buscas de 7–18s cada). Seções sem dado
+// real somem em vez de mostrar "vazio": em produção recém-publicada não há buscas
+// nem destaques de lojista, e a vitrine de eletrônicos segura a página sozinha.
+const FALLBACK_HERO_QUERY = 'iPhone 16'
 
 const HERO_SLIDES = [
   {
@@ -18,7 +15,7 @@ const HERO_SLIDES = [
     bg: 'linear-gradient(135deg, var(--py-color) 0%, var(--accent) 50%, var(--br-color) 100%)',
     title: 'Compare preços Paraguai × Brasil',
     subtitle: 'Descubra quanto você pode economizar comprando em Ciudad del Este.',
-    cta: 'Ver populares',
+    cta: 'Ver ofertas',
   },
   {
     key: 'save',
@@ -37,8 +34,8 @@ function economyPct(group) {
 }
 
 export default function Home({ onSearch, recentSearches, onRecentClick, targetMargin, showMargin, onOpenOffers, onNeedAuth, onReport }) {
-  const [popular, setPopular] = useState([]) // [{ query, group }]
-  const [loadingPopular, setLoadingPopular] = useState(true)
+  const [electronics, setElectronics] = useState([]) // [{ query, group }]
+  const [loadingElectronics, setLoadingElectronics] = useState(true)
   const [trending, setTrending] = useState([]) // [{ query, group }]
   const [loadingTrending, setLoadingTrending] = useState(true)
   const [highlighted, setHighlighted] = useState([]) // [group]
@@ -46,76 +43,36 @@ export default function Home({ onSearch, recentSearches, onRecentClick, targetMa
 
   useEffect(() => {
     let cancelled = false
-    setLoadingPopular(true)
-    Promise.all(
-      HOME_SEED_QUERIES.map(async q => {
-        try {
-          const { data } = await apiCompare(q, 'best_match')
-          const group = data?.groups?.[0]
-          return group ? { query: q, group } : null
-        } catch {
-          return null
-        }
-      })
-    ).then(results => {
-      if (!cancelled) {
-        setPopular(results.filter(Boolean))
-        setLoadingPopular(false)
-      }
-    })
+    apiFetchShowcase([], 8)
+      .then(items => { if (!cancelled) setElectronics(items) })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoadingElectronics(false) })
     return () => { cancelled = true }
   }, [])
 
   useEffect(() => {
     let cancelled = false
-    setLoadingTrending(true)
-    // Capped at 4 (not the endpoint's max of 8) — each trending query triggers a real
-    // live scrape via /compare, same cost as a Populares seed query. Keeping Home's total
-    // live-search volume on page load in the same ballpark as before this section existed.
-    apiFetchTrending(4).then(async queries => {
-      if (!queries.length) {
-        if (!cancelled) { setTrending([]); setLoadingTrending(false) }
-        return
-      }
-      const results = await Promise.all(
-        queries.map(async q => {
-          try {
-            const { data } = await apiCompare(q, 'best_match')
-            const group = data?.groups?.[0]
-            return group ? { query: q, group } : null
-          } catch {
-            return null
-          }
-        })
-      )
-      if (!cancelled) {
-        setTrending(results.filter(Boolean))
-        setLoadingTrending(false)
-      }
-    }).catch(() => {
-      if (!cancelled) { setTrending([]); setLoadingTrending(false) }
-    })
+    apiFetchTrending(8)
+      .then(queries => (queries.length ? apiFetchShowcase(queries, 8) : []))
+      .then(items => { if (!cancelled) setTrending(items) })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoadingTrending(false) })
     return () => { cancelled = true }
   }, [])
 
   useEffect(() => {
     let cancelled = false
-    setLoadingHighlights(true)
-    apiFetchHighlights(8).then(groups => {
-      if (!cancelled) {
-        setHighlighted(groups || [])
-        setLoadingHighlights(false)
-      }
-    }).catch(() => {
-      if (!cancelled) { setHighlighted([]); setLoadingHighlights(false) }
-    })
+    apiFetchHighlights(8)
+      .then(groups => { if (!cancelled) setHighlighted(groups || []) })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoadingHighlights(false) })
     return () => { cancelled = true }
   }, [])
 
   // Real "maiores economias" — reordered from the same already-fetched real pools
-  // (Populares + Mais pesquisados), not a separate fabricated ranking and not a claim
+  // (Mais pesquisados + Eletrônicos), not a separate fabricated ranking and not a claim
   // about the whole catalog. No extra network calls.
-  const dealsPool = [...popular, ...trending]
+  const dealsPool = [...trending, ...electronics]
   const seenDealKeys = new Set()
   const deals = dealsPool
     .filter(({ group }) => {
@@ -137,7 +94,7 @@ export default function Home({ onSearch, recentSearches, onRecentClick, targetMa
           <button
             type="button"
             className="ui-btn ui-btn--primary"
-            onClick={() => onSearch(popular[0]?.query || HOME_SEED_QUERIES[0])}
+            onClick={() => onSearch(trending[0]?.query || electronics[0]?.query || FALLBACK_HERO_QUERY)}
           >
             {slide.cta}
           </button>
@@ -166,18 +123,14 @@ export default function Home({ onSearch, recentSearches, onRecentClick, targetMa
     <div className="home-page">
       <HeroBanner slides={slides} />
 
-      <section className="home-section">
-        <h2 className="home-section-title">⭐ Destaques Recomendados</h2>
-        {loadingHighlights ? (
-          <p className="home-section-loading">Carregando…</p>
-        ) : highlighted.length === 0 ? (
-          <p className="home-section-loading">Nenhum produto em destaque no momento.</p>
-        ) : (
+      {!loadingHighlights && highlighted.length > 0 && (
+        <section className="home-section">
+          <h2 className="home-section-title">⭐ Destaques Recomendados</h2>
           <Carousel ariaLabel="Produtos em destaque">
             {highlighted.map((group, i) => renderProductCard(group, i))}
           </Carousel>
-        )}
-      </section>
+        </section>
+      )}
 
       {recentSearches?.length > 0 && (
         <section className="home-section">
@@ -198,33 +151,29 @@ export default function Home({ onSearch, recentSearches, onRecentClick, targetMa
         </section>
       )}
 
-      <section className="home-section">
-        <h2 className="home-section-title">🔥 Mais pesquisados</h2>
-        {loadingTrending ? (
-          <p className="home-section-loading">Carregando…</p>
-        ) : trending.length === 0 ? (
-          <p className="home-section-loading">Sem buscas recentes suficientes ainda.</p>
-        ) : (
+      {!loadingTrending && trending.length > 0 && (
+        <section className="home-section">
+          <h2 className="home-section-title">🔥 Mais pesquisados</h2>
           <Carousel ariaLabel="Produtos mais pesquisados">
             {trending.map(({ group }, i) => renderProductCard(group, i))}
           </Carousel>
-        )}
-      </section>
+        </section>
+      )}
 
       <section className="home-section">
-        <h2 className="home-section-title">⭐ Populares</h2>
-        {loadingPopular ? (
+        <h2 className="home-section-title">📱 Eletrônicos em destaque</h2>
+        {loadingElectronics ? (
           <p className="home-section-loading">Carregando…</p>
-        ) : popular.length === 0 ? (
+        ) : electronics.length === 0 ? (
           <p className="home-section-loading">Não foi possível carregar sugestões agora.</p>
         ) : (
-          <Carousel ariaLabel="Produtos populares">
-            {popular.map(({ group }, i) => renderProductCard(group, i))}
+          <Carousel ariaLabel="Eletrônicos em destaque">
+            {electronics.map(({ group }, i) => renderProductCard(group, i))}
           </Carousel>
         )}
       </section>
 
-      {!loadingPopular && !loadingTrending && deals.length > 0 && (
+      {!loadingElectronics && !loadingTrending && deals.length > 0 && (
         <section className="home-section">
           <h2 className="home-section-title">💰 Maiores economias</h2>
           <Carousel ariaLabel="Produtos com maior economia">

@@ -16,6 +16,17 @@ services:
       retries:      10
       start_period: 5s
 
+  # Rotas a pé pelas ruas (OSRM + mapa do Paraguai, pré-processado no build).
+  # O backend fala com ele pela rede interna (http://osrm:5000). A porta 5055 só
+  # escuta em 127.0.0.1 — serve o backend de dev rodando fora do Docker e nunca
+  # fica acessível de fora do servidor. ~300 MB de RAM em uso.
+  osrm:
+    build: ./osrm
+    restart: unless-stopped
+    mem_limit: 768m
+    ports:
+      - "127.0.0.1:5055:5000"
+
   backend:
     build: ./backend
     restart: unless-stopped
@@ -27,6 +38,7 @@ services:
       CACHE_TTL_MINUTES:  ${CACHE_TTL_MINUTES:-30}
       JWT_SECRET:         ${JWT_SECRET:?Set JWT_SECRET in .env}
       JWT_EXPIRE_MINUTES: ${JWT_EXPIRE_MINUTES:-10080}
+      OSRM_URL:           http://osrm:5000
     volumes:
       - store_photos:/app/static/store-photos
     depends_on:
