@@ -32,10 +32,21 @@ jobs:
             echo "→ Building and restarting services..."
             docker compose pull --quiet || true
             # backend/frontend sempre do zero; o OSRM usa cache (baixa e processa o mapa
-            # só quando osrm/Dockerfile muda — rebuildar a cada push seria 1 min à toa).
+            # só quando osrm/ muda — rebuildar a cada push seria minutos à toa).
             docker compose build --no-cache backend frontend
-            docker compose build osrm
-            docker compose up -d --remove-orphans || {
+
+            # O roteador (rota a pé no mapa) é opcional: se o build dele falhar, o site
+            # sobe mesmo assim e o mapa usa a linha reta. Sem imagem antiga do OSRM,
+            # ele fica fora do `up` (senão o compose tentaria buildar de novo e falhar).
+            SERVICES=""
+            if ! docker compose build osrm; then
+              echo "⚠ Build do OSRM falhou — seguindo o deploy sem atualizar a rota a pé."
+              if ! docker image inspect muamba-radar-osrm >/dev/null 2>&1; then
+                SERVICES="db backend frontend"
+              fi
+            fi
+
+            docker compose up -d --remove-orphans $SERVICES || {
               echo "=== BACKEND LOGS (last 80 lines) ==="
               docker logs muamba-radar-backend-1 --tail 80 2>&1 || true
               echo "=== BACKEND INSPECT ==="
