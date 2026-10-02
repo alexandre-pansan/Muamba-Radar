@@ -658,11 +658,24 @@ def delete_account(
     db: Session = Depends(get_db),
 ) -> None:
     """LGPD art. 18 — direito à exclusão. Apaga todos os dados pessoais do titular."""
-    db.query(UserSearch).filter(UserSearch.user_id == current_user.id).delete()
-    db.query(UserPrefs).filter(UserPrefs.user_id == current_user.id).delete()
-    db.query(UserCartItem).filter(UserCartItem.user_id == current_user.id).delete()
-    db.delete(current_user)
+    _delete_user_data(db, current_user)
     db.commit()
+
+
+def _delete_user_data(db: Session, user: User) -> None:
+    """Apaga o usuário e tudo que aponta pra ele. As FKs não têm ON DELETE CASCADE,
+    então sem isso o DELETE em users falhava (500) assim que o usuário tivesse feito
+    login (refresh_tokens) ou criado favorito/perfil de lojista. data_reports fica —
+    a FK de lá é SET NULL e a denúncia continua útil sem o autor."""
+    profile = db.query(SellerProfile).filter(SellerProfile.user_id == user.id).first()
+    if profile:
+        for model in (SellerProductHighlight, SellerCoupon, SellerBannerCampaign):
+            db.query(model).filter(model.seller_profile_id == profile.id).delete()
+        db.delete(profile)
+    for model in (RefreshToken, UserSearch, UserPrefs, UserCartItem, UserFavorite):
+        db.query(model).filter(model.user_id == user.id).delete()
+    db.flush()
+    db.delete(user)
 
 
 @app.get("/auth/me/searches", response_model=list[UserSearchItem])
@@ -1279,7 +1292,7 @@ def admin_delete_user(
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    db.delete(user)
+    _delete_user_data(db, user)
     db.commit()
     return {"status": "deleted"}
 
@@ -2578,6 +2591,10 @@ def admin_delete_store(
     store = db.get(Store, store_id)
     if not store:
         raise HTTPException(status_code=404, detail="Store not found")
+    # Carrinho, favoritos e lojistas só referenciam a loja (store_id é opcional) —
+    # solta a referência em vez de deixar a FK barrar o DELETE com 500.
+    for model in (UserCartItem, UserFavorite, SellerProfile):
+        db.query(model).filter(model.store_id == store_id).update({model.store_id: None})
     db.delete(store)
     db.commit()
 
