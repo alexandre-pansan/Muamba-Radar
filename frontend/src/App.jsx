@@ -54,6 +54,7 @@ import Home from './components/Home.jsx'
 import Favorites from './components/Favorites.jsx'
 import MapPage from './components/MapPage.jsx'
 import ProductDetail from './components/ProductDetail.jsx'
+import StoreOffers from './components/StoreOffers.jsx'
 import AuthModal from './components/AuthModal.jsx'
 import AccountSettings from './components/AccountSettings.jsx'
 import AdminPage from './components/AdminPage.jsx'
@@ -484,6 +485,16 @@ function AppShell({ currentUser, setCurrentUser }) {
       <Route path="/cart" element={<RoutePage><CartPage onNeedAuth={() => openAuthModal('login')} /></RoutePage>} />
       <Route path="/favorites" element={<RoutePage><Favorites onNeedAuth={() => openAuthModal('login')} /></RoutePage>} />
       <Route path="/map" element={<RoutePage><MapPage /></RoutePage>} />
+      <Route path="/product/:productKey/lojas" element={
+        <RoutePage>
+          <StoreOffers
+            targetMargin={targetMargin}
+            showMargin={showMargin}
+            onNeedAuth={() => openAuthModal('login')}
+            onReport={openReportModal}
+          />
+        </RoutePage>
+      } />
       <Route path="/product/:productKey" element={
         <RoutePage>
           <ProductDetail

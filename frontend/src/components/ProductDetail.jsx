@@ -1,14 +1,12 @@
 import React, { useEffect, useState } from 'react'
-import { useParams, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { apiCompare } from '../api.js'
+import { isRealImage, offerCountry as country, productUrls, pyStoreCount, storeRowsFrom, useProductGroup } from '../productGroup.js'
 import { useCart } from '../CartContext.jsx'
 import { useFavorites } from '../FavoritesContext.jsx'
 import { useFeatures } from '../features.js'
 import { familyDisplayName, buildConfigChip, formatMoney, sourceDomain, cheapestByCountry } from '../utils.js'
 import { Carousel, ProductCard, EmptyState, Button } from './ui/index.js'
-
-// Foto "sem imagem" dos sites não conta como foto.
-const isRealImage = url => Boolean(url) && !/sem-imagem|sem_imagem|no-?image|placeholder/i.test(url)
 
 // Cores que o adapter anota no fim do título ("... [preto]"); as lojas escrevem em
 // português, inglês ou espanhol, então normaliza para português antes de juntar.
@@ -25,23 +23,6 @@ function offerColor(title) {
   if (!m) return null
   const raw = m[1].trim().toLowerCase()
   return COLOR_PT[raw] || raw
-}
-
-const country = o => (o.country || '').toLowerCase()
-
-/** Uma linha por loja do Paraguai: a oferta mais barata dela + quantas ofertas tem. */
-function storeRowsFrom(offers) {
-  const byStore = new Map()
-  for (const o of offers.filter(o => country(o) === 'py')) {
-    const cur = byStore.get(o.store)
-    if (!cur) byStore.set(o.store, { store: o.store, best: o, count: 1, info: o.store_info })
-    else {
-      cur.count += 1
-      if (o.price.amount_brl < cur.best.price.amount_brl) cur.best = o
-      cur.info = cur.info || o.store_info
-    }
-  }
-  return [...byStore.values()].sort((a, b) => a.best.price.amount_brl - b.best.price.amount_brl)
 }
 
 function HeartIcon({ filled }) {
@@ -95,39 +76,14 @@ function FavButton({ offer }) {
 
 export default function ProductDetail({ targetMargin, showMargin, onOpenOffers, onNeedAuth, onReport }) {
   const { productKey } = useParams()
-  const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
-
-  const [group, setGroup] = useState(location.state?.group || null)
-  const [loading, setLoading] = useState(!location.state?.group)
-  const [notFound, setNotFound] = useState(false)
+  const { group, loading, notFound } = useProductGroup(productKey)
   const [similar, setSimilar] = useState([])
   const [failedImages, setFailedImages] = useState(() => new Set())
   const [activeImage, setActiveImage] = useState(null)
   const [tab, setTab] = useState('specs')
   const { coupons: couponsEnabled } = useFeatures()
-
-  // Link aberto do zero (F5 em outra aba, link compartilhado): refaz a busca de origem
-  // (?q= na URL) e procura ESTA chave. Sem ?q (links antigos) tenta o slug. Nunca cai
-  // em "primeiro resultado qualquer" — produto errado é pior que "não encontrado".
-  useEffect(() => {
-    if (location.state?.group) return
-    let cancelled = false
-    setLoading(true)
-    setNotFound(false)
-    const guess = searchParams.get('q') || productKey.replace(/[-_]/g, ' ')
-    apiCompare(guess, 'best_match')
-      .then(({ data }) => {
-        if (cancelled) return
-        const found = data.groups?.find(g => g.product_key === productKey) || null
-        if (found) setGroup(found)
-        else setNotFound(true)
-      })
-      .catch(() => { if (!cancelled) setNotFound(true) })
-      .finally(() => { if (!cancelled) setLoading(false) })
-    return () => { cancelled = true }
-  }, [productKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // "Similar products" — real search on the family name, current group filtered out.
   // No fabricated data: this is honest live search, just like Home's "Populares".
@@ -199,14 +155,24 @@ export default function ProductDetail({ targetMargin, showMargin, onOpenOffers, 
 
   const searchQuery = searchParams.get('q')
   const info = activeRow?.info
+  const urls = productUrls(group, searchQuery)
+  const hasStoreList = pyStoreCount(group) > 1
 
   return (
     <div className="pd-page">
       <div className="pd-topbar">
-        <button type="button" className="pd-back" onClick={() => (searchQuery ? navigate(`/?q=${encodeURIComponent(searchQuery)}`) : navigate('/'))}>
-          ← {searchQuery ? 'Voltar para a busca' : 'Voltar para Home'}
+        <button
+          type="button"
+          className="pd-back"
+          onClick={() => navigate(hasStoreList ? urls.stores : searchQuery ? `/?q=${encodeURIComponent(searchQuery)}` : '/', { state: { group } })}
+        >
+          ← {hasStoreList ? 'Voltar para as lojas' : searchQuery ? 'Voltar para a busca' : 'Voltar para Home'}
         </button>
-        <span className="pd-crumbs">Home › {searchQuery ? `"${searchQuery}" › ` : ''}{name}</span>
+        <span className="pd-crumbs">
+          Home › {searchQuery ? `"${searchQuery}" › ` : ''}
+          {hasStoreList ? <a href={urls.stores} onClick={e => { e.preventDefault(); navigate(urls.stores, { state: { group } }) }}>{name}</a> : name}
+          {activeRow ? ` › ${activeRow.store}` : ''}
+        </span>
       </div>
 
       <div className="pd-hero">

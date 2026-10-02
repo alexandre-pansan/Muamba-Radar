@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n.jsx'
 import { useCart } from '../CartContext.jsx'
 import { useFavorites } from '../FavoritesContext.jsx'
+import { offerCountry, productUrls, pyStoreCount } from '../productGroup.js'
 import {
   cheapestByCountry,
   estimateSellingPrice,
@@ -49,7 +50,13 @@ function AuthHint({ onLogin, onClose }) {
   )
 }
 
-export default function ProductCard({ group, marginPct, showMargin, idx, onNeedAuth, onReport }) {
+/**
+ * storeView: nome da loja quando o card representa a oferta de UMA loja (página
+ * /product/:key/lojas). Aí `group.offers` já vem só com as ofertas PY dessa loja + as
+ * do Brasil, o selo mostra quantas ofertas a loja tem e o clique abre o detalhe com
+ * a loja selecionada.
+ */
+export default function ProductCard({ group, marginPct, showMargin, idx, onNeedAuth, onReport, storeView = null }) {
   const { t } = useI18n()
   const { savedUrls: cartUrls, toggle: toggleCart } = useCart()
   const { isFavorited, toggle: toggleFavorite } = useFavorites()
@@ -72,8 +79,9 @@ export default function ProductCard({ group, marginPct, showMargin, idx, onNeedA
     : null
   const config = buildConfigChip(group)
   const name   = familyDisplayName(group)
-  // Real count, not the prototype's curated "X lojas" badge — distinct stores in this group's offers.
-  const storeCount = new Set((group.offers || []).map(o => o.store).filter(Boolean)).size
+  // Contagem real (lojas distintas do Paraguai), não o "X lojas" inventado do protótipo.
+  const storeCount = pyStoreCount(group)
+  const storeOfferCount = storeView ? group.offers.filter(o => offerCountry(o) === 'py').length : 0
 
   const cartOffer = py || br
   const isFav = cartOffer ? isFavorited(cartOffer.url) : false
@@ -96,11 +104,17 @@ export default function ProductCard({ group, marginPct, showMargin, idx, onNeedA
     onNeedAuth?.()
   }
 
+  // Fluxo do protótipo: produto com 2+ lojas → lista de lojas → detalhe da loja.
+  // O termo da busca vai junto na URL: abrir o link do zero (F5, link compartilhado)
+  // refaz a mesma busca e acha exatamente este produto pela chave.
   function handleViewDetails() {
-    // O termo da busca vai junto na URL: abrir o link do zero (F5, link compartilhado)
-    // refaz a mesma busca e acha exatamente este produto pela chave.
+    if (!group.product_key) return
     const q = searchParams.get('q') || familyDisplayName(group)
-    if (group.product_key) navigate(`/product/${group.product_key}?q=${encodeURIComponent(q)}`, { state: { group } })
+    const urls = productUrls(group, q)
+    const fullGroup = group.__fullGroup || group
+    if (storeView) navigate(urls.detail(storeView), { state: { group: fullGroup } })
+    else if (storeCount > 1) navigate(urls.stores, { state: { group } })
+    else navigate(urls.detail(null), { state: { group } })
   }
 
   return (
@@ -125,7 +139,9 @@ export default function ProductCard({ group, marginPct, showMargin, idx, onNeedA
             <img src={group.product_image_url} alt={name} loading="lazy" onError={() => setImgFailed(true)} />
           )}
 
-          {storeCount > 1 && (
+          {storeView ? (
+            storeOfferCount > 1 && <span className="pc-store-count-badge">{storeOfferCount} ofertas</span>
+          ) : storeCount > 1 && (
             <span className="pc-store-count-badge">⭐ {storeCount} lojas</span>
           )}
 
@@ -161,7 +177,7 @@ export default function ProductCard({ group, marginPct, showMargin, idx, onNeedA
         <div className="pc-prices">
           <div className={`pc-row pc-row-py${py ? '' : ' is-na'}`}>
             <span className="pc-ctry">PY</span>
-            <span className="pc-row-store">{py?.store_info?.name || (py ? sourceDomain(py.url) : '—')}</span>
+            <span className="pc-row-store">{storeView || py?.store || (py ? sourceDomain(py.url) : '—')}</span>
             <strong className="pc-val">
               {py ? formatMoney(py.price.amount, py.price.currency) : '—'}
             </strong>
