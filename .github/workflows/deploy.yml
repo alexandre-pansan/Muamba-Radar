@@ -31,7 +31,10 @@ jobs:
 
             echo "→ Building and restarting services..."
             docker compose pull --quiet || true
-            docker compose build --no-cache
+            # backend/frontend sempre do zero; o OSRM usa cache (baixa e processa o mapa
+            # só quando osrm/Dockerfile muda — rebuildar a cada push seria 1 min à toa).
+            docker compose build --no-cache backend frontend
+            docker compose build osrm
             docker compose up -d --remove-orphans || {
               echo "=== BACKEND LOGS (last 80 lines) ==="
               docker logs muamba-radar-backend-1 --tail 80 2>&1 || true
