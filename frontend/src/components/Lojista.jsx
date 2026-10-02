@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { Button, Badge, Modal, useModal, FormInput } from './ui/index.js'
 import useToast from './ui/useToast.js'
+import { useFeatures } from '../features.js'
 import {
   apiGetSellerProfile, apiCreateSellerProfile, apiSellerStoreSuggestions,
   apiGetSellerOffers, apiGetSellerMetrics,
@@ -121,6 +122,7 @@ function ProfileCreateForm({ onCreated }) {
 
 export default function Lojista({ currentUser, onNeedAuth }) {
   const toast = useToast()
+  const { coupons: couponsEnabled } = useFeatures()
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState(null)
   const [offers, setOffers] = useState([])
@@ -407,6 +409,7 @@ export default function Lojista({ currentUser, onNeedAuth }) {
       </section>
 
       {/* ── Coupons ── */}
+      {couponsEnabled && (
       <section className="lojista-section">
         <div className="lojista-section-header">
           <h2 className="lojista-section-title">🎟️ Cupons da loja</h2>
@@ -429,6 +432,7 @@ export default function Lojista({ currentUser, onNeedAuth }) {
           ))}
         </div>
       </section>
+      )}
 
       {/* ── Banner campaigns ── */}
       <section className="lojista-section">

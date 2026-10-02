@@ -262,7 +262,7 @@ function CartDropdown({ onOpenCart, onClose, currentUser, onOpenAuth, fxRate }) 
 }
 
 function UserDropdown({
-  currentUser, onOpenSettings, onOpenCalc, onOpenImportCalc, onOpenAdmin, onOpenProfile, onLogout, onClose,
+  currentUser, onOpenSettings, onOpenImportCalc, onOpenAdmin, onOpenProfile, onLogout, onClose,
   theme, onToggleTheme, locale, setLocale,
 }) {
   const ref = useRef(null)
@@ -278,7 +278,6 @@ function UserDropdown({
   const items = [
     ...(onOpenProfile ? [{ icon: '👤', label: 'Perfil', action: onOpenProfile }] : []),
     { icon: '⚙', label: 'Configurações', action: onOpenSettings },
-    { icon: '💰', label: 'Calculadora de Taxas MP', action: onOpenCalc },
     { icon: '🧾', label: 'Calculadora de Declaração', action: onOpenImportCalc },
     ...(currentUser?.is_admin ? [{ icon: '🔧', label: 'Dev Tools', action: onOpenAdmin }] : []),
     { divider: true },
@@ -338,7 +337,6 @@ export default function Header({
   onOpenAuth,
   onLogout,
   onOpenSettings,
-  onOpenCalc,
   onOpenImportCalc,
   onOpenAdmin,
   onOpenCart,
@@ -515,7 +513,6 @@ export default function Header({
                 <UserDropdown
                   currentUser={currentUser}
                   onOpenSettings={onOpenSettings}
-                  onOpenCalc={onOpenCalc}
                   onOpenImportCalc={onOpenImportCalc}
                   onOpenAdmin={onOpenAdmin}
                   onOpenProfile={onOpenProfile}

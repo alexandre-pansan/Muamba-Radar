@@ -55,11 +55,10 @@ import Favorites from './components/Favorites.jsx'
 import MapPage from './components/MapPage.jsx'
 import ProductDetail from './components/ProductDetail.jsx'
 import AuthModal from './components/AuthModal.jsx'
-import UserConfigModal from './components/UserConfigModal.jsx'
+import AccountSettings from './components/AccountSettings.jsx'
 import AdminPage from './components/AdminPage.jsx'
 import PrivacyPage from './components/PrivacyPage.jsx'
 import TermsPage from './components/TermsPage.jsx'
-import TaxCalculator from './components/TaxCalculator.jsx'
 import ImportDutyCalculator from './components/ImportDutyCalculator.jsx'
 import OffersDialog from './components/OffersDialog.jsx'
 import BetaNoticeModal, { shouldShowBetaNotice } from './components/BetaNoticeModal.jsx'
@@ -131,8 +130,6 @@ function AppShell({ currentUser, setCurrentUser }) {
   // Modal open state
   const [authModalOpen, setAuthModalOpen] = useState(false)
   const [authModalTab, setAuthModalTab] = useState('login')
-  const [userConfigOpen, setUserConfigOpen] = useState(false)
-  const [taxCalcOpen, setTaxCalcOpen] = useState(false)
   const [importCalcOpen, setImportCalcOpen] = useState(false)
   const [importCalcInitialUSD, setImportCalcInitialUSD] = useState(null)
   const [betaNoticeOpen, setBetaNoticeOpen] = useState(false)
@@ -441,9 +438,8 @@ function AppShell({ currentUser, setCurrentUser }) {
         currentUser={currentUser}
         onOpenAuth={openAuthModal}
         onLogout={handleLogout}
-        onOpenSettings={() => setUserConfigOpen(true)}
+        onOpenSettings={() => navigate('/conta')}
         onOpenAdmin={goAdmin}
-        onOpenCalc={() => setTaxCalcOpen(true)}
         onOpenImportCalc={() => { setImportCalcInitialUSD(null); setImportCalcOpen(true) }}
         onOpenCart={goCart}
         onOpenFavorites={goFavorites}
@@ -482,7 +478,19 @@ function AppShell({ currentUser, setCurrentUser }) {
       <Route path="/login" element={
         currentUser
           ? <Navigate to="/profile" replace />
-          : <LoginPage onAuthSuccess={handleAuthSuccessFromPage} onOpenLegal={setLegalModal} />
+          : <RoutePage><LoginPage onAuthSuccess={handleAuthSuccessFromPage} onOpenLegal={setLegalModal} /></RoutePage>
+      } />
+      <Route path="/conta" element={
+        <RoutePage>
+          <AccountSettings
+            currentUser={currentUser}
+            currentPrefs={currentPrefs}
+            onUserUpdate={handleUserUpdate}
+            onPrefChange={handlePrefChange}
+            onSearchClick={goSearch}
+            onNeedAuth={() => openAuthModal('login')}
+          />
+        </RoutePage>
       } />
       <Route path="/profile" element={<RoutePage><ProfilePage currentUser={currentUser} onLogout={handleLogout} /></RoutePage>} />
       <Route path="/" element={
@@ -575,28 +583,8 @@ function AppShell({ currentUser, setCurrentUser }) {
         onOpenLegal={setLegalModal}
       />
 
-      <UserConfigModal
-        open={userConfigOpen}
-        onClose={() => setUserConfigOpen(false)}
-        currentUser={currentUser}
-        savedTaxRates={currentPrefs?.tax_rates}
-        currentPrefs={currentPrefs}
-        onUserUpdate={handleUserUpdate}
-        onPrefChange={handlePrefChange}
-        onSearchClick={(q) => {
-          setUserConfigOpen(false)
-          setQuery(q)
-          runCompare(q)
-        }}
-      />
 
-      <TaxCalculator
-        open={taxCalcOpen}
-        onClose={() => setTaxCalcOpen(false)}
-        savedRates={currentPrefs?.tax_rates}
-      />
-
-      {offersGroup && (
+{offersGroup && (
         <OffersDialog
           group={offersGroup.group}
           name={offersGroup.name}

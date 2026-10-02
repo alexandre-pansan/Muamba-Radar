@@ -1,21 +1,32 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useI18n } from '../i18n.jsx'
 import { apiUpdateMe, apiFetchUserSearches, getApiBase, getToken, apiBumpBetaNotice } from '../api.js'
-import { DEFAULT_RATES, mergeRates } from '../taxRates.js'
 import { PasswordRules } from './AuthForms.jsx'
 
-export default function UserConfigModal({
-  open,
-  onClose,
+// Seções da página — o id vira âncora na URL (/conta#taxas), então recarregar ou
+// mandar o link abre direto na seção.
+const SECTIONS = [
+  { id: 'perfil', label: 'Perfil' },
+  { id: 'senha', label: 'Senha' },
+  { id: 'preferencias', label: 'Preferências' },
+  { id: 'buscas', label: 'Buscas recentes' },
+  { id: 'privacidade', label: 'Privacidade (LGPD)' },
+  { id: 'aviso-beta', label: 'Aviso Beta', admin: true },
+]
+
+/** Configurações da conta como página (/conta) — antes era um popup. */
+export default function AccountSettings({
   currentUser,
   currentPrefs,
-  savedTaxRates,
   onUserUpdate,
   onPrefChange,
   onSearchClick,
+  onNeedAuth,
 }) {
   const { t } = useI18n()
-  const dialogRef = useRef(null)
+  const location = useLocation()
+  const navigate = useNavigate()
 
   const [profileName, setProfileName]       = useState('')
   const [profileError, setProfileError]     = useState('')
@@ -30,13 +41,6 @@ export default function UserConfigModal({
 
   const [userSearches, setUserSearches]     = useState([])
   const [searchesLoading, setSearchesLoading] = useState(false)
-
-  const [taxRates, setTaxRates]           = useState(() => mergeRates(savedTaxRates))
-  const [taxSaved, setTaxSaved]           = useState(false)
-
-  useEffect(() => {
-    setTaxRates(mergeRates(savedTaxRates))
-  }, [savedTaxRates])
 
   const [deleteConfirm, setDeleteConfirm] = useState(false)
   const [deleteError, setDeleteError]     = useState('')
@@ -70,24 +74,21 @@ export default function UserConfigModal({
   }
 
   useEffect(() => {
-    const dialog = dialogRef.current
-    if (!dialog) return
-    if (open && !dialog.open) {
-      dialog.showModal()
-      setTimeout(() => dialogRef.current?.querySelector('input')?.focus(), 50)
-      // Pre-populate
-      setProfileName(currentUser?.name || '')
-      setProfileError('')
-      setPasswordError('')
-      setNewPassword('')
-      setConfirmPassword('')
-      setProfileSaved(false)
-      setPasswordSaved(false)
-      loadUserSearches()
-    } else if (!open && dialog.open) {
-      dialog.close()
-    }
-  }, [open, currentUser])
+    setProfileName(currentUser?.name || '')
+    loadUserSearches()
+  }, [currentUser?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Abre na seção da âncora (#taxas) ao chegar ou recarregar.
+  useEffect(() => {
+    const id = location.hash.replace('#', '')
+    if (!id || !currentUser) return
+    requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView({ block: 'start' }))
+  }, [location.hash, currentUser])
+
+  function goToSection(id) {
+    navigate({ hash: id }, { replace: true })
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
 
   async function loadUserSearches() {
     if (!currentUser) return
@@ -100,10 +101,6 @@ export default function UserConfigModal({
     } finally {
       setSearchesLoading(false)
     }
-  }
-
-  function handleBackdropClick(e) {
-    if (e.target === dialogRef.current) onClose()
   }
 
   async function handleProfileSubmit(e) {
@@ -172,39 +169,43 @@ export default function UserConfigModal({
     setBumpingBeta(false)
   }
 
-  async function handleTaxSave(e) {
-    e.preventDefault()
-    await onPrefChange({ tax_rates: taxRates })
-    setTaxSaved(true)
-    setTimeout(() => setTaxSaved(false), 2000)
+  if (!currentUser) {
+    return (
+      <div className="account-page">
+        <div className="account-guest">
+          <h1 className="page-title">⚙️ Configurações da conta</h1>
+          <p>Entre na sua conta para ver e alterar suas configurações.</p>
+          <button type="button" className="btn-save" onClick={onNeedAuth}>Entrar</button>
+        </div>
+      </div>
+    )
   }
 
-  async function handleTaxReset() {
-    const defaults = { ...DEFAULT_RATES }
-    setTaxRates(defaults)
-    await onPrefChange({ tax_rates: defaults })
-    setTaxSaved(true)
-    setTimeout(() => setTaxSaved(false), 2000)
-  }
+  const visibleSections = SECTIONS.filter(sec => !sec.admin || currentUser.is_admin)
 
   return (
-    <dialog
-      ref={dialogRef}
-      className="modal modal-lg"
-      onClick={handleBackdropClick}
-      onClose={onClose}
-    >
-      <div className="modal-header">
-        <h2 className="modal-title">{t('config.title')}</h2>
-        <button className="modal-close" type="button" aria-label="Fechar" onClick={onClose}>
-          &times;
-        </button>
-      </div>
-      <div className="modal-body">
+    <div className="account-page">
+      <h1 className="page-title">⚙️ Configurações da conta</h1>
 
+      <div className="account-layout">
+      <nav className="account-nav" aria-label="Seções">
+        {visibleSections.map(sec => (
+          <button
+            key={sec.id}
+            type="button"
+            className={`account-nav__item${location.hash === `#${sec.id}` ? ' is-active' : ''}`}
+            onClick={() => goToSection(sec.id)}
+          >
+            {sec.label}
+          </button>
+        ))}
+      </nav>
+
+      <div className="account-sections">
       {/* Profile section */}
-      <section className="ucm-section">
+      <section className="ucm-section account-card" id="perfil">
         <h3 className="ucm-section-title">{t('config.profile_section')}</h3>
+        <p className="account-card__meta">{currentUser.email}{currentUser.username ? ` · @${currentUser.username}` : ''}</p>
         <form className="ucm-form" onSubmit={handleProfileSubmit}>
           <label className="field">
             <span>{t('config.name_label')}</span>
@@ -224,8 +225,11 @@ export default function UserConfigModal({
             {profileSaved ? t('config.saved') : t('config.save_name')}
           </button>
         </form>
+      </section>
 
-        <form className="ucm-form ucm-form-sep" onSubmit={handlePasswordSubmit}>
+      <section className="ucm-section account-card" id="senha">
+        <h3 className="ucm-section-title">Senha</h3>
+        <form className="ucm-form" onSubmit={handlePasswordSubmit}>
           <label className="field">
             <span>{t('config.new_password')}</span>
             <input
@@ -258,7 +262,7 @@ export default function UserConfigModal({
       </section>
 
       {/* Preferences section */}
-      <section className="ucm-section">
+      <section className="ucm-section account-card" id="preferencias">
         <h3 className="ucm-section-title">{t('config.prefs_section')}</h3>
         <label className="pref-row">
           <span>{t('config.show_margin')}</span>
@@ -274,7 +278,7 @@ export default function UserConfigModal({
       </section>
 
       {currentUser?.is_admin && (
-        <section className="ucm-section">
+        <section className="ucm-section account-card" id="aviso-beta">
           <h3 className="ucm-section-title">Aviso Beta</h3>
           <div className="ucm-beta-actions">
             <button className="btn-inline btn-muted" onClick={handleReenableBetaNotice}>
@@ -294,75 +298,8 @@ export default function UserConfigModal({
         </section>
       )}
 
-      {/* Tax rates section */}
-      <section className="ucm-section">
-        <h3 className="ucm-section-title">Taxas de Pagamento</h3>
-        <form className="ucm-form" onSubmit={handleTaxSave}>
-
-          <p className="ucm-subsection-label">Métodos de pagamento</p>
-          <div className="tax-rates-grid">
-            {[
-              { key: 'credit_na_hora', label: 'Crédito — Na hora (%)', pct: true },
-              { key: 'credit_14d',     label: 'Crédito — 14 dias (%)', pct: true },
-              { key: 'credit_30d',     label: 'Crédito — 30 dias (%)', pct: true },
-              { key: 'pix',            label: 'Pix (%)',               pct: true },
-              { key: 'open_finance',   label: 'Open Finance (%)',       pct: true },
-              { key: 'mp_saldo',       label: 'Carteira Digital (%)',   pct: true },
-              { key: 'prepago',        label: 'Pré-pago (%)',           pct: true },
-              { key: 'linha_credito',  label: 'Linha de Crédito (%)',   pct: true },
-              { key: 'boleto_fixed',   label: 'Boleto (R$ fixo)',       pct: false },
-            ].map(({ key, label, pct }) => (
-              <label key={key} className="field tax-rate-field">
-                <span>{label}</span>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={pct ? ((taxRates[key] ?? 0) * 100).toFixed(2) : (taxRates[key] ?? 0).toFixed(2)}
-                  onChange={e => {
-                    const v = parseFloat(e.target.value)
-                    if (!isNaN(v)) setTaxRates(prev => ({ ...prev, [key]: pct ? v / 100 : v }))
-                  }}
-                />
-              </label>
-            ))}
-          </div>
-
-          <p className="ucm-subsection-label">Juros de parcelamento (% a.m.)</p>
-          <div className="tax-rates-grid">
-            {[2,3,4,5,6,7,8,9,10,11,12].map(n => {
-              const key = `installment_${n}x`
-              return (
-                <label key={key} className="field tax-rate-field">
-                  <span>{n}x</span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={((taxRates[key] ?? 0) * 100).toFixed(2)}
-                    onChange={e => {
-                      const v = parseFloat(e.target.value)
-                      if (!isNaN(v)) setTaxRates(prev => ({ ...prev, [key]: v / 100 }))
-                    }}
-                  />
-                </label>
-              )
-            })}
-          </div>
-
-          <div className="btn-row">
-            <button type="submit" className="btn-save">
-              {taxSaved ? 'Salvo ✓' : 'Salvar taxas'}
-            </button>
-            <button type="button" className="btn-save btn-save-secondary" onClick={handleTaxReset}>
-              Restaurar padrões
-            </button>
-          </div>
-        </form>
-      </section>
-
       {/* Recent searches section */}
-      <section className="ucm-section">
+      <section className="ucm-section account-card" id="buscas">
         <h3 className="ucm-section-title">{t('config.searches_section')}</h3>
         <ul className="ucm-search-list">
           {searchesLoading ? (
@@ -387,7 +324,7 @@ export default function UserConfigModal({
       </section>
 
       {/* Privacy / LGPD section */}
-      <section className="ucm-section ucm-privacy-section">
+      <section className="ucm-section ucm-privacy-section account-card" id="privacidade">
         <h3 className="ucm-section-title">Privacidade (LGPD)</h3>
         <p className="ucm-privacy-desc">
           Você tem direito de exportar seus dados ou excluir permanentemente sua conta e todos os dados pessoais associados.
@@ -417,6 +354,7 @@ export default function UserConfigModal({
         </div>
       </section>
       </div>
-    </dialog>
+      </div>
+    </div>
   )
 }

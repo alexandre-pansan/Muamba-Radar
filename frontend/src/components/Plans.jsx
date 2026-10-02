@@ -79,7 +79,7 @@ const BENEFITS = [
   {
     img: '/images/benefit_lojista_dashboard.jpg',
     title: '📊 Painel Modo Lojista',
-    desc: 'Gerencie cupons, banners e acompanhe métricas de visualizações e cliques recebidos diretamente pela plataforma.',
+    desc: 'Gerencie banners e acompanhe métricas de visualizações e cliques recebidos diretamente pela plataforma.',
     plans: ['Visibilidade (Básico)', 'Destaque Pro (Completo)', 'Domínio Total (Completo + API)'],
   },
 ]

@@ -33,11 +33,19 @@ export default function ProfilePage({ currentUser, onLogout }) {
       </div>
 
       <div className="profile-actions">
+        <button className="profile-action-card" onClick={() => navigate('/conta')}>
+          <span className="profile-action-icon profile-action-icon--settings">⚙️</span>
+          <span className="profile-action-text">
+            <strong>Configurações da conta</strong>
+            <span>Nome, senha, preferências, buscas recentes e privacidade.</span>
+          </span>
+        </button>
+
         <button className="profile-action-card" onClick={() => navigate('/lojista')}>
           <span className="profile-action-icon profile-action-icon--lojista">🏪</span>
           <span className="profile-action-text">
             <strong>Modo Lojista</strong>
-            <span>Painel de demonstração para lojistas — cupons, banners e destaque de produtos.</span>
+            <span>Painel de demonstração para lojistas — banners e destaque de produtos.</span>
           </span>
         </button>
 

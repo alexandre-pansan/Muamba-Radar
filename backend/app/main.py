@@ -370,6 +370,7 @@ def get_config(db: Session = Depends(get_db)) -> dict:
         "donate_goal":         cfg.donate_goal         if cfg else 80,
         "donate_raised":       cfg.donate_raised       if cfg else 0,
         "donate_supporters":   cfg.donate_supporters   if cfg else 0,
+        "coupons_enabled":     settings.coupons_enabled,
     }
 
 
@@ -769,7 +770,8 @@ def _enrich_with_seller_data(db: Session, groups: list[ProductGroupModel]) -> No
             continue
         if group.product_key in highlighted_keys:
             group.is_highlighted = True
-        group.coupon = coupon_for_group(group_seller_ids, group.product_key)
+        if settings.coupons_enabled:
+            group.coupon = coupon_for_group(group_seller_ids, group.product_key)
 
     groups.sort(key=lambda g: not g.is_highlighted)
 
@@ -1683,6 +1685,8 @@ def get_cart_coupons(
     of the seller coupon feature (sellers create them under /seller/coupons). Redemption
     is in the physical store: the site never applies a discount, it just hands over the
     code so the shopper can show it at the counter."""
+    if not settings.coupons_enabled:
+        return []
     items = (
         db.query(UserCartItem)
         .filter(UserCartItem.user_id == current_user.id)
@@ -2088,6 +2092,8 @@ def create_seller_coupon(
     profile: SellerProfile = Depends(require_seller_plan),
     db: Session = Depends(get_db),
 ) -> SellerCouponResponse:
+    if not settings.coupons_enabled:
+        raise HTTPException(status_code=403, detail="Cupons estão desativados no momento.")
     code = body.code.strip().upper()
     existing = (
         db.query(SellerCoupon)

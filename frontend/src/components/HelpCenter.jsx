@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Modal, Button } from './ui/index.js'
 import useToast from './ui/useToast.js'
+import { useFeatures } from '../features.js'
 
 /**
  * Guided tours that walk the visitor through the real pages instead of describing them
@@ -24,7 +25,7 @@ const TUTORIALS = {
       },
       {
         title: 'Lojas e ofertas do produto',
-        content: 'Clique em qualquer card de resultado para abrir a página do produto: lá aparece a lista completa de lojas que vendem aquele item, com preço de cada uma e o cupom da loja quando houver.',
+        content: 'Clique em qualquer card de resultado para abrir a página do produto: lá aparece a lista completa de lojas que vendem aquele item, com o preço de cada uma.',
       },
       {
         title: 'Salvar na lista de compras',
@@ -36,6 +37,7 @@ const TUTORIALS = {
         route: '/cart',
       },
       {
+        feature: 'coupons',
         title: 'Cupons das lojas',
         content: 'Ainda na lista de compras, "🎟️ Meus cupons" reúne os cupons ativos das lojas dos seus itens e gera um PNG com QR Code para você apresentar no balcão em Ciudad del Este.',
         route: '/cart',
@@ -66,13 +68,14 @@ const TUTORIALS = {
         route: '/lojista',
       },
       {
+        feature: 'coupons',
         title: 'Cupons de desconto',
         content: 'Crie cupons para um produto específico ou para a loja inteira. Eles aparecem no card do produto e na lista de compras do comprador, que gera o QR Code em PNG e apresenta na sua loja física.',
         route: '/lojista',
       },
       {
         title: 'Planos',
-        content: 'Destaques, cupons e banners exigem um plano ativo. A página de planos mostra o que cada um libera e o valor mensal.',
+        content: 'Destaques e banners exigem um plano ativo. A página de planos mostra o que cada um libera e o valor mensal.',
         route: '/plans',
       },
     ],
@@ -107,7 +110,12 @@ export function TutorialCard({ mode, onClose }) {
 
   useEffect(() => { setStep(0) }, [mode])
 
-  const tutorial = mode ? TUTORIALS[mode] : null
+  const features = useFeatures()
+  // Passo marcado com `feature` só aparece se o recurso estiver ligado no backend.
+  const tutorial = useMemo(() => {
+    const t = mode ? TUTORIALS[mode] : null
+    return t && { ...t, steps: t.steps.filter(st => !st.feature || features[st.feature]) }
+  }, [mode, features])
   const current = tutorial?.steps[step]
 
   useEffect(() => {
