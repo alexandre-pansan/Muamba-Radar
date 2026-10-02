@@ -657,6 +657,28 @@ export async function apiAdminImportStores(stores) {
   return res.json()
 }
 
+export async function apiAdminExportCatalog() {
+  const res = await fetch(`${getApiBase()}/admin/catalog/export`, { headers: authHeaders() })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  const match = /filename="([^"]+)"/.exec(res.headers.get('Content-Disposition') || '')
+  return { blob: await res.blob(), filename: match ? match[1] : 'catalogo.jsonl.gz' }
+}
+
+export async function apiAdminImportCatalog(file) {
+  const form = new FormData()
+  form.append('file', file)
+  const res = await fetch(`${getApiBase()}/admin/catalog/import`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: form,
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.detail || `HTTP ${res.status}`)
+  }
+  return res.json()
+}
+
 export async function apiSubmitReport(body) {
   const res = await fetch(`${getApiBase()}/reports`, {
     method: 'POST',

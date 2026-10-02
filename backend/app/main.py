@@ -16,7 +16,8 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import BackgroundTasks, Depends, FastAPI, File, Header, HTTPException, Query, Request, Response, UploadFile, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -30,7 +31,7 @@ from app.adapters.registry import get_adapters
 from app.auth import create_access_token, create_refresh_token, get_current_user, get_current_user_optional, hash_password, require_admin, require_seller_plan, revoke_refresh_token, verify_password, verify_refresh_token
 from app.config import settings
 from app.crypto import blind_index
-from app.database import SessionLocal, get_db, init_db
+from app.database import SessionLocal, engine, get_db, init_db
 from app.models import AccessLog, DataReport, ProductOffer, RefreshToken, SearchCache, SellerBannerCampaign, SellerCoupon, SellerProductHighlight, SellerProfile, Store, User, UserCartItem, UserFavorite, UserPrefs, UserSearch
 from app.schemas import (
     # CompareByImageResponseModel,  # image detection deferred
@@ -2782,6 +2783,37 @@ def admin_import_stores(
 
     db.commit()
     return StoreImportResult(created=created, updated=updated, skipped=skipped)
+
+
+# ── Catalog transfer (local → prod via arquivo) ──────────────────────────────
+
+@app.get("/admin/catalog/export")
+def admin_export_catalog(_: User = Depends(require_admin)) -> StreamingResponse:
+    """Baixa o catálogo de ofertas válidas como .jsonl.gz (ver services/catalog_transfer)."""
+    from app.services.catalog_transfer import export_catalog
+
+    filename = f"catalogo-{datetime.now(timezone.utc):%Y%m%d-%H%M}.jsonl.gz"
+    return StreamingResponse(
+        export_catalog(engine),
+        media_type="application/gzip",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@app.post("/admin/catalog/import")
+def admin_import_catalog(
+    file: UploadFile = File(...),
+    _: User = Depends(require_admin),
+) -> dict:
+    """Importa um arquivo gerado por /admin/catalog/export, sem duplicar ofertas."""
+    from app.services.catalog_transfer import CatalogImportError, import_catalog
+
+    try:
+        result = import_catalog(engine, file.file)
+    except CatalogImportError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    log.info("catalog import: %s", result)
+    return result
 
 
 # ── Image (deferred — placeholder only, uncomment when real vision is ready) ──

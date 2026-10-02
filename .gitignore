@@ -43,3 +43,7 @@ Thumbs.db
 
 #other itens and folder that are not related
 new-frontend-design
+
+
+# exports do catálogo (Admin > Crawler > Exportar catálogo)
+catalogo-*.jsonl.gz

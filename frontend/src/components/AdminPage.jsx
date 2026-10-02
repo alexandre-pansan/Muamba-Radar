@@ -7,6 +7,8 @@ import {
   apiAdminCrawlerStatus,
   apiAdminCrawlerStart,
   apiAdminCrawlerStop,
+  apiAdminExportCatalog,
+  apiAdminImportCatalog,
   apiAdminListUsers,
   apiAdminDeleteUser,
   apiAdminToggleAdmin,
@@ -607,6 +609,73 @@ const CRAWLER_STATE_LABELS = {
   blocked: 'Bloqueado — pausado',
 }
 
+function CatalogTransfer() {
+  const [busy, setBusy] = useState(null) // 'export' | 'import' | null
+  const [status, setStatus] = useState(null)
+  const fileRef = useRef(null)
+
+  async function handleExport() {
+    setBusy('export')
+    setStatus(null)
+    try {
+      const { blob, filename } = await apiAdminExportCatalog()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      a.click()
+      URL.revokeObjectURL(url)
+      setStatus({ ok: true, text: `Arquivo gerado (${(blob.size / 1024 / 1024).toFixed(1)} MB). Importe no Admin de produção.` })
+    } catch (e) {
+      setStatus({ ok: false, text: `Falha ao exportar: ${e.message}` })
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  async function handleImport(e) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setBusy('import')
+    setStatus(null)
+    try {
+      const r = await apiAdminImportCatalog(file)
+      setStatus({
+        ok: true,
+        text: `Importado — ${r.inserted} novas · ${r.updated} atualizadas · ${r.unchanged} já estavam iguais ou mais novas` +
+          ` · ${r.duplicates_in_file + r.kept_db_newer + r.replaced_db_older} duplicatas resolvidas` +
+          (r.expired_skipped ? ` · ${r.expired_skipped} vencidas ignoradas` : ''),
+      })
+    } catch (err) {
+      setStatus({ ok: false, text: `Falha ao importar: ${err.message}` })
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  return (
+    <div className="catalog-transfer">
+      <p className="dev-tools-label">Transferir catálogo entre ambientes</p>
+      <p className="admin-cache-desc">
+        Exporte aqui no local e importe no Admin de produção. Pode importar o mesmo arquivo quantas vezes quiser — oferta repetida não duplica, e a captura mais recente sempre vence.
+      </p>
+      <div className="crawler-actions">
+        <button className="admin-ghost-btn" onClick={handleExport} disabled={busy !== null}>
+          {busy === 'export' ? 'Exportando…' : '↓ Exportar catálogo'}
+        </button>
+        <button className="admin-ghost-btn" onClick={() => fileRef.current?.click()} disabled={busy !== null}>
+          {busy === 'import' ? 'Importando…' : '↑ Importar catálogo'}
+        </button>
+        <input ref={fileRef} type="file" accept=".gz,application/gzip" hidden onChange={handleImport} />
+      </div>
+      {status && (
+        <div className={`admin-status-box ${status.ok ? 'is-ok' : 'is-error'}`}>{status.text}</div>
+      )}
+    </div>
+  )
+}
+
 function CrawlerTab() {
   const [data, setData] = useState(null)
   const [loadError, setLoadError] = useState('')
@@ -755,6 +824,8 @@ function CrawlerTab() {
           })}
         </div>
       )}
+
+      <CatalogTransfer />
 
       {data.log_tail?.length > 0 && (
         <div className="crawler-log-section">
