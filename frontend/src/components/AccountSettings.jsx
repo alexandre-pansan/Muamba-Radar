@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useI18n } from '../i18n.jsx'
-import { apiUpdateMe, apiFetchUserSearches, getApiBase, getToken, apiBumpBetaNotice } from '../api.js'
+import { apiUpdateMe, apiFetchUserSearches, getApiBase, getToken } from '../api.js'
 import { PasswordRules } from './AuthForms.jsx'
 
 // Seções da página — o id vira âncora na URL (/conta#taxas), então recarregar ou
@@ -12,7 +12,6 @@ const SECTIONS = [
   { id: 'preferencias', label: 'Preferências' },
   { id: 'buscas', label: 'Buscas recentes' },
   { id: 'privacidade', label: 'Privacidade (LGPD)' },
-  { id: 'aviso-beta', label: 'Aviso Beta', admin: true },
 ]
 
 /** Configurações da conta como página (/conta) — antes era um popup. */
@@ -144,31 +143,6 @@ export default function AccountSettings({
     await onPrefChange({ show_margin: e.target.checked })
   }
 
-  async function handleReenableBetaNotice() {
-    await onPrefChange({ hide_beta_notice: false })
-    // Clear all versioned localStorage keys so it shows again
-    Object.keys(localStorage)
-      .filter(k => k.startsWith('muamba_beta_dismissed_v'))
-      .forEach(k => localStorage.removeItem(k))
-  }
-
-  const [bumpingBeta, setBumpingBeta] = useState(false)
-  const [bumpedBeta, setBumpedBeta]   = useState(false)
-  async function handleBumpBetaNotice() {
-    setBumpingBeta(true)
-    try {
-      await apiBumpBetaNotice()
-      // Clear own localStorage so the modal shows for self too
-      Object.keys(localStorage)
-        .filter(k => k.startsWith('muamba_beta_dismissed_v'))
-        .forEach(k => localStorage.removeItem(k))
-      await onPrefChange({ hide_beta_notice: false })
-      setBumpedBeta(true)
-      setTimeout(() => setBumpedBeta(false), 3000)
-    } catch (_) {}
-    setBumpingBeta(false)
-  }
-
   if (!currentUser) {
     return (
       <div className="account-page">
@@ -276,27 +250,6 @@ export default function AccountSettings({
           />
         </label>
       </section>
-
-      {currentUser?.is_admin && (
-        <section className="ucm-section account-card" id="aviso-beta">
-          <h3 className="ucm-section-title">Aviso Beta</h3>
-          <div className="ucm-beta-actions">
-            <button className="btn-inline btn-muted" onClick={handleReenableBetaNotice}>
-              Re-habilitar para mim
-            </button>
-            <button
-              className="btn-inline"
-              onClick={handleBumpBetaNotice}
-              disabled={bumpingBeta}
-            >
-              {bumpedBeta ? 'Enviado para todos ✓' : bumpingBeta ? 'Aguarde…' : 'Forçar para todos os usuários'}
-            </button>
-            <p className="ucm-hint">
-              "Forçar para todos" incrementa a versão global — ignora o "Não mostrar mais" de todos.
-            </p>
-          </div>
-        </section>
-      )}
 
       {/* Recent searches section */}
       <section className="ucm-section account-card" id="buscas">

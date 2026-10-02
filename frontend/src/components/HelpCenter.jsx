@@ -5,9 +5,7 @@ import useToast from './ui/useToast.js'
 import { useFeatures } from '../features.js'
 
 /**
- * Guided tours that walk the visitor through the real pages instead of describing them
- * — the interactive half of the help center. BetaNoticeModal's slideshow stays as the
- * quick screenshot tour; this one actually navigates.
+ * Guided tours that walk the visitor through the real pages instead of describing them.
  *
  * Each step may carry a `route` (navigated to on entry) and a `scrollTo` selector
  * (scrolled into view once the route has painted). Steps never navigate to a route that
@@ -82,8 +80,8 @@ const TUTORIALS = {
   },
 }
 
-/** Central de Ajuda — the chooser. Opens either the slideshow tour or a guided tour. */
-export function HelpModal({ open, onClose, onStartSlides, onStartTutorial }) {
+/** Central de Ajuda — escolhe qual tutorial guiado abrir. */
+export function HelpModal({ open, onClose, onStartTutorial }) {
   return (
     <Modal open={open} onClose={onClose} size="sm" title="📖 Central de Ajuda">
       <p className="help-modal-intro">Escolha como você prefere aprender a usar a plataforma:</p>
@@ -93,9 +91,6 @@ export function HelpModal({ open, onClose, onStartSlides, onStartTutorial }) {
         </Button>
         <Button variant="secondary" onClick={() => { onClose(); onStartTutorial('lojista') }}>
           💼 Tutorial guiado do lojista
-        </Button>
-        <Button variant="ghost" onClick={() => { onClose(); onStartSlides() }}>
-          🖼️ Tour rápido em slides
         </Button>
       </div>
     </Modal>

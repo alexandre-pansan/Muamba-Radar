@@ -62,7 +62,6 @@ import PrivacyPage from './components/PrivacyPage.jsx'
 import TermsPage from './components/TermsPage.jsx'
 import ImportDutyCalculator from './components/ImportDutyCalculator.jsx'
 import OffersDialog from './components/OffersDialog.jsx'
-import BetaNoticeModal, { shouldShowBetaNotice } from './components/BetaNoticeModal.jsx'
 import DonateModal from './components/DonateModal.jsx'
 import { HelpModal, TutorialCard } from './components/HelpCenter.jsx'
 import ReportModal from './components/ReportModal.jsx'
@@ -128,15 +127,10 @@ function AppShell({ currentUser, setCurrentUser }) {
   const [authModalTab, setAuthModalTab] = useState('login')
   const [importCalcOpen, setImportCalcOpen] = useState(false)
   const [importCalcInitialUSD, setImportCalcInitialUSD] = useState(null)
-  const [betaNoticeOpen, setBetaNoticeOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
   const [tutorialMode, setTutorialMode] = useState(null) // 'visitor' | 'lojista' | null
   const [donateOpen, setDonateOpen] = useState(false)
   const [reportTarget, setReportTarget] = useState(null) // { title, offerUrl, snapshot }
-  const [betaVersion, setBetaVersion] = useState(1)
-  const [betaTitle, setBetaTitle] = useState('')
-  const [betaBody1, setBetaBody1] = useState('')
-  const [betaBody2, setBetaBody2] = useState('')
   const [donateGoal, setDonateGoal] = useState(80)
   const [donateRaised, setDonateRaised] = useState(0)
   const [donateSupporters, setDonateSupporters] = useState(0)
@@ -202,15 +196,9 @@ function AppShell({ currentUser, setCurrentUser }) {
       setCurrentUser(user)
       const [prefs, config] = await Promise.all([apiFetchPrefs(), apiFetchConfig()])
       setCurrentPrefs(prefs)
-      const v = config.beta_notice_version ?? 1
-      setBetaVersion(v)
-      setBetaTitle(config.beta_notice_title ?? '')
-      setBetaBody1(config.beta_notice_body1 ?? '')
-      setBetaBody2(config.beta_notice_body2 ?? '')
       setDonateGoal(config.donate_goal ?? 80)
       setDonateRaised(config.donate_raised ?? 0)
       setDonateSupporters(config.donate_supporters ?? 0)
-      if (shouldShowBetaNotice({ user, prefs, version: v })) setBetaNoticeOpen(true)
       // Load user searches for sidebar
       loadUserSearches()
     } catch (_) {
@@ -228,9 +216,6 @@ function AppShell({ currentUser, setCurrentUser }) {
       setRecentSearches(raw ? JSON.parse(raw) : [])
     } catch {
       setRecentSearches([])
-    }
-    if (shouldShowBetaNotice({ user: null, prefs: null, version: betaVersion })) {
-      setBetaNoticeOpen(true)
     }
   }
 
@@ -289,10 +274,6 @@ function AppShell({ currentUser, setCurrentUser }) {
       setDonateGoal(cfg.donate_goal ?? 80)
       setDonateRaised(cfg.donate_raised ?? 0)
       setDonateSupporters(cfg.donate_supporters ?? 0)
-      setBetaVersion(cfg.beta_notice_version ?? 1)
-      setBetaTitle(cfg.beta_notice_title ?? '')
-      setBetaBody1(cfg.beta_notice_body1 ?? '')
-      setBetaBody2(cfg.beta_notice_body2 ?? '')
     })
   }, [])
 
@@ -626,17 +607,6 @@ function AppShell({ currentUser, setCurrentUser }) {
       <PrivacyPage open={legalModal === 'privacy'} onClose={() => setLegalModal(null)} />
       <TermsPage   open={legalModal === 'terms'}   onClose={() => setLegalModal(null)} />
 
-      <BetaNoticeModal
-        open={betaNoticeOpen}
-        onClose={() => setBetaNoticeOpen(false)}
-        isLoggedIn={!!currentUser}
-        betaVersion={betaVersion}
-        betaTitle={betaTitle}
-        betaBody1={betaBody1}
-        betaBody2={betaBody2}
-        onDonate={() => { setBetaNoticeOpen(false); setDonateOpen(true) }}
-      />
-
       <DonateModal
         open={donateOpen}
         onClose={() => setDonateOpen(false)}
@@ -645,7 +615,6 @@ function AppShell({ currentUser, setCurrentUser }) {
       <HelpModal
         open={helpOpen}
         onClose={() => setHelpOpen(false)}
-        onStartSlides={() => setBetaNoticeOpen(true)}
         onStartTutorial={setTutorialMode}
       />
 

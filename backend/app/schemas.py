@@ -196,7 +196,6 @@ class UpdateProfileRequest(BaseModel):
 
 class UserPrefsModel(BaseModel):
     show_margin: bool = False
-    hide_beta_notice: bool = False
     tax_rates: dict | None = None
 
 
@@ -208,7 +207,6 @@ def _validate_small_dict(v: dict | None, max_bytes: int = 8192) -> dict | None:
 
 class UpdatePrefsRequest(BaseModel):
     show_margin: bool | None = None
-    hide_beta_notice: bool | None = None
     tax_rates: dict | None = None
 
     @field_validator("tax_rates")
@@ -501,12 +499,6 @@ class AdminDonateStatsRequest(BaseModel):
     donate_goal:       int | None = Field(default=None, ge=0, le=10_000_000)
     donate_raised:     int | None = Field(default=None, ge=0, le=10_000_000)
     donate_supporters: int | None = Field(default=None, ge=0, le=1_000_000)
-
-
-class AdminBetaNoticeTextRequest(BaseModel):
-    beta_notice_title: str | None = Field(default=None, max_length=200)
-    beta_notice_body1: str | None = Field(default=None, max_length=1000)
-    beta_notice_body2: str | None = Field(default=None, max_length=1000)
 
 
 class AdminAdapterResult(BaseModel):
