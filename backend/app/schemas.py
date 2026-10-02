@@ -230,6 +230,10 @@ class CartItemCreate(BaseModel):
     price_amount: float
     price_currency: str
     image_url: str | None = None
+    # Oferta BR mais barata do grupo comparado de onde o item veio (opcional).
+    br_price_brl: float | None = Field(default=None, gt=0)
+    br_store: str | None = Field(default=None, max_length=200)
+    br_url: str | None = Field(default=None, max_length=2000)
 
 
 class StoreInfo(BaseModel):
@@ -259,7 +263,18 @@ class CartItemResponse(BaseModel):
     image_url: str | None = None
     store_id: int | None = None
     store: StoreInfo | None = None
+    quantity: int = 1
     added_at: datetime
+    # Atributos lidos do título (storage, color, ...) — chips no carrinho.
+    specs: dict[str, str] = {}
+    # Referência BR gravada ao adicionar (ver CartItemCreate). None = sem referência.
+    br_price_brl: float | None = None
+    br_store: str | None = None
+    br_url: str | None = None
+
+
+class CartQuantityUpdate(BaseModel):
+    quantity: int = Field(ge=1, le=99)
 
 
 class CartGroupItem(BaseModel):

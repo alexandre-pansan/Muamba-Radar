@@ -5,13 +5,13 @@ import { useCart } from '../CartContext.jsx'
 import { familyDisplayName, buildConfigChip, formatMoney, sourceDomain } from '../utils.js'
 import { Breadcrumb, Carousel, ProductCard, EmptyState, Button } from './ui/index.js'
 
-function HeartBtn({ offer, onNeedAuth }) {
+function HeartBtn({ offer, group, onNeedAuth }) {
   const { savedUrls, toggle } = useCart()
   const isSaved = savedUrls.has(offer.url)
 
   function handleClick(e) {
     e.stopPropagation()
-    toggle(offer, () => onNeedAuth?.())
+    toggle(offer, () => onNeedAuth?.(), group)
   }
 
   return (
@@ -28,10 +28,10 @@ function HeartBtn({ offer, onNeedAuth }) {
   )
 }
 
-function OfferRows({ offers, countryClass, onNeedAuth }) {
+function OfferRows({ offers, group, countryClass, onNeedAuth }) {
   return offers.map((offer, i) => (
     <tr key={offer.offer_id || i} className={`od-row od-row--${countryClass}`}>
-      <td className="od-save"><HeartBtn offer={offer} onNeedAuth={onNeedAuth} /></td>
+      <td className="od-save"><HeartBtn offer={offer} group={group} onNeedAuth={onNeedAuth} /></td>
       <td className="od-store">{offer.store}</td>
       <td className="od-title" title={offer.title || ''}>{offer.title || ''}</td>
       <td className="od-price">{formatMoney(offer.price.amount, offer.price.currency)}</td>
@@ -151,13 +151,13 @@ export default function ProductDetail({ targetMargin, showMargin, onOpenOffers, 
             {pyOffers.length > 0 && (
               <>
                 <tr className="od-section-row"><td colSpan={6} className="od-section-label od-section-py">Paraguai</td></tr>
-                <OfferRows offers={pyOffers} countryClass="py" onNeedAuth={onNeedAuth} />
+                <OfferRows offers={pyOffers} group={group} countryClass="py" onNeedAuth={onNeedAuth} />
               </>
             )}
             {brOffers.length > 0 && (
               <>
                 <tr className="od-section-row"><td colSpan={6} className="od-section-label od-section-br">Brasil</td></tr>
-                <OfferRows offers={brOffers} countryClass="br" onNeedAuth={onNeedAuth} />
+                <OfferRows offers={brOffers} group={group} countryClass="br" onNeedAuth={onNeedAuth} />
               </>
             )}
           </tbody>

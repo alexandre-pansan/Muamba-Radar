@@ -50,6 +50,7 @@ from app.schemas import (
     CartGroupItem,
     CartItemCreate,
     CartItemResponse,
+    CartQuantityUpdate,
     CompareResponseModel,
     CountryFilter,
     CouponInfo,
@@ -1548,7 +1549,12 @@ def _enrich_cart_item(item: UserCartItem, db: Session) -> CartItemResponse:
         image_url=item.image_url,
         store_id=item.store_id,
         store=store_info,
+        quantity=item.quantity or 1,
         added_at=item.added_at,
+        specs=extract_specs(item.title),
+        br_price_brl=item.br_price_brl,
+        br_store=item.br_store,
+        br_url=item.br_url,
     )
 
 
@@ -1566,6 +1572,26 @@ def get_cart(
         .all()
     )
     return [_enrich_cart_item(item, db) for item in items]
+
+
+@app.patch("/cart/{item_id}", response_model=CartItemResponse)
+def update_cart_quantity(
+    item_id: int,
+    body: CartQuantityUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> CartItemResponse:
+    item = (
+        db.query(UserCartItem)
+        .filter(UserCartItem.id == item_id, UserCartItem.user_id == current_user.id)
+        .first()
+    )
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    item.quantity = body.quantity
+    db.commit()
+    db.refresh(item)
+    return _enrich_cart_item(item, db)
 
 
 @app.post("/cart", response_model=CartItemResponse, status_code=status.HTTP_201_CREATED)
@@ -1594,6 +1620,9 @@ def add_to_cart(
         price_currency=body.price_currency,
         image_url=body.image_url,
         store_id=store.id if store else None,
+        br_price_brl=body.br_price_brl,
+        br_store=body.br_store,
+        br_url=body.br_url,
         added_at=datetime.now(timezone.utc),
     )
     db.add(item)

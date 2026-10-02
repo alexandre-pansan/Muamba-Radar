@@ -87,7 +87,7 @@ export default function ProductCard({ group, marginPct, showMargin, idx, onNeedA
   // Cart is the real, server-backed list — still needs login.
   function handleCartClick(e) {
     e.stopPropagation()
-    if (cartOffer) toggleCart(cartOffer, () => setShowHint(true))
+    if (cartOffer) toggleCart(cartOffer, () => setShowHint(true), group)
   }
 
   function handleLogin() {

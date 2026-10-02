@@ -3,13 +3,13 @@ import { useI18n } from '../i18n.jsx'
 import { useCart } from '../CartContext.jsx'
 import { formatMoney, sourceDomain } from '../utils.js'
 
-function HeartBtn({ offer, onNeedAuth }) {
+function HeartBtn({ offer, group, onNeedAuth }) {
   const { savedUrls, toggle } = useCart()
   const isSaved = savedUrls.has(offer.url)
 
   function handleClick(e) {
     e.stopPropagation()
-    toggle(offer, () => onNeedAuth?.())
+    toggle(offer, () => onNeedAuth?.(), group)
   }
 
   return (
@@ -70,7 +70,7 @@ export default function OffersDialog({ group, name, config, onClose, onNeedAuth 
     return offers.map((offer, i) => (
       <tr key={i} className={`od-row od-row--${countryClass}`}>
         <td className="od-save">
-          <HeartBtn offer={offer} onNeedAuth={onNeedAuth} />
+          <HeartBtn offer={offer} group={group} onNeedAuth={onNeedAuth} />
         </td>
         <td className="od-store">{offer.store}</td>
         <td className="od-title" title={offer.title || ''}>{offer.title || ''}</td>

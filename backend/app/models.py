@@ -183,6 +183,12 @@ class UserCartItem(Base):
     price_currency: Mapped[str] = mapped_column(Text, nullable=False)
     image_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     store_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("stores.id"), nullable=True)
+    quantity: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default="1")
+    # Referência BR do card de onde o item foi adicionado (oferta BR mais barata do
+    # mesmo grupo comparado que o usuário viu). Fotografia do momento, não ao vivo.
+    br_price_brl: Mapped[float | None] = mapped_column(Float, nullable=True)
+    br_store: Mapped[str | None] = mapped_column(Text, nullable=True)
+    br_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     added_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
     __table_args__ = (

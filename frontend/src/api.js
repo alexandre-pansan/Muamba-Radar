@@ -391,6 +391,16 @@ export async function apiRemoveFromCart(itemId) {
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
 }
 
+export async function apiUpdateCartQuantity(itemId, quantity) {
+  const res = await fetchWithRefresh(`${getApiBase()}/cart/${itemId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+    body: JSON.stringify({ quantity }),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
 export async function apiClearCart() {
   const res = await fetchWithRefresh(`${getApiBase()}/cart`, {
     method: 'DELETE',
