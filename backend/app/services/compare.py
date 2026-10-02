@@ -61,12 +61,23 @@ def _compute_preview_offers(offers: list[OfferModel]) -> list[OfferModel]:
     return [min(offers, key=lambda offer: offer.price.amount_brl)]
 
 
+# Imagens "sem foto" dos sites: contam como sem imagem (o Compras Paraguai usa
+# /static/images/sem-imagem.png quando o produto não tem foto).
+_PLACEHOLDER_IMAGE_HINTS = ("sem-imagem", "sem_imagem", "no-image", "noimage", "placeholder")
+
+
+def is_real_image(url: str | None) -> bool:
+    return bool(url) and not any(hint in url.lower() for hint in _PLACEHOLDER_IMAGE_HINTS)
+
+
 def _select_group_image(offers: list[OfferModel]) -> str | None:
-    cp_with_image = [offer for offer in offers if offer.source == "comprasparaguai" and offer.image_url]
+    """Foto do grupo: prefere a do Compras Paraguai (fundo branco, padronizada), mas
+    nunca um placeholder "sem imagem" se alguma oferta tiver foto de verdade."""
+    cp_with_image = [offer for offer in offers if offer.source == "comprasparaguai" and is_real_image(offer.image_url)]
     if cp_with_image:
         return cp_with_image[0].image_url
 
-    any_with_image = [offer for offer in offers if offer.image_url]
+    any_with_image = [offer for offer in offers if is_real_image(offer.image_url)]
     return any_with_image[0].image_url if any_with_image else None
 
 
