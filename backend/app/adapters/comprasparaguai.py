@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import re
 from datetime import UTC, datetime
 from urllib.parse import quote_plus, urljoin, urlsplit, urlunsplit
@@ -72,9 +73,12 @@ def _normalize_text(value: str) -> str:
     return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9\s]", " ", value.lower())).strip()
 
 
+def _split_units(normalized: str) -> str:
+    return re.sub(r"(\d+)\s*(gb|tb)\b", r"\1 \2", normalized)
+
+
 def _query_tokens(query: str) -> list[str]:
-    normalized = _normalize_text(query)
-    normalized = re.sub(r"(\d+)\s*(gb|tb)\b", r"\1 \2", normalized)
+    normalized = _split_units(_normalize_text(query))
     return [token for token in normalized.split() if len(token) >= 2 and token not in STOP_TOKENS]
 
 
@@ -86,7 +90,8 @@ def _is_relevant(query: str, title: str) -> bool:
     if not query_tokens:
         return matches_query(query, title)
 
-    title_norm = _normalize_text(title)
+    # mesma separação da busca: "128GB" no título tem que casar com "128 gb" da query
+    title_norm = _split_units(_normalize_text(title))
     title_toks = set(title_norm.split())
 
     # Numeric tokens (model numbers, storage) must all match — they are discriminating.
@@ -278,6 +283,42 @@ def _is_perfume_context(query: str, model_url: str = "", model_title: str = "") 
     return any(token in combined for token in perfume_tokens)
 
 
+def _single_store_offer(soup: BeautifulSoup) -> dict | None:
+    """Página de produto vendido por UMA loja (sem #container-ofertas): a oferta só vem no
+    JSON-LD (schema.org Product → offers.seller). Ex.: celimax-heart-pink-tone-up__5271870."""
+    for script in soup.select('script[type="application/ld+json"]'):
+        try:
+            data = json.loads(script.string or "")
+        except ValueError:
+            continue
+        if not isinstance(data, dict) or data.get("@type") != "Product":
+            continue
+        offers = data.get("offers")
+        offer = offers[0] if isinstance(offers, list) and offers else offers
+        if not isinstance(offer, dict):
+            continue
+        seller = offer.get("seller") or {}
+        store = (seller.get("name") or "").strip() if isinstance(seller, dict) else ""
+        try:
+            price = float(offer.get("price"))
+        except (TypeError, ValueError):
+            continue
+        if not store or price <= 0 or "OutOfStock" in str(offer.get("availability", "")):
+            continue
+        h1 = soup.select_one(".header-product-info--title h1") or soup.select_one("h1")
+        # "name" do JSON-LD vem como "<produto> na loja X no Paraguai"
+        title = h1.get_text(" ", strip=True) if h1 else re.sub(r"\s+na loja .*$", "", data.get("name", ""))
+        image = data.get("image")
+        return {
+            "title": title,
+            "store": store,
+            "price": price,
+            "currency": (offer.get("priceCurrency") or "USD").upper(),
+            "image": image[0] if isinstance(image, list) else image,
+        }
+    return None
+
+
 class ComprasParaguaiAdapter(SourceAdapter):
     source_id = "comprasparaguai"
     country = "py"
@@ -407,6 +448,19 @@ class ComprasParaguaiAdapter(SourceAdapter):
         # aí sim o filtro é necessário.
         trusted = bool(offer_cards)
         if not offer_cards:
+            single = _single_store_offer(soup)
+            if single and is_real_store(single["store"]) and single["title"]:
+                return [RawOfferModel(
+                    source=self.source_id,
+                    country=self.country,
+                    store=single["store"],
+                    title=single["title"],
+                    url=model_url,
+                    image_url=single["image"],
+                    price_amount=single["price"],
+                    price_currency=single["currency"],
+                    captured_at=now,
+                )]
             # Some CP product pages use a simplified listing without #container-ofertas.
             offer_cards = soup.select(".promocao-produtos-item")
         for card in offer_cards:
