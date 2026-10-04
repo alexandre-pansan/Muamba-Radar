@@ -1,6 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { apiFetchPyStoreNames } from '../api.js'
 
+// minúsculas e sem acento: "babilonia" acha "Babilônia"
+const fold = str => str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
+
 /** Pré-filtro de busca (/conta#lojas): lojas do Paraguai em que o usuário quer focar.
  *  Na busca, essas lojas já vêm marcadas no filtro "Loja" e o card mostra o menor
  *  preço entre elas (ResultsArea). */
@@ -23,8 +26,9 @@ export default function PreferredStoresSection({ preferred, onChange }) {
     () => [...new Set([...preferred, ...stores])].sort((a, b) => a.localeCompare(b, 'pt-BR')),
     [stores, preferredKey], // eslint-disable-line react-hooks/exhaustive-deps
   )
-  const needle = filter.trim().toLowerCase()
-  const visible = needle ? all.filter(s => s.toLowerCase().includes(needle)) : all
+  // Vários termos separados por vírgula ("mega, niss, cell"): mostra a loja que casar com qualquer um
+  const terms = filter.split(',').map(fold).filter(Boolean)
+  const visible = terms.length ? all.filter(s => terms.some(t => fold(s).includes(t))) : all
   const dirty = selected.size !== preferred.length || preferred.some(s => !selected.has(s))
 
   function toggle(name) {
@@ -55,7 +59,7 @@ export default function PreferredStoresSection({ preferred, onChange }) {
       <input
         type="search"
         className="list-input"
-        placeholder={`Procurar entre ${all.length} lojas`}
+        placeholder={`Procurar entre ${all.length} lojas — separe por vírgula: mega, niss, cell`}
         value={filter}
         onChange={e => setFilter(e.target.value)}
       />
@@ -69,6 +73,16 @@ export default function PreferredStoresSection({ preferred, onChange }) {
         ))}
         {visible.length === 0 && <p className="ucm-empty">Nenhuma loja encontrada.</p>}
       </div>
+
+      {terms.length > 0 && visible.some(name => !selected.has(name)) && (
+        <button
+          type="button"
+          className="btn-inline"
+          onClick={() => setSelected(prev => new Set([...prev, ...visible]))}
+        >
+          Marcar as {visible.length} encontradas
+        </button>
+      )}
 
       <div className="pref-stores__footer">
         <span className="pref-stores__count">

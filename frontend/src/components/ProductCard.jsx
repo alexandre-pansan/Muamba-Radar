@@ -167,8 +167,15 @@ export default function ProductCard({ group, marginPct, showMargin, idx, onNeedA
 
         {/* Title block */}
         <div className="pc-title-block">
-          <h2 className="pc-name">{name}</h2>
-          {config && <span className="config-chip">{config}</span>}
+          {/* perfume: nome do produto em destaque, marca em cima */}
+          {/* marca e chip sempre ocupam o espaço (vazios ficam invisíveis) — todo card com a mesma altura */}
+          {group.line && group.brand
+            ? <span className="pc-brand">{group.brand}</span>
+            : <span className="pc-brand is-empty" aria-hidden="true">&nbsp;</span>}
+          <h2 className="pc-name" title={group.line || name}>{group.line || name}</h2>
+          {config
+            ? <span className="config-chip">{config}</span>
+            : <span className="config-chip is-empty" aria-hidden="true">&nbsp;</span>}
         </div>
 
         <div className="pc-prices-label">Preços de lojas comparadas</div>

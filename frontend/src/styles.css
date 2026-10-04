@@ -2471,6 +2471,7 @@ th.sort-desc::after { content: " \2193"; font-size: 0.7em; }
 }
 
 .product-card .pc-title-block,
+.product-card .pc-prices-label,
 .product-card .pc-prices,
 .product-card .pc-footer {
   padding-left: var(--space-md, 16px);
@@ -2587,6 +2588,15 @@ th.sort-desc::after { content: " \2193"; font-size: 0.7em; }
   gap: 6px;
 }
 
+.pc-brand {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: -6px;
+}
+
 .pc-name {
   font-family: "Space Grotesk", sans-serif;
   font-size: 1rem;
@@ -2594,6 +2604,13 @@ th.sort-desc::after { content: " \2193"; font-size: 0.7em; }
   color: var(--ink);
   line-height: 1.3;
   margin: 0;
+  /* sempre 2 linhas (corta com "…") — todo card com a mesma altura */
+  min-height: 2.6em;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
 }
 
 /* ── Price rows (matches prototype's product-card__price layout) ──── */
@@ -2602,7 +2619,7 @@ th.sort-desc::after { content: " \2193"; font-size: 0.7em; }
   font-size: 0.62rem;
   font-weight: 600;
   color: var(--muted);
-  margin-top: 2px;
+  margin-top: 8px;
 }
 
 .pc-prices {
@@ -2833,6 +2850,9 @@ th.sort-desc::after { content: " \2193"; font-size: 0.7em; }
 }
 
 /* ── Shared: config-chip, margin-tag, expand-btn ─────────────────── */
+
+.config-chip.is-empty,
+.pc-brand.is-empty { visibility: hidden; }
 
 .config-chip {
   display: inline-flex;

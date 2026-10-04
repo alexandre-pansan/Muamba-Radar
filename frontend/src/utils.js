@@ -107,6 +107,8 @@ export function sortGroups(groups, groupOrder, marginPct) {
 }
 
 export function familyDisplayName(group) {
+  // Perfume da LUT: chave interna "vs_love_spell" → "Victoria's Secret Love Spell"
+  if (group.line) return group.brand ? `${group.brand} ${group.line}` : group.line
   if (group.family_key) return formatModelName(group.family_key)
   const raw = group.canonical_name.replace(/\s*\([^)]*\)\s*$/, '').trim()
   return formatModelName(raw)

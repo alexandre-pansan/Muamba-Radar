@@ -166,6 +166,8 @@ function groupCategory(g) {
 }
 
 function groupVariant(g) {
+  // Perfume: o backend já manda o nome do produto sem a marca ("Love Spell")
+  if (g.line) return g.line
   const fk = g.family_key || ''
   if (fk.includes('_bundle')) return 'Bundle'
   if (fk.includes('_digital')) return 'Digital'
@@ -206,7 +208,7 @@ function narrowToStores(g, stores) {
 const FACETS = {
   cat: { title: 'Categoria', values: g => [groupCategory(g)].filter(Boolean) },
   variante: { title: 'Variante', values: g => [groupVariant(g)].filter(Boolean) },
-  conc: { title: 'Concentração', values: g => [g.concentration].filter(Boolean) },
+  conc: { title: 'Tipo', values: g => [g.concentration].filter(Boolean) },
   preco: { title: 'Faixa de Preço (US$)', values: g => [groupPriceBucket(g)].filter(Boolean) },
   loja: { title: 'Loja (Paraguai)', values: g => groupPyStores(g) },
 }
@@ -315,13 +317,18 @@ export default function ResultsArea({
     [lastData, order, targetMargin],
   )
 
-  const indexed = useMemo(
-    () => sorted.map(group => ({
+  const indexed = useMemo(() => {
+    // Com nome de modelo (catálogo), o filtro "Modelo" só lista modelos — sem misturar
+    // com a variante adivinhada ("Slim", "Max") dos grupos que não têm nome
+    const byLine = sorted.some(g => g.line)
+    return sorted.map(group => ({
       group,
-      values: Object.fromEntries(FILTER_KEYS.map(k => [k, FACETS[k].values(group)])),
-    })),
-    [sorted],
-  )
+      values: Object.fromEntries(FILTER_KEYS.map(k => [
+        k,
+        k === 'variante' && byLine ? [group.line].filter(Boolean) : FACETS[k].values(group),
+      ])),
+    }))
+  }, [sorted])
   const displayed = useMemo(() => {
     const groups = indexed.filter(e => matches(e, selected, null)).map(e => e.group)
     if (selected.loja.size === 0) return groups
@@ -351,7 +358,9 @@ export default function ResultsArea({
     selected[key].forEach(v => {
       if (!options.some(o => o.value === v)) options.push({ value: v, label: PRICE_BUCKETS.find(b => b.value === v)?.label || v, count: 0 })
     })
-    return { key, title: FACETS[key].title, options }
+    // perfumes: "Variante" é o nome do produto (Love Spell, Asad...)
+    const title = key === 'variante' && indexed.some(e => e.group.line) ? 'Modelo' : FACETS[key].title
+    return { key, title, options }
   }).filter(sec => sec.options.length >= 2 || selected[sec.key].size > 0), [indexed, selected])
 
   const activeFilterCount = FILTER_KEYS.reduce((n, k) => n + selected[k].size, 0)
