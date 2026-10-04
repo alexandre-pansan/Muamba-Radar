@@ -53,3 +53,33 @@ class TestSlugify:
         assert "playstation" in slug
         assert "5" in slug
         assert "slim" in slug
+
+
+# ── Protetor solar não é acessório ────────────────────────────────────────────
+
+def test_protetor_solar_is_not_an_accessory() -> None:
+    from app.services.normalization import matches_query_loose
+    assert matches_query_loose("celimax pink", "Protetor Solar Celimax Heart Pink Tone Up Sun Cream SPF 50+ 40ML")
+
+
+def test_screen_protector_is_still_an_accessory() -> None:
+    from app.services.normalization import matches_query_loose
+    assert not matches_query_loose("iphone 16", "Protetor de Tela Vidro iPhone 16")
+
+
+def test_html_entity_is_decoded() -> None:
+    from app.services.normalization import normalize_text
+    assert normalize_text("Victoria&#8217;s Secret") == "victoria s secret"
+
+
+# ── Grafias / abreviações de marca ────────────────────────────────────────────
+
+@pytest.mark.parametrize("raw", ["Paco Rabane", "paco rabbane", "PACO RABANNE", "Paco Rabannè"])
+def test_paco_rabanne_spellings(raw: str) -> None:
+    assert normalize_text(raw) == "paco rabanne"
+
+
+def test_pr_is_rabanne_only_in_queries() -> None:
+    from app.services.normalization import expand_query_aliases
+    assert expand_query_aliases("PR Invictus") == "rabanne invictus"
+    assert normalize_text("Tênis Casual PR Preto") == "tenis casual pr preto"

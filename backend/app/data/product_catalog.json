@@ -1,0 +1,8638 @@
+{
+ "generated_at": "2026-10-04T18:58:37+00:00",
+ "source_titles": 33420,
+ "brands": [
+  {
+   "name": "JBL",
+   "aliases": [
+    "jbl"
+   ],
+   "titles": 954,
+   "models": [
+    {
+     "name": "Tune",
+     "titles": 159
+    },
+    {
+     "name": "PartyBox",
+     "titles": 111
+    },
+    {
+     "name": "Live",
+     "titles": 58
+    },
+    {
+     "name": "Endurance",
+     "titles": 53
+    },
+    {
+     "name": "Go",
+     "titles": 53
+    },
+    {
+     "name": "Quantum",
+     "titles": 41
+    },
+    {
+     "name": "Sense",
+     "titles": 37
+    },
+    {
+     "name": "Xtreme",
+     "titles": 35
+    },
+    {
+     "name": "Boombox",
+     "titles": 33
+    },
+    {
+     "name": "Charge",
+     "titles": 26
+    },
+    {
+     "name": "Flip",
+     "titles": 26
+    },
+    {
+     "name": "Live Buds",
+     "titles": 25
+    },
+    {
+     "name": "Wave",
+     "titles": 23
+    },
+    {
+     "name": "Go Essential",
+     "titles": 22
+    },
+    {
+     "name": "PartyBox Encore",
+     "titles": 21
+    },
+    {
+     "name": "Sense Pro",
+     "titles": 20
+    },
+    {
+     "name": "Xtreme 5",
+     "titles": 20
+    },
+    {
+     "name": "Tune 530BT",
+     "titles": 20
+    },
+    {
+     "name": "PartyBox On Go",
+     "titles": 19
+    },
+    {
+     "name": "Clip 5",
+     "titles": 19
+    },
+    {
+     "name": "Soundgear",
+     "titles": 18
+    },
+    {
+     "name": "Live Beam 4",
+     "titles": 18
+    },
+    {
+     "name": "Super Tweeter",
+     "titles": 18
+    },
+    {
+     "name": "Quantum Stream",
+     "titles": 18
+    },
+    {
+     "name": "Tune 520BT",
+     "titles": 18
+    },
+    {
+     "name": "Tune 680NC",
+     "titles": 18
+    },
+    {
+     "name": "Live Buds 4",
+     "titles": 18
+    },
+    {
+     "name": "Boombox 3",
+     "titles": 17
+    },
+    {
+     "name": "Flip 6",
+     "titles": 17
+    },
+    {
+     "name": "Go 4",
+     "titles": 17
+    },
+    {
+     "name": "Endurance Pace",
+     "titles": 17
+    },
+    {
+     "name": "Sense Lite",
+     "titles": 17
+    },
+    {
+     "name": "Tune 730BT",
+     "titles": 17
+    },
+    {
+     "name": "Grip",
+     "titles": 17
+    },
+    {
+     "name": "Tune 780NC",
+     "titles": 16
+    },
+    {
+     "name": "Boombox 4",
+     "titles": 16
+    },
+    {
+     "name": "Tune 520C",
+     "titles": 16
+    },
+    {
+     "name": "Go Essential 2",
+     "titles": 16
+    },
+    {
+     "name": "Tour",
+     "titles": 15
+    },
+    {
+     "name": "Xtreme 4",
+     "titles": 15
+    },
+    {
+     "name": "Charge 6",
+     "titles": 14
+    },
+    {
+     "name": "PartyBox Encore 2",
+     "titles": 14
+    },
+    {
+     "name": "Tune 720BT",
+     "titles": 13
+    },
+    {
+     "name": "Soundgear Clips",
+     "titles": 12
+    },
+    {
+     "name": "Endurance Run 3",
+     "titles": 12
+    },
+    {
+     "name": "Wave Beam 2",
+     "titles": 11
+    },
+    {
+     "name": "Live 680NC",
+     "titles": 11
+    },
+    {
+     "name": "Tune Buds 2",
+     "titles": 11
+    },
+    {
+     "name": "Charge 5",
+     "titles": 11
+    },
+    {
+     "name": "PartyBox Stage 320",
+     "titles": 11
+    },
+    {
+     "name": "Endurance Race 2",
+     "titles": 11
+    },
+    {
+     "name": "PartyBox On Go 2",
+     "titles": 10
+    },
+    {
+     "name": "Cinema",
+     "titles": 10
+    },
+    {
+     "name": "PartyBox 130",
+     "titles": 10
+    },
+    {
+     "name": "Wave Buds 2",
+     "titles": 10
+    },
+    {
+     "name": "Super Tweeter ST400 Trio",
+     "titles": 10
+    },
+    {
+     "name": "PartyBox 330",
+     "titles": 9
+    },
+    {
+     "name": "Flip 7",
+     "titles": 9
+    },
+    {
+     "name": "Go 5",
+     "titles": 9
+    },
+    {
+     "name": "Endurance Peak 4",
+     "titles": 8
+    },
+    {
+     "name": "Tour One",
+     "titles": 8
+    },
+    {
+     "name": "PartyBox On Go Essential",
+     "titles": 8
+    },
+    {
+     "name": "PartyBox Club",
+     "titles": 8
+    },
+    {
+     "name": "PartyBox 520",
+     "titles": 8
+    },
+    {
+     "name": "Par",
+     "titles": 8
+    },
+    {
+     "name": "Tune 770NC",
+     "titles": 8
+    },
+    {
+     "name": "Bar",
+     "titles": 8
+    },
+    {
+     "name": "PartyBox Encore 2 Plus",
+     "titles": 7
+    },
+    {
+     "name": "Party Box",
+     "titles": 7
+    },
+    {
+     "name": "PartyBox Ultimate",
+     "titles": 7
+    },
+    {
+     "name": "Live Buds 3",
+     "titles": 7
+    },
+    {
+     "name": "Tour Pro",
+     "titles": 7
+    },
+    {
+     "name": "Endurance Race 2 Tws",
+     "titles": 7
+    },
+    {
+     "name": "Tune 780NC Anc",
+     "titles": 6
+    },
+    {
+     "name": "PartyBox 720",
+     "titles": 6
+    },
+    {
+     "name": "Tune 110",
+     "titles": 6
+    },
+    {
+     "name": "Tune 530C",
+     "titles": 6
+    },
+    {
+     "name": "PartyBox Club 120",
+     "titles": 6
+    },
+    {
+     "name": "PartyBox Encore Essential 2",
+     "titles": 6
+    },
+    {
+     "name": "Club",
+     "titles": 6
+    },
+    {
+     "name": "Endurance Pace Sport",
+     "titles": 6
+    },
+    {
+     "name": "Radio",
+     "titles": 6
+    },
+    {
+     "name": "Soundgear Clip",
+     "titles": 6
+    },
+    {
+     "name": "Wind",
+     "titles": 6
+    },
+    {
+     "name": "Go 5 4",
+     "titles": 6
+    },
+    {
+     "name": "Super Tweeter ST450 Trio",
+     "titles": 5
+    },
+    {
+     "name": "Endurance Zone",
+     "titles": 5
+    },
+    {
+     "name": "Quantum 100",
+     "titles": 5
+    },
+    {
+     "name": "Quantum Tws",
+     "titles": 5
+    },
+    {
+     "name": "Bateria",
+     "titles": 5
+    },
+    {
+     "name": "PartyBox 2",
+     "titles": 5
+    },
+    {
+     "name": "Luz",
+     "titles": 5
+    },
+    {
+     "name": "STAGE2",
+     "titles": 4
+    },
+    {
+     "name": "Quantum 250",
+     "titles": 4
+    },
+    {
+     "name": "Quantum Stream Studio",
+     "titles": 4
+    },
+    {
+     "name": "Cinema SB510",
+     "titles": 4
+    },
+    {
+     "name": "Partylight",
+     "titles": 4
+    },
+    {
+     "name": "Quantum Stream Talk",
+     "titles": 4
+    },
+    {
+     "name": "Cinema SB180",
+     "titles": 4
+    },
+    {
+     "name": "Live Beam 4 Champagne",
+     "titles": 4
+    },
+    {
+     "name": "Go 3",
+     "titles": 4
+    },
+    {
+     "name": "Vibe",
+     "titles": 4
+    },
+    {
+     "name": "Tour Pro 3",
+     "titles": 4
+    },
+    {
+     "name": "Bar 500MK2",
+     "titles": 4
+    },
+    {
+     "name": "Xtreme 5 Camuflado",
+     "titles": 4
+    },
+    {
+     "name": "Tour One M3",
+     "titles": 4
+    },
+    {
+     "name": "Tune 680NC Anc",
+     "titles": 4
+    },
+    {
+     "name": "Tune 125BT",
+     "titles": 3
+    },
+    {
+     "name": "Boombox 4 Camuflado",
+     "titles": 3
+    },
+    {
+     "name": "CSHM10",
+     "titles": 3
+    },
+    {
+     "name": "Live 680NC Champagne",
+     "titles": 3
+    },
+    {
+     "name": "Party Box Stage 320",
+     "titles": 3
+    },
+    {
+     "name": "Quantum 50",
+     "titles": 3
+    },
+    {
+     "name": "Live Beam 4 Perfect",
+     "titles": 3
+    },
+    {
+     "name": "PartyBox 710",
+     "titles": 3
+    },
+    {
+     "name": "STAGE3",
+     "titles": 3
+    },
+    {
+     "name": "Stream Quantum",
+     "titles": 3
+    },
+    {
+     "name": "Woofer Medio Grave",
+     "titles": 3
+    },
+    {
+     "name": "Tune 110 3",
+     "titles": 3
+    },
+    {
+     "name": "Quantum Duo",
+     "titles": 3
+    },
+    {
+     "name": "Toca Radio",
+     "titles": 3
+    },
+    {
+     "name": "Selenium",
+     "titles": 3
+    },
+    {
+     "name": "STAGE1",
+     "titles": 3
+    },
+    {
+     "name": "Tour Pro 2",
+     "titles": 3
+    },
+    {
+     "name": "Cinema SB180 2 1",
+     "titles": 3
+    },
+    {
+     "name": "Wind 3",
+     "titles": 3
+    },
+    {
+     "name": "Vibe Buds",
+     "titles": 3
+    },
+    {
+     "name": "Multisystem",
+     "titles": 3
+    },
+    {
+     "name": "Ativa",
+     "titles": 3
+    },
+    {
+     "name": "Max 15",
+     "titles": 3
+    },
+    {
+     "name": "Live Buds 4 Champagne",
+     "titles": 3
+    },
+    {
+     "name": "Wave Beam 2 Anc",
+     "titles": 3
+    },
+    {
+     "name": "Boombox 3 Camuflado",
+     "titles": 3
+    },
+    {
+     "name": "Eon 715",
+     "titles": 3
+    },
+    {
+     "name": "Tweeter",
+     "titles": 3
+    },
+    {
+     "name": "Bar 500MK2 5 1",
+     "titles": 3
+    },
+    {
+     "name": "Live Beam 3",
+     "titles": 3
+    },
+    {
+     "name": "Sense Lite Tws",
+     "titles": 3
+    },
+    {
+     "name": "Wind 3S",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Xiaomi",
+   "aliases": [
+    "xiaomi",
+    "redmi",
+    "poco"
+   ],
+   "titles": 746,
+   "models": [
+    {
+     "name": "Redmi",
+     "titles": 229
+    },
+    {
+     "name": "Redmi Buds",
+     "titles": 131
+    },
+    {
+     "name": "Mi",
+     "titles": 93
+    },
+    {
+     "name": "Redmi Buds 6",
+     "titles": 55
+    },
+    {
+     "name": "Redmi Note 15",
+     "titles": 49
+    },
+    {
+     "name": "Redmi Buds 8",
+     "titles": 48
+    },
+    {
+     "name": "Poco",
+     "titles": 36
+    },
+    {
+     "name": "Redmi Note 15 Pro",
+     "titles": 28
+    },
+    {
+     "name": "Redmi Buds 6 Play",
+     "titles": 20
+    },
+    {
+     "name": "Mi Sound",
+     "titles": 19
+    },
+    {
+     "name": "Redmi Buds 8 Active",
+     "titles": 18
+    },
+    {
+     "name": "Sound",
+     "titles": 17
+    },
+    {
+     "name": "Poco F8 Pro 5G",
+     "titles": 17
+    },
+    {
+     "name": "Redmi 17 4G",
+     "titles": 17
+    },
+    {
+     "name": "Redmi Buds 5",
+     "titles": 16
+    },
+    {
+     "name": "Redmi Note 15 4G",
+     "titles": 14
+    },
+    {
+     "name": "Redmi Buds 8 Pro",
+     "titles": 13
+    },
+    {
+     "name": "Buds",
+     "titles": 13
+    },
+    {
+     "name": "Tv",
+     "titles": 13
+    },
+    {
+     "name": "Mi 3",
+     "titles": 12
+    },
+    {
+     "name": "Mi Smart",
+     "titles": 12
+    },
+    {
+     "name": "Mi Sound Outdoor Mdz",
+     "titles": 11
+    },
+    {
+     "name": "Mdy",
+     "titles": 11
+    },
+    {
+     "name": "Redmi Buds 5 Pro",
+     "titles": 10
+    },
+    {
+     "name": "Super Slim Magnetic",
+     "titles": 10
+    },
+    {
+     "name": "Haylou",
+     "titles": 10
+    },
+    {
+     "name": "Buds 6",
+     "titles": 9
+    },
+    {
+     "name": "Redmi A7 Pro",
+     "titles": 8
+    },
+    {
+     "name": "Sound Play Mdz 42",
+     "titles": 8
+    },
+    {
+     "name": "Redmi Buds 8 Lite",
+     "titles": 8
+    },
+    {
+     "name": "Redmi Buds 6 Active",
+     "titles": 8
+    },
+    {
+     "name": "Comfort Edition",
+     "titles": 8
+    },
+    {
+     "name": "Veicular",
+     "titles": 7
+    },
+    {
+     "name": "Smart",
+     "titles": 7
+    },
+    {
+     "name": "Magnetic",
+     "titles": 7
+    },
+    {
+     "name": "Mi Buds 5",
+     "titles": 7
+    },
+    {
+     "name": "Redmi 14C",
+     "titles": 7
+    },
+    {
+     "name": "Poco X8 Pro 5G",
+     "titles": 6
+    },
+    {
+     "name": "Oscillation Electric Toothbrush",
+     "titles": 6
+    },
+    {
+     "name": "Massageador",
+     "titles": 6
+    },
+    {
+     "name": "Qd Mini",
+     "titles": 6
+    },
+    {
+     "name": "Mi Smart Electric Toothbrush",
+     "titles": 6
+    },
+    {
+     "name": "Redmi Buds 6 Lite",
+     "titles": 6
+    },
+    {
+     "name": "Tv Smart",
+     "titles": 6
+    },
+    {
+     "name": "Purificador Ar",
+     "titles": 5
+    },
+    {
+     "name": "Redmi Neo",
+     "titles": 5
+    },
+    {
+     "name": "P15ZM",
+     "titles": 5
+    },
+    {
+     "name": "Redmi 15",
+     "titles": 5
+    },
+    {
+     "name": "Pocophone Poco X8 Pro",
+     "titles": 5
+    },
+    {
+     "name": "Tag",
+     "titles": 5
+    },
+    {
+     "name": "Redmi A7 Pro 4G",
+     "titles": 4
+    },
+    {
+     "name": "Veicular Mi",
+     "titles": 4
+    },
+    {
+     "name": "3 Mi",
+     "titles": 4
+    },
+    {
+     "name": "Dente Mi",
+     "titles": 4
+    },
+    {
+     "name": "Redmi A7 Pro Tela",
+     "titles": 4
+    },
+    {
+     "name": "Redmi Buds 6 Pro",
+     "titles": 4
+    },
+    {
+     "name": "Redmi 17 4G Xiaomi",
+     "titles": 4
+    },
+    {
+     "name": "Mi Electric",
+     "titles": 4
+    },
+    {
+     "name": "Campainha Smart",
+     "titles": 4
+    },
+    {
+     "name": "Sound Party",
+     "titles": 4
+    },
+    {
+     "name": "Buds 5",
+     "titles": 4
+    },
+    {
+     "name": "Cargador",
+     "titles": 4
+    },
+    {
+     "name": "Mi Sound Play Mdz",
+     "titles": 4
+    },
+    {
+     "name": "Redmi 14C 8",
+     "titles": 4
+    },
+    {
+     "name": "Oscillation Electric Toothbrush MES609",
+     "titles": 4
+    },
+    {
+     "name": "Digital",
+     "titles": 4
+    },
+    {
+     "name": "Nano",
+     "titles": 4
+    },
+    {
+     "name": "Veicular Mi Car Charger",
+     "titles": 3
+    },
+    {
+     "name": "Poco C81 Pro 4G",
+     "titles": 3
+    },
+    {
+     "name": "Mi 1MORE",
+     "titles": 3
+    },
+    {
+     "name": "A22I",
+     "titles": 3
+    },
+    {
+     "name": "Dente Mi Smart",
+     "titles": 3
+    },
+    {
+     "name": "Veicular Dual Port Car",
+     "titles": 3
+    },
+    {
+     "name": "Mi Ionic Hair Dryer",
+     "titles": 3
+    },
+    {
+     "name": "Redmi Buds 4",
+     "titles": 3
+    },
+    {
+     "name": "Pocket",
+     "titles": 3
+    },
+    {
+     "name": "Sound Pocket Mdz",
+     "titles": 3
+    },
+    {
+     "name": "Mi Sound Pocket Mdz",
+     "titles": 3
+    },
+    {
+     "name": "Redmi Buds 6 Cloud",
+     "titles": 3
+    },
+    {
+     "name": "Buds 6 Anc",
+     "titles": 3
+    },
+    {
+     "name": "T302",
+     "titles": 3
+    },
+    {
+     "name": "A27I",
+     "titles": 3
+    },
+    {
+     "name": "22 Dark",
+     "titles": 3
+    },
+    {
+     "name": "Mi Mdz",
+     "titles": 3
+    },
+    {
+     "name": "Massageador Gun",
+     "titles": 3
+    },
+    {
+     "name": "If 1MORE",
+     "titles": 3
+    },
+    {
+     "name": "Redmi Buds 7S",
+     "titles": 3
+    },
+    {
+     "name": "Poco X7 Pro",
+     "titles": 3
+    },
+    {
+     "name": "Redmi Buds 6S",
+     "titles": 3
+    },
+    {
+     "name": "Mi Buds 5 Pro",
+     "titles": 3
+    },
+    {
+     "name": "Campainha Smart Doorbell 3",
+     "titles": 3
+    },
+    {
+     "name": "Redmi 15 4G",
+     "titles": 3
+    },
+    {
+     "name": "Poco M8 Pro 5G",
+     "titles": 3
+    },
+    {
+     "name": "Buds 5 Pro",
+     "titles": 3
+    },
+    {
+     "name": "Tv Pro",
+     "titles": 3
+    },
+    {
+     "name": "Electric Shaver",
+     "titles": 3
+    },
+    {
+     "name": "Mdy 12 Eh",
+     "titles": 3
+    },
+    {
+     "name": "23 8",
+     "titles": 3
+    },
+    {
+     "name": "Mi 5 Blade",
+     "titles": 3
+    },
+    {
+     "name": "Hypercharge",
+     "titles": 3
+    },
+    {
+     "name": "Nano Power",
+     "titles": 3
+    },
+    {
+     "name": "Mi Smart L09G",
+     "titles": 3
+    },
+    {
+     "name": "Garrafa Termica",
+     "titles": 3
+    },
+    {
+     "name": "Purificador Ar Smart Air",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Redragon",
+   "aliases": [
+    "redragon"
+   ],
+   "titles": 578,
+   "models": [
+    {
+     "name": "Fizz",
+     "titles": 15
+    },
+    {
+     "name": "Diti",
+     "titles": 11
+    },
+    {
+     "name": "Shiva",
+     "titles": 10
+    },
+    {
+     "name": "Gc",
+     "titles": 10
+    },
+    {
+     "name": "Dragonborn",
+     "titles": 10
+    },
+    {
+     "name": "Zeus",
+     "titles": 9
+    },
+    {
+     "name": "Star Blade",
+     "titles": 8
+    },
+    {
+     "name": "Ucal",
+     "titles": 8
+    },
+    {
+     "name": "Eisa",
+     "titles": 7
+    },
+    {
+     "name": "Star Blade Pro",
+     "titles": 6
+    },
+    {
+     "name": "Yama",
+     "titles": 6
+    },
+    {
+     "name": "Horus Mini",
+     "titles": 6
+    },
+    {
+     "name": "Fizz K617",
+     "titles": 6
+    },
+    {
+     "name": "Impact",
+     "titles": 6
+    },
+    {
+     "name": "Hylas",
+     "titles": 5
+    },
+    {
+     "name": "K616 Fizz Pro",
+     "titles": 5
+    },
+    {
+     "name": "Dharma",
+     "titles": 5
+    },
+    {
+     "name": "Diti Ingles",
+     "titles": 5
+    },
+    {
+     "name": "Antonium Pro",
+     "titles": 5
+    },
+    {
+     "name": "K617 Fizz",
+     "titles": 5
+    },
+    {
+     "name": "Essentials",
+     "titles": 5
+    },
+    {
+     "name": "Griffin",
+     "titles": 5
+    },
+    {
+     "name": "Bk",
+     "titles": 5
+    },
+    {
+     "name": "Elf Pro",
+     "titles": 5
+    },
+    {
+     "name": "M916",
+     "titles": 4
+    },
+    {
+     "name": "Gaia C211",
+     "titles": 4
+    },
+    {
+     "name": "Wyvern",
+     "titles": 4
+    },
+    {
+     "name": "Rgps Gc",
+     "titles": 4
+    },
+    {
+     "name": "Zeus H510",
+     "titles": 4
+    },
+    {
+     "name": "S141",
+     "titles": 4
+    },
+    {
+     "name": "Draconic",
+     "titles": 4
+    },
+    {
+     "name": "Dragonborn K630W",
+     "titles": 4
+    },
+    {
+     "name": "Pandora",
+     "titles": 4
+    },
+    {
+     "name": "Diti One",
+     "titles": 4
+    },
+    {
+     "name": "Cobra M711W",
+     "titles": 4
+    },
+    {
+     "name": "Impact Elite M913",
+     "titles": 4
+    },
+    {
+     "name": "S136 Ingles",
+     "titles": 4
+    },
+    {
+     "name": "Ares H120",
+     "titles": 4
+    },
+    {
+     "name": "Cyrus Pro",
+     "titles": 4
+    },
+    {
+     "name": "Ire Pro H848",
+     "titles": 4
+    },
+    {
+     "name": "Predator",
+     "titles": 4
+    },
+    {
+     "name": "Modular Gc",
+     "titles": 3
+    },
+    {
+     "name": "Fenris",
+     "titles": 3
+    },
+    {
+     "name": "Trundle Ingles",
+     "titles": 3
+    },
+    {
+     "name": "Penumbra",
+     "titles": 3
+    },
+    {
+     "name": "K632W",
+     "titles": 3
+    },
+    {
+     "name": "K552W Kumara Ingles",
+     "titles": 3
+    },
+    {
+     "name": "Fidd",
+     "titles": 3
+    },
+    {
+     "name": "Cronus",
+     "titles": 3
+    },
+    {
+     "name": "Gaia C211 Br",
+     "titles": 3
+    },
+    {
+     "name": "Stormhunter",
+     "titles": 3
+    },
+    {
+     "name": "Wyvern Ingles",
+     "titles": 3
+    },
+    {
+     "name": "Horus Mini Pro",
+     "titles": 3
+    },
+    {
+     "name": "Scylla H901",
+     "titles": 3
+    },
+    {
+     "name": "Hylas H260W",
+     "titles": 3
+    },
+    {
+     "name": "Pro Magic Wand",
+     "titles": 3
+    },
+    {
+     "name": "Dragonborn K630W Ingles",
+     "titles": 3
+    },
+    {
+     "name": "Vata",
+     "titles": 3
+    },
+    {
+     "name": "S142",
+     "titles": 3
+    },
+    {
+     "name": "Blazar GM300",
+     "titles": 3
+    },
+    {
+     "name": "H541 Cragblade",
+     "titles": 3
+    },
+    {
+     "name": "Storm",
+     "titles": 3
+    },
+    {
+     "name": "Pandora H350W",
+     "titles": 3
+    },
+    {
+     "name": "Diti One Handed",
+     "titles": 3
+    },
+    {
+     "name": "Ucal Pro",
+     "titles": 3
+    },
+    {
+     "name": "K550W 1 Yama",
+     "titles": 3
+    },
+    {
+     "name": "Castor K631WG",
+     "titles": 3
+    },
+    {
+     "name": "K617 Fizz Mini Ingles",
+     "titles": 3
+    },
+    {
+     "name": "Aurora",
+     "titles": 3
+    },
+    {
+     "name": "Quasar 2 GM200 1",
+     "titles": 3
+    },
+    {
+     "name": "Cpu",
+     "titles": 3
+    },
+    {
+     "name": "S151",
+     "titles": 3
+    },
+    {
+     "name": "Griffin M607W",
+     "titles": 3
+    },
+    {
+     "name": "Cyrus Pro K681MG",
+     "titles": 3
+    },
+    {
+     "name": "K709W",
+     "titles": 3
+    },
+    {
+     "name": "M916 Pro K1NG",
+     "titles": 3
+    },
+    {
+     "name": "Pro Shiva",
+     "titles": 3
+    },
+    {
+     "name": "Shiva Lite",
+     "titles": 3
+    },
+    {
+     "name": "Eisa Max",
+     "titles": 3
+    },
+    {
+     "name": "K1NG",
+     "titles": 3
+    },
+    {
+     "name": "Ironguard",
+     "titles": 3
+    },
+    {
+     "name": "Faye",
+     "titles": 3
+    },
+    {
+     "name": "Fizz Rainbow K617",
+     "titles": 3
+    },
+    {
+     "name": "Elf Pro K649CT",
+     "titles": 3
+    },
+    {
+     "name": "Flekact Pro",
+     "titles": 3
+    },
+    {
+     "name": "Hitman",
+     "titles": 3
+    },
+    {
+     "name": "Eisa Pro",
+     "titles": 3
+    },
+    {
+     "name": "K709",
+     "titles": 3
+    },
+    {
+     "name": "M995 Fyzu",
+     "titles": 3
+    },
+    {
+     "name": "Draconic Pro",
+     "titles": 3
+    },
+    {
+     "name": "Yama K550W 1",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Satellite",
+   "aliases": [
+    "satellite"
+   ],
+   "titles": 542,
+   "models": [
+    {
+     "name": "Ae",
+     "titles": 45
+    },
+    {
+     "name": "Ak",
+     "titles": 43
+    },
+    {
+     "name": "Fechadura",
+     "titles": 28
+    },
+    {
+     "name": "Hub",
+     "titles": 19
+    },
+    {
+     "name": "Gaveta",
+     "titles": 17
+    },
+    {
+     "name": "Fechadura Digital Sl",
+     "titles": 16
+    },
+    {
+     "name": "As",
+     "titles": 15
+    },
+    {
+     "name": "Hub 3",
+     "titles": 15
+    },
+    {
+     "name": "Filtro Linha",
+     "titles": 12
+    },
+    {
+     "name": "Gaveta Hd",
+     "titles": 11
+    },
+    {
+     "name": "Hub 3 1",
+     "titles": 11
+    },
+    {
+     "name": "Ak 725G",
+     "titles": 10
+    },
+    {
+     "name": "Lr",
+     "titles": 9
+    },
+    {
+     "name": "Ventilador",
+     "titles": 9
+    },
+    {
+     "name": "Automotiva",
+     "titles": 9
+    },
+    {
+     "name": "Gammer",
+     "titles": 8
+    },
+    {
+     "name": "Gk",
+     "titles": 7
+    },
+    {
+     "name": "Triturador Papel",
+     "titles": 7
+    },
+    {
+     "name": "Codigo Barras",
+     "titles": 7
+    },
+    {
+     "name": "Ak 726G",
+     "titles": 7
+    },
+    {
+     "name": "Fechadura Eletronica Porta Sl",
+     "titles": 7
+    },
+    {
+     "name": "Gab",
+     "titles": 7
+    },
+    {
+     "name": "Campainha",
+     "titles": 6
+    },
+    {
+     "name": "Veicular",
+     "titles": 6
+    },
+    {
+     "name": "Ak 725G Portugues",
+     "titles": 6
+    },
+    {
+     "name": "Gaveta Hd Ax",
+     "titles": 6
+    },
+    {
+     "name": "Nb",
+     "titles": 5
+    },
+    {
+     "name": "Sate",
+     "titles": 5
+    },
+    {
+     "name": "K701",
+     "titles": 5
+    },
+    {
+     "name": "Umidificador Ar",
+     "titles": 5
+    },
+    {
+     "name": "Gaveta Ax",
+     "titles": 5
+    },
+    {
+     "name": "CP20",
+     "titles": 5
+    },
+    {
+     "name": "Espelho Maquiagem",
+     "titles": 5
+    },
+    {
+     "name": "CP03",
+     "titles": 5
+    },
+    {
+     "name": "Ae 304",
+     "titles": 5
+    },
+    {
+     "name": "Gh",
+     "titles": 4
+    },
+    {
+     "name": "Termica",
+     "titles": 4
+    },
+    {
+     "name": "Lc",
+     "titles": 4
+    },
+    {
+     "name": "Atx",
+     "titles": 4
+    },
+    {
+     "name": "761G",
+     "titles": 4
+    },
+    {
+     "name": "Ae 305",
+     "titles": 4
+    },
+    {
+     "name": "Hub 3 0",
+     "titles": 4
+    },
+    {
+     "name": "DVR031",
+     "titles": 4
+    },
+    {
+     "name": "CP05",
+     "titles": 4
+    },
+    {
+     "name": "Lr 26R",
+     "titles": 4
+    },
+    {
+     "name": "Filtro Linha R115 6",
+     "titles": 4
+    },
+    {
+     "name": "K884",
+     "titles": 4
+    },
+    {
+     "name": "Ae 868B",
+     "titles": 3
+    },
+    {
+     "name": "K731",
+     "titles": 3
+    },
+    {
+     "name": "Lc 508",
+     "titles": 3
+    },
+    {
+     "name": "Ae 301",
+     "titles": 3
+    },
+    {
+     "name": "Ak 725G Espanhol",
+     "titles": 3
+    },
+    {
+     "name": "As 92010B",
+     "titles": 3
+    },
+    {
+     "name": "Seguranca",
+     "titles": 3
+    },
+    {
+     "name": "1080P Tela 2 0",
+     "titles": 3
+    },
+    {
+     "name": "Ae 263",
+     "titles": 3
+    },
+    {
+     "name": "Codigo Barras SCAN03",
+     "titles": 3
+    },
+    {
+     "name": "Pro 600",
+     "titles": 3
+    },
+    {
+     "name": "Umidificador Ar H6601 2",
+     "titles": 3
+    },
+    {
+     "name": "Cerradura",
+     "titles": 3
+    },
+    {
+     "name": "Ae 7303",
+     "titles": 3
+    },
+    {
+     "name": "Campainha DB01",
+     "titles": 3
+    },
+    {
+     "name": "Ak 742G Espanhol",
+     "titles": 3
+    },
+    {
+     "name": "Ak 726G Portugues",
+     "titles": 3
+    },
+    {
+     "name": "K883",
+     "titles": 3
+    },
+    {
+     "name": "K703",
+     "titles": 3
+    },
+    {
+     "name": "DVR031 Tela 2 4",
+     "titles": 3
+    },
+    {
+     "name": "Pro 650",
+     "titles": 3
+    },
+    {
+     "name": "Ae 7302",
+     "titles": 3
+    },
+    {
+     "name": "Slides Lr",
+     "titles": 3
+    },
+    {
+     "name": "K707",
+     "titles": 3
+    },
+    {
+     "name": "CP22",
+     "titles": 3
+    },
+    {
+     "name": "DVR051 Tela 2",
+     "titles": 3
+    },
+    {
+     "name": "CP40",
+     "titles": 3
+    },
+    {
+     "name": "Fechadura Digital Sl 71",
+     "titles": 3
+    },
+    {
+     "name": "CP24A",
+     "titles": 3
+    },
+    {
+     "name": "Ak 741G Portugues",
+     "titles": 3
+    },
+    {
+     "name": "DVR021 Tela 2 4",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Apple",
+   "aliases": [
+    "apple"
+   ],
+   "titles": 365,
+   "models": [
+    {
+     "name": "iPhone",
+     "titles": 172
+    },
+    {
+     "name": "iPhone 18 Pro",
+     "titles": 80
+    },
+    {
+     "name": "iPhone 18 Pro Max",
+     "titles": 53
+    },
+    {
+     "name": "iPhone 17 Pro",
+     "titles": 51
+    },
+    {
+     "name": "Magic",
+     "titles": 40
+    },
+    {
+     "name": "iPhone 17 Pro Max",
+     "titles": 31
+    },
+    {
+     "name": "AirPods",
+     "titles": 28
+    },
+    {
+     "name": "AirTag",
+     "titles": 19
+    },
+    {
+     "name": "AirPods Max 2",
+     "titles": 17
+    },
+    {
+     "name": "iPhone 16",
+     "titles": 12
+    },
+    {
+     "name": "iPhone Air",
+     "titles": 9
+    },
+    {
+     "name": "Pencil",
+     "titles": 8
+    },
+    {
+     "name": "Magic Trackpad",
+     "titles": 7
+    },
+    {
+     "name": "EarPods",
+     "titles": 7
+    },
+    {
+     "name": "AirPods Pro 3",
+     "titles": 6
+    },
+    {
+     "name": "iPhone 18 Pro A3472",
+     "titles": 6
+    },
+    {
+     "name": "Pencil Pro",
+     "titles": 6
+    },
+    {
+     "name": "Magic 2",
+     "titles": 5
+    },
+    {
+     "name": "AirTag A2187",
+     "titles": 5
+    },
+    {
+     "name": "AirPods Max 2 Chip",
+     "titles": 5
+    },
+    {
+     "name": "iPhone 14",
+     "titles": 5
+    },
+    {
+     "name": "AirTag 2A Geracao",
+     "titles": 4
+    },
+    {
+     "name": "Magic iPad Pro",
+     "titles": 4
+    },
+    {
+     "name": "iPhone 17 Pro Ll",
+     "titles": 4
+    },
+    {
+     "name": "iPhone 15",
+     "titles": 4
+    },
+    {
+     "name": "Magic Trackpad A3120",
+     "titles": 4
+    },
+    {
+     "name": "AirTag A2187 Mx",
+     "titles": 3
+    },
+    {
+     "name": "AirTag 4",
+     "titles": 3
+    },
+    {
+     "name": "iPhone Air A3516 4J",
+     "titles": 3
+    },
+    {
+     "name": "iPhone 16 Plus",
+     "titles": 3
+    },
+    {
+     "name": "iPhone 18 Pro Glacial",
+     "titles": 3
+    },
+    {
+     "name": "iPhone 16 India",
+     "titles": 3
+    },
+    {
+     "name": "Ac",
+     "titles": 3
+    },
+    {
+     "name": "iPhone 17 Pro A3523",
+     "titles": 3
+    },
+    {
+     "name": "Celuar iPhone 18 Pro",
+     "titles": 3
+    },
+    {
+     "name": "Cable",
+     "titles": 3
+    },
+    {
+     "name": "iPhone 14 Pro",
+     "titles": 3
+    },
+    {
+     "name": "iPhone 16 Dupla",
+     "titles": 3
+    },
+    {
+     "name": "iPhone 18 Pro Burgundy",
+     "titles": 3
+    },
+    {
+     "name": "iPhone 16E",
+     "titles": 3
+    },
+    {
+     "name": "Magic Multi Touch",
+     "titles": 3
+    },
+    {
+     "name": "Pencil Pro A2538",
+     "titles": 3
+    },
+    {
+     "name": "iPhone 16 Pro",
+     "titles": 3
+    },
+    {
+     "name": "AirPods Max 2 A3454",
+     "titles": 3
+    },
+    {
+     "name": "Guitarra",
+     "titles": 3
+    },
+    {
+     "name": "iPhone Air Ll Tela",
+     "titles": 3
+    },
+    {
+     "name": "Magic Ingles",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Logitech",
+   "aliases": [
+    "logitech g",
+    "logitech"
+   ],
+   "titles": 351,
+   "models": [
+    {
+     "name": "M170",
+     "titles": 19
+    },
+    {
+     "name": "Volante",
+     "titles": 18
+    },
+    {
+     "name": "M280",
+     "titles": 16
+    },
+    {
+     "name": "M190",
+     "titles": 14
+    },
+    {
+     "name": "Brio",
+     "titles": 14
+    },
+    {
+     "name": "M185",
+     "titles": 12
+    },
+    {
+     "name": "H390",
+     "titles": 12
+    },
+    {
+     "name": "MK270",
+     "titles": 11
+    },
+    {
+     "name": "MK120",
+     "titles": 11
+    },
+    {
+     "name": "G305",
+     "titles": 11
+    },
+    {
+     "name": "K120",
+     "titles": 9
+    },
+    {
+     "name": "Wire",
+     "titles": 9
+    },
+    {
+     "name": "Mx",
+     "titles": 9
+    },
+    {
+     "name": "MK345",
+     "titles": 8
+    },
+    {
+     "name": "K250",
+     "titles": 7
+    },
+    {
+     "name": "C270",
+     "titles": 7
+    },
+    {
+     "name": "M196",
+     "titles": 7
+    },
+    {
+     "name": "Pop Icon Espanhol",
+     "titles": 7
+    },
+    {
+     "name": "MK120 Espanhol",
+     "titles": 6
+    },
+    {
+     "name": "G305 Lightspeed",
+     "titles": 6
+    },
+    {
+     "name": "G502",
+     "titles": 6
+    },
+    {
+     "name": "MK295",
+     "titles": 6
+    },
+    {
+     "name": "Volante G923",
+     "titles": 5
+    },
+    {
+     "name": "K250 Espanhol",
+     "titles": 4
+    },
+    {
+     "name": "Signature",
+     "titles": 4
+    },
+    {
+     "name": "MK235",
+     "titles": 4
+    },
+    {
+     "name": "Wire M280",
+     "titles": 4
+    },
+    {
+     "name": "Zone",
+     "titles": 4
+    },
+    {
+     "name": "G325 Lightspeed",
+     "titles": 4
+    },
+    {
+     "name": "Brio 500 Full Hd",
+     "titles": 4
+    },
+    {
+     "name": "G309 Lightspeed",
+     "titles": 4
+    },
+    {
+     "name": "M240 Silent",
+     "titles": 4
+    },
+    {
+     "name": "Volante G29",
+     "titles": 4
+    },
+    {
+     "name": "G321",
+     "titles": 4
+    },
+    {
+     "name": "G213 Prodigy Ingles",
+     "titles": 4
+    },
+    {
+     "name": "C920S",
+     "titles": 4
+    },
+    {
+     "name": "G203 Ate 8 Backlight",
+     "titles": 4
+    },
+    {
+     "name": "G403 Hero",
+     "titles": 4
+    },
+    {
+     "name": "Brio 300 Full Hd",
+     "titles": 4
+    },
+    {
+     "name": "Volante G920",
+     "titles": 4
+    },
+    {
+     "name": "H151",
+     "titles": 4
+    },
+    {
+     "name": "M170 3 Botoes",
+     "titles": 4
+    },
+    {
+     "name": "MK295 Espanhol",
+     "titles": 4
+    },
+    {
+     "name": "Cambio",
+     "titles": 4
+    },
+    {
+     "name": "M100",
+     "titles": 3
+    },
+    {
+     "name": "Astro A10",
+     "titles": 3
+    },
+    {
+     "name": "G335",
+     "titles": 3
+    },
+    {
+     "name": "C922",
+     "titles": 3
+    },
+    {
+     "name": "R400",
+     "titles": 3
+    },
+    {
+     "name": "C270 Hd",
+     "titles": 3
+    },
+    {
+     "name": "Pebble 2 M350S",
+     "titles": 3
+    },
+    {
+     "name": "Lift Left",
+     "titles": 3
+    },
+    {
+     "name": "Volante G29 Driving Force",
+     "titles": 3
+    },
+    {
+     "name": "MK250",
+     "titles": 3
+    },
+    {
+     "name": "Pro Superlight 2SE",
+     "titles": 3
+    },
+    {
+     "name": "K120 Espanol",
+     "titles": 3
+    },
+    {
+     "name": "MK270 Espanhol",
+     "titles": 3
+    },
+    {
+     "name": "M185 3 Botoes",
+     "titles": 3
+    },
+    {
+     "name": "M280 Comfort Plus Ate",
+     "titles": 3
+    },
+    {
+     "name": "Mx Master 4",
+     "titles": 3
+    },
+    {
+     "name": "C920S Pro",
+     "titles": 3
+    },
+    {
+     "name": "MK345 Espanhol",
+     "titles": 3
+    },
+    {
+     "name": "M280 3 Botoes",
+     "titles": 3
+    },
+    {
+     "name": "Mx Anywhere 3S",
+     "titles": 3
+    },
+    {
+     "name": "G502 Hero",
+     "titles": 3
+    },
+    {
+     "name": "Volante Acelerador",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Razer",
+   "aliases": [
+    "razer"
+   ],
+   "titles": 328,
+   "models": [
+    {
+     "name": "DeathAdder",
+     "titles": 44
+    },
+    {
+     "name": "Huntsman",
+     "titles": 38
+    },
+    {
+     "name": "BlackWidow V4",
+     "titles": 35
+    },
+    {
+     "name": "Basilisk V3",
+     "titles": 29
+    },
+    {
+     "name": "DeathAdder V3",
+     "titles": 24
+    },
+    {
+     "name": "BlackShark V2",
+     "titles": 24
+    },
+    {
+     "name": "Viper V3",
+     "titles": 22
+    },
+    {
+     "name": "Cobra",
+     "titles": 21
+    },
+    {
+     "name": "Ornata V3",
+     "titles": 20
+    },
+    {
+     "name": "Huntsman Mini",
+     "titles": 18
+    },
+    {
+     "name": "Huntsman V3 Pro",
+     "titles": 17
+    },
+    {
+     "name": "Barracuda",
+     "titles": 15
+    },
+    {
+     "name": "Viper V3 Pro",
+     "titles": 15
+    },
+    {
+     "name": "DeathAdder V3 Pro",
+     "titles": 13
+    },
+    {
+     "name": "Huntsman Mini RZ03",
+     "titles": 12
+    },
+    {
+     "name": "DeathAdder Essential",
+     "titles": 11
+    },
+    {
+     "name": "Wolverine V3",
+     "titles": 11
+    },
+    {
+     "name": "Basilisk V3 Pro",
+     "titles": 10
+    },
+    {
+     "name": "Ornata V3 RZ03",
+     "titles": 10
+    },
+    {
+     "name": "Cobra Pro",
+     "titles": 10
+    },
+    {
+     "name": "Tartarus",
+     "titles": 10
+    },
+    {
+     "name": "BlackWidow V4 RZ03 R3U1",
+     "titles": 10
+    },
+    {
+     "name": "Barracuda Chroma",
+     "titles": 9
+    },
+    {
+     "name": "DeathAdder V4 Pro",
+     "titles": 9
+    },
+    {
+     "name": "Seiren",
+     "titles": 9
+    },
+    {
+     "name": "Basilisk V3 RZ01 R3M1",
+     "titles": 8
+    },
+    {
+     "name": "Huntsman V3 Pro Mini",
+     "titles": 8
+    },
+    {
+     "name": "BlackWidow V4 Pro",
+     "titles": 7
+    },
+    {
+     "name": "DeathAdder Essential RZ01",
+     "titles": 7
+    },
+    {
+     "name": "Seiren V3",
+     "titles": 7
+    },
+    {
+     "name": "Wolverine V3 Tournament Edition",
+     "titles": 7
+    },
+    {
+     "name": "Tartarus Pro",
+     "titles": 7
+    },
+    {
+     "name": "BlackShark V2 Hyperspeed RZ04",
+     "titles": 7
+    },
+    {
+     "name": "Ornata V3 RZ03 R3U1",
+     "titles": 7
+    },
+    {
+     "name": "Basilisk V3 Pro RZ01",
+     "titles": 6
+    },
+    {
+     "name": "DeathAdder V4 Pro RZ01",
+     "titles": 6
+    },
+    {
+     "name": "Viper V3 Hyperspeed RZ01",
+     "titles": 6
+    },
+    {
+     "name": "DeathAdder V3 Pro RZ01",
+     "titles": 6
+    },
+    {
+     "name": "Kraken",
+     "titles": 6
+    },
+    {
+     "name": "BlackWidow V3",
+     "titles": 6
+    },
+    {
+     "name": "Viper V3 Pro RZ01",
+     "titles": 6
+    },
+    {
+     "name": "BlackWidow V4 75",
+     "titles": 5
+    },
+    {
+     "name": "RZ03 R3U1",
+     "titles": 5
+    },
+    {
+     "name": "Huntsman Mini RZ03 R3U1",
+     "titles": 5
+    },
+    {
+     "name": "DeathAdder Essential RZ01 R3M1",
+     "titles": 5
+    },
+    {
+     "name": "Naga V2",
+     "titles": 5
+    },
+    {
+     "name": "Barracuda Chroma RZ04 R3U1",
+     "titles": 5
+    },
+    {
+     "name": "Barracuda RZ04 R3U1",
+     "titles": 5
+    },
+    {
+     "name": "Tartarus Pro RZ07",
+     "titles": 5
+    },
+    {
+     "name": "Huntsman Mini 60",
+     "titles": 5
+    },
+    {
+     "name": "BlackWidow V4 Switch",
+     "titles": 5
+    },
+    {
+     "name": "Cobra Pro RZ01 R3U1",
+     "titles": 5
+    },
+    {
+     "name": "Kraken Kitty V2",
+     "titles": 4
+    },
+    {
+     "name": "Huntsman V3 Pro Tenkeyless",
+     "titles": 4
+    },
+    {
+     "name": "BlackWidow V3 Tenkeyless",
+     "titles": 4
+    },
+    {
+     "name": "Seiren V3 Chroma RZ19",
+     "titles": 4
+    },
+    {
+     "name": "Cobra RZ01 R3M1",
+     "titles": 4
+    },
+    {
+     "name": "Cobra Hyperspeed RZ01 R3U1",
+     "titles": 4
+    },
+    {
+     "name": "Viper V3 Pro Se",
+     "titles": 4
+    },
+    {
+     "name": "DeathAdder V3 Hyperspeed RZ01",
+     "titles": 4
+    },
+    {
+     "name": "Basilisk V3 Hyperspeed",
+     "titles": 4
+    },
+    {
+     "name": "Stream Seiren",
+     "titles": 4
+    },
+    {
+     "name": "DeathAdder V3 RZ01 R3M1",
+     "titles": 4
+    },
+    {
+     "name": "BlackWidow V4 75 Hot",
+     "titles": 3
+    },
+    {
+     "name": "RZ03 R3U1 BlackWidow V4",
+     "titles": 3
+    },
+    {
+     "name": "Ornata V3 RZ03 R311",
+     "titles": 3
+    },
+    {
+     "name": "Wolverine V3 Pro Xbox",
+     "titles": 3
+    },
+    {
+     "name": "BlackShark V2 RZ04 R3U1",
+     "titles": 3
+    },
+    {
+     "name": "BlackWidow V4 Pro 75",
+     "titles": 3
+    },
+    {
+     "name": "BlackShark V2 Mini Jack",
+     "titles": 3
+    },
+    {
+     "name": "Tartarus Pro RZ07 R3U1",
+     "titles": 3
+    },
+    {
+     "name": "Seiren V3 Mini",
+     "titles": 3
+    },
+    {
+     "name": "BlackShark V3",
+     "titles": 3
+    },
+    {
+     "name": "Ornata V3 Tenkeyless",
+     "titles": 3
+    },
+    {
+     "name": "BlackShark V2 Edition",
+     "titles": 3
+    },
+    {
+     "name": "Huntsman V3 Pro RZ03",
+     "titles": 3
+    },
+    {
+     "name": "Basilisk V3 Hyperspeed RZ01",
+     "titles": 3
+    },
+    {
+     "name": "Naga V2 Hyperspeed",
+     "titles": 3
+    },
+    {
+     "name": "Stream Seiren V3",
+     "titles": 3
+    },
+    {
+     "name": "DeathAdder V3 Pro Hyperspeed",
+     "titles": 3
+    },
+    {
+     "name": "Ornata V3 Espanhol",
+     "titles": 3
+    },
+    {
+     "name": "BlackWidow V4 Ingles RZ03",
+     "titles": 3
+    },
+    {
+     "name": "Pro Type Ergo",
+     "titles": 3
+    },
+    {
+     "name": "Tartarus V2",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Epson",
+   "aliases": [
+    "epson"
+   ],
+   "titles": 316,
+   "models": [
+    {
+     "name": "Tinta",
+     "titles": 78
+    },
+    {
+     "name": "EcoTank",
+     "titles": 27
+    },
+    {
+     "name": "Multifuncional",
+     "titles": 26
+    },
+    {
+     "name": "Refil Tinta",
+     "titles": 21
+    },
+    {
+     "name": "Frasco Tinta",
+     "titles": 19
+    },
+    {
+     "name": "Refil Tinta 70ML",
+     "titles": 16
+    },
+    {
+     "name": "Multifuncional EcoTank",
+     "titles": 14
+    },
+    {
+     "name": "PowerLite",
+     "titles": 14
+    },
+    {
+     "name": "Tinta Magenta",
+     "titles": 11
+    },
+    {
+     "name": "Jato Tinta EcoTank",
+     "titles": 10
+    },
+    {
+     "name": "Cartucho",
+     "titles": 10
+    },
+    {
+     "name": "Tinta L3110",
+     "titles": 9
+    },
+    {
+     "name": "Tinta Al",
+     "titles": 8
+    },
+    {
+     "name": "Matricial",
+     "titles": 8
+    },
+    {
+     "name": "Termica Tm",
+     "titles": 7
+    },
+    {
+     "name": "Tinta Cyan",
+     "titles": 7
+    },
+    {
+     "name": "Workforce Pro Wf",
+     "titles": 6
+    },
+    {
+     "name": "PowerLite Eb",
+     "titles": 6
+    },
+    {
+     "name": "Co",
+     "titles": 6
+    },
+    {
+     "name": "Tinta Ciano",
+     "titles": 6
+    },
+    {
+     "name": "Refil Tinta 70ML Magenta",
+     "titles": 5
+    },
+    {
+     "name": "Tinta L3110 3150",
+     "titles": 5
+    },
+    {
+     "name": "Tinta L4150",
+     "titles": 5
+    },
+    {
+     "name": "Lx 350",
+     "titles": 5
+    },
+    {
+     "name": "EcoTank L1250",
+     "titles": 5
+    },
+    {
+     "name": "Matricial Lx 350",
+     "titles": 5
+    },
+    {
+     "name": "Frasco Tinta Al",
+     "titles": 5
+    },
+    {
+     "name": "Fotografica",
+     "titles": 5
+    },
+    {
+     "name": "Cartucho Al",
+     "titles": 5
+    },
+    {
+     "name": "Termica Tm T20IVL 001",
+     "titles": 4
+    },
+    {
+     "name": "L1250 EcoTank",
+     "titles": 4
+    },
+    {
+     "name": "Frasco Tinta 70ML",
+     "titles": 4
+    },
+    {
+     "name": "Multifuncional EcoTank L3250",
+     "titles": 4
+    },
+    {
+     "name": "Epiqvision",
+     "titles": 4
+    },
+    {
+     "name": "Cartucho Tinta 39ML",
+     "titles": 4
+    },
+    {
+     "name": "Co W01",
+     "titles": 4
+    },
+    {
+     "name": "Multifuncional EcoTank L4360",
+     "titles": 4
+    },
+    {
+     "name": "Tinta 70ML",
+     "titles": 4
+    },
+    {
+     "name": "Sublimacao Surecolor",
+     "titles": 3
+    },
+    {
+     "name": "L1350 EcoTank",
+     "titles": 3
+    },
+    {
+     "name": "Frasco Tinta L6490 L15150",
+     "titles": 3
+    },
+    {
+     "name": "X49",
+     "titles": 3
+    },
+    {
+     "name": "Tinta 206",
+     "titles": 3
+    },
+    {
+     "name": "Monocromatica",
+     "titles": 3
+    },
+    {
+     "name": "E24",
+     "titles": 3
+    },
+    {
+     "name": "Tinta 748XXL",
+     "titles": 3
+    },
+    {
+     "name": "Tinta L110 L200 L350",
+     "titles": 3
+    },
+    {
+     "name": "Frasco Tinta Al 70ML",
+     "titles": 3
+    },
+    {
+     "name": "Fotografica Surecolor Sc",
+     "titles": 3
+    },
+    {
+     "name": "Tinta L3110 L3150 L5190",
+     "titles": 3
+    },
+    {
+     "name": "Impresora",
+     "titles": 3
+    },
+    {
+     "name": "EcoTank L3250",
+     "titles": 3
+    },
+    {
+     "name": "L5590",
+     "titles": 3
+    },
+    {
+     "name": "Tinta L1XX L2XX L3XX",
+     "titles": 3
+    },
+    {
+     "name": "Surecolor",
+     "titles": 3
+    },
+    {
+     "name": "PowerLite E24 3600 Lumens",
+     "titles": 3
+    },
+    {
+     "name": "L4360",
+     "titles": 3
+    },
+    {
+     "name": "Tinta L4150 6191",
+     "titles": 3
+    },
+    {
+     "name": "Multifuncional EcoTank L4360 3",
+     "titles": 3
+    },
+    {
+     "name": "Matricial Fx 890II",
+     "titles": 3
+    },
+    {
+     "name": "PowerLite X49",
+     "titles": 3
+    },
+    {
+     "name": "Multifuncional EcoTank L6370 3",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "G-Tide",
+   "aliases": [
+    "g tide"
+   ],
+   "titles": 316,
+   "models": [
+    {
+     "name": "Clip",
+     "titles": 33
+    },
+    {
+     "name": "Future",
+     "titles": 27
+    },
+    {
+     "name": "Clip 1",
+     "titles": 19
+    },
+    {
+     "name": "Future Pod",
+     "titles": 17
+    },
+    {
+     "name": "L21",
+     "titles": 17
+    },
+    {
+     "name": "Multi X1",
+     "titles": 16
+    },
+    {
+     "name": "L32",
+     "titles": 16
+    },
+    {
+     "name": "AC01",
+     "titles": 16
+    },
+    {
+     "name": "L11",
+     "titles": 16
+    },
+    {
+     "name": "Slim 01",
+     "titles": 15
+    },
+    {
+     "name": "Colorbeats",
+     "titles": 14
+    },
+    {
+     "name": "C1 Lite",
+     "titles": 13
+    },
+    {
+     "name": "L42",
+     "titles": 12
+    },
+    {
+     "name": "OWS8",
+     "titles": 12
+    },
+    {
+     "name": "Future Loop",
+     "titles": 10
+    },
+    {
+     "name": "Oasis",
+     "titles": 8
+    },
+    {
+     "name": "Bean 1",
+     "titles": 8
+    },
+    {
+     "name": "Multi X1 Lightning",
+     "titles": 8
+    },
+    {
+     "name": "P1",
+     "titles": 7
+    },
+    {
+     "name": "SV80",
+     "titles": 5
+    },
+    {
+     "name": "PJ50 240 Ansi Lumens",
+     "titles": 5
+    },
+    {
+     "name": "Future Pod DWS1 Painel",
+     "titles": 5
+    },
+    {
+     "name": "SH80",
+     "titles": 5
+    },
+    {
+     "name": "EG22",
+     "titles": 5
+    },
+    {
+     "name": "Future Pod Ai DWS2",
+     "titles": 4
+    },
+    {
+     "name": "L21 Nc",
+     "titles": 4
+    },
+    {
+     "name": "Clip 1 Andoroid Ios",
+     "titles": 4
+    },
+    {
+     "name": "SH20 Aux",
+     "titles": 4
+    },
+    {
+     "name": "Colorbeats Anc",
+     "titles": 4
+    },
+    {
+     "name": "Mini SV01 Aux",
+     "titles": 4
+    },
+    {
+     "name": "Hibeat",
+     "titles": 4
+    },
+    {
+     "name": "PJ10",
+     "titles": 4
+    },
+    {
+     "name": "P1 Micro",
+     "titles": 3
+    },
+    {
+     "name": "Thunderbass",
+     "titles": 3
+    },
+    {
+     "name": "OWS8 Bege",
+     "titles": 3
+    },
+    {
+     "name": "Thunder Max",
+     "titles": 3
+    },
+    {
+     "name": "DWS1",
+     "titles": 3
+    },
+    {
+     "name": "Colorbeats Anc Enc",
+     "titles": 3
+    },
+    {
+     "name": "Clip On Nc",
+     "titles": 3
+    },
+    {
+     "name": "SH80 Aux",
+     "titles": 3
+    },
+    {
+     "name": "Clip 1 Nc",
+     "titles": 3
+    },
+    {
+     "name": "SH50",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "FTX",
+   "aliases": [
+    "ftx"
+   ],
+   "titles": 294,
+   "models": [
+    {
+     "name": "Termica",
+     "titles": 18
+    },
+    {
+     "name": "Ups",
+     "titles": 18
+    },
+    {
+     "name": "Codigo Barras",
+     "titles": 17
+    },
+    {
+     "name": "E80",
+     "titles": 16
+    },
+    {
+     "name": "E68",
+     "titles": 16
+    },
+    {
+     "name": "FTXB09",
+     "titles": 9
+    },
+    {
+     "name": "E97L",
+     "titles": 9
+    },
+    {
+     "name": "Codigo Barras 2D",
+     "titles": 6
+    },
+    {
+     "name": "E56L",
+     "titles": 5
+    },
+    {
+     "name": "Pb",
+     "titles": 5
+    },
+    {
+     "name": "Gaveta Dinheiro Las",
+     "titles": 5
+    },
+    {
+     "name": "E95",
+     "titles": 5
+    },
+    {
+     "name": "E97L Wh",
+     "titles": 5
+    },
+    {
+     "name": "Hub",
+     "titles": 5
+    },
+    {
+     "name": "Cod Barra",
+     "titles": 5
+    },
+    {
+     "name": "E80 Bk",
+     "titles": 4
+    },
+    {
+     "name": "E80 Pk",
+     "titles": 4
+    },
+    {
+     "name": "Termica Ftxp",
+     "titles": 4
+    },
+    {
+     "name": "H20",
+     "titles": 4
+    },
+    {
+     "name": "E27",
+     "titles": 4
+    },
+    {
+     "name": "E97L Bk",
+     "titles": 4
+    },
+    {
+     "name": "GK03",
+     "titles": 4
+    },
+    {
+     "name": "E80 Bl",
+     "titles": 4
+    },
+    {
+     "name": "E80 Wh",
+     "titles": 4
+    },
+    {
+     "name": "E60",
+     "titles": 4
+    },
+    {
+     "name": "Ups 1200VA",
+     "titles": 4
+    },
+    {
+     "name": "E68 Bg",
+     "titles": 4
+    },
+    {
+     "name": "E68 Bl",
+     "titles": 4
+    },
+    {
+     "name": "DDR5",
+     "titles": 4
+    },
+    {
+     "name": "Esp",
+     "titles": 3
+    },
+    {
+     "name": "E56L Wh",
+     "titles": 3
+    },
+    {
+     "name": "Gaveta Dinheiro Las 405",
+     "titles": 3
+    },
+    {
+     "name": "Ups 1500VA",
+     "titles": 3
+    },
+    {
+     "name": "Capacitive",
+     "titles": 3
+    },
+    {
+     "name": "MT15V1",
+     "titles": 3
+    },
+    {
+     "name": "FTXB09 Espanol",
+     "titles": 3
+    },
+    {
+     "name": "E27 Wh",
+     "titles": 3
+    },
+    {
+     "name": "Cable",
+     "titles": 3
+    },
+    {
+     "name": "Numerico",
+     "titles": 3
+    },
+    {
+     "name": "E95 Bk",
+     "titles": 3
+    },
+    {
+     "name": "E60 Wh",
+     "titles": 3
+    },
+    {
+     "name": "FTXB09 Portugues",
+     "titles": 3
+    },
+    {
+     "name": "KW46",
+     "titles": 3
+    },
+    {
+     "name": "MW73",
+     "titles": 3
+    },
+    {
+     "name": "Portugues Pop",
+     "titles": 3
+    },
+    {
+     "name": "Termica Directa",
+     "titles": 3
+    },
+    {
+     "name": "E68 Pk",
+     "titles": 3
+    },
+    {
+     "name": "Ups 2000VA",
+     "titles": 3
+    },
+    {
+     "name": "Cod Barra 2D",
+     "titles": 3
+    },
+    {
+     "name": "Digital",
+     "titles": 3
+    },
+    {
+     "name": "Codigo Barras 1D",
+     "titles": 3
+    },
+    {
+     "name": "Ups 600VA",
+     "titles": 3
+    },
+    {
+     "name": "E68 Wh",
+     "titles": 3
+    },
+    {
+     "name": "Termi",
+     "titles": 3
+    },
+    {
+     "name": "Wirless",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Mtek",
+   "aliases": [
+    "mtek"
+   ],
+   "titles": 228,
+   "models": [
+    {
+     "name": "Tv",
+     "titles": 24
+    },
+    {
+     "name": "Gaveta",
+     "titles": 21
+    },
+    {
+     "name": "Kb",
+     "titles": 13
+    },
+    {
+     "name": "Hub",
+     "titles": 12
+    },
+    {
+     "name": "Gaveta En",
+     "titles": 11
+    },
+    {
+     "name": "Atx",
+     "titles": 11
+    },
+    {
+     "name": "Curvo",
+     "titles": 9
+    },
+    {
+     "name": "Gab",
+     "titles": 9
+    },
+    {
+     "name": "Tv Smart",
+     "titles": 6
+    },
+    {
+     "name": "MK01",
+     "titles": 6
+    },
+    {
+     "name": "Km",
+     "titles": 6
+    },
+    {
+     "name": "MK02",
+     "titles": 5
+    },
+    {
+     "name": "Hub Hb",
+     "titles": 5
+    },
+    {
+     "name": "Gaveta En 2 5",
+     "titles": 5
+    },
+    {
+     "name": "Tv 32 Smart",
+     "titles": 5
+    },
+    {
+     "name": "Qled",
+     "titles": 5
+    },
+    {
+     "name": "Gaveta Externa Hd",
+     "titles": 4
+    },
+    {
+     "name": "MPS550",
+     "titles": 4
+    },
+    {
+     "name": "Tv Qled",
+     "titles": 4
+    },
+    {
+     "name": "DK05",
+     "titles": 4
+    },
+    {
+     "name": "Gaveta Hd",
+     "titles": 4
+    },
+    {
+     "name": "Gaveta En 3",
+     "titles": 4
+    },
+    {
+     "name": "DK03",
+     "titles": 4
+    },
+    {
+     "name": "Curvo 24",
+     "titles": 4
+    },
+    {
+     "name": "MPS650",
+     "titles": 4
+    },
+    {
+     "name": "24 Full Hd",
+     "titles": 4
+    },
+    {
+     "name": "DK07",
+     "titles": 4
+    },
+    {
+     "name": "DK01",
+     "titles": 4
+    },
+    {
+     "name": "Psr",
+     "titles": 4
+    },
+    {
+     "name": "DK04",
+     "titles": 3
+    },
+    {
+     "name": "Tv 43",
+     "titles": 3
+    },
+    {
+     "name": "Curvo 27",
+     "titles": 3
+    },
+    {
+     "name": "32 Hd Android",
+     "titles": 3
+    },
+    {
+     "name": "Cpu",
+     "titles": 3
+    },
+    {
+     "name": "Hub Hb 531TC 4",
+     "titles": 3
+    },
+    {
+     "name": "Kb 7269L",
+     "titles": 3
+    },
+    {
+     "name": "Gaveta Hd 2 5",
+     "titles": 3
+    },
+    {
+     "name": "MK01 Ajustavel",
+     "titles": 3
+    },
+    {
+     "name": "20 Hdmi Vga",
+     "titles": 3
+    },
+    {
+     "name": "Kb 7701LR",
+     "titles": 3
+    },
+    {
+     "name": "Tv 50",
+     "titles": 3
+    },
+    {
+     "name": "22 Full Hd",
+     "titles": 3
+    },
+    {
+     "name": "Water Mwc",
+     "titles": 3
+    },
+    {
+     "name": "Gaveta En 3 5",
+     "titles": 3
+    },
+    {
+     "name": "22 Hdmi",
+     "titles": 3
+    },
+    {
+     "name": "Mk 500WF",
+     "titles": 3
+    },
+    {
+     "name": "27 Full Hd",
+     "titles": 3
+    },
+    {
+     "name": "Mcg",
+     "titles": 3
+    },
+    {
+     "name": "20 Hd",
+     "titles": 3
+    },
+    {
+     "name": "Hub Ds 91TC",
+     "titles": 3
+    },
+    {
+     "name": "24 Full Hd Va",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Shure",
+   "aliases": [
+    "shure"
+   ],
+   "titles": 218,
+   "models": [
+    {
+     "name": "Beta",
+     "titles": 17
+    },
+    {
+     "name": "Mao",
+     "titles": 17
+    },
+    {
+     "name": "Vocal",
+     "titles": 15
+    },
+    {
+     "name": "SM58",
+     "titles": 12
+    },
+    {
+     "name": "BLX24",
+     "titles": 11
+    },
+    {
+     "name": "SV200",
+     "titles": 9
+    },
+    {
+     "name": "SM7B",
+     "titles": 9
+    },
+    {
+     "name": "SM58 Lc",
+     "titles": 8
+    },
+    {
+     "name": "Beta 58A",
+     "titles": 7
+    },
+    {
+     "name": "SV100",
+     "titles": 7
+    },
+    {
+     "name": "MV7",
+     "titles": 6
+    },
+    {
+     "name": "BLX14",
+     "titles": 6
+    },
+    {
+     "name": "Mao BLX24",
+     "titles": 6
+    },
+    {
+     "name": "SM7B Cardioide",
+     "titles": 6
+    },
+    {
+     "name": "Duplo GLXD4 Beta 58A",
+     "titles": 5
+    },
+    {
+     "name": "SM57 Lc",
+     "titles": 5
+    },
+    {
+     "name": "BLX24 PG58",
+     "titles": 5
+    },
+    {
+     "name": "BLX24 SM58",
+     "titles": 5
+    },
+    {
+     "name": "Sistema",
+     "titles": 5
+    },
+    {
+     "name": "Sm",
+     "titles": 4
+    },
+    {
+     "name": "Beta 57A",
+     "titles": 4
+    },
+    {
+     "name": "Cardioide",
+     "titles": 4
+    },
+    {
+     "name": "BLX288 PG58",
+     "titles": 4
+    },
+    {
+     "name": "SM7B Cardioide Estudio",
+     "titles": 4
+    },
+    {
+     "name": "Beta 52A",
+     "titles": 3
+    },
+    {
+     "name": "MV7 Podcast",
+     "titles": 3
+    },
+    {
+     "name": "SLXD24",
+     "titles": 3
+    },
+    {
+     "name": "Sv",
+     "titles": 3
+    },
+    {
+     "name": "Vocal Pre",
+     "titles": 3
+    },
+    {
+     "name": "Mao Cardioide",
+     "titles": 3
+    },
+    {
+     "name": "Super 55",
+     "titles": 3
+    },
+    {
+     "name": "Mao BLX24 PG58",
+     "titles": 3
+    },
+    {
+     "name": "Sistema BLX24",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "DJI",
+   "aliases": [
+    "dji"
+   ],
+   "titles": 217,
+   "models": [
+    {
+     "name": "Osmo",
+     "titles": 77
+    },
+    {
+     "name": "Osmo Mobile",
+     "titles": 37
+    },
+    {
+     "name": "Rs",
+     "titles": 25
+    },
+    {
+     "name": "Rs 4",
+     "titles": 17
+    },
+    {
+     "name": "Osmo Pocket",
+     "titles": 15
+    },
+    {
+     "name": "Osmo Action",
+     "titles": 14
+    },
+    {
+     "name": "Osmo 360",
+     "titles": 10
+    },
+    {
+     "name": "Osmo Mobile 7P",
+     "titles": 10
+    },
+    {
+     "name": "Osmo Action 5 Pro",
+     "titles": 8
+    },
+    {
+     "name": "Osmo Mobile 7",
+     "titles": 8
+    },
+    {
+     "name": "Mini 2S",
+     "titles": 8
+    },
+    {
+     "name": "Osmo Mobile 8P",
+     "titles": 7
+    },
+    {
+     "name": "Osmo Mobile 8",
+     "titles": 7
+    },
+    {
+     "name": "Rs 4 Pro",
+     "titles": 7
+    },
+    {
+     "name": "Lito",
+     "titles": 7
+    },
+    {
+     "name": "Osmo Pocket 3",
+     "titles": 6
+    },
+    {
+     "name": "Neo 2",
+     "titles": 6
+    },
+    {
+     "name": "Flip",
+     "titles": 6
+    },
+    {
+     "name": "Avata",
+     "titles": 6
+    },
+    {
+     "name": "Osmo Action 6",
+     "titles": 6
+    },
+    {
+     "name": "Rs 5",
+     "titles": 6
+    },
+    {
+     "name": "Osmo Pocket 4P Vlog",
+     "titles": 6
+    },
+    {
+     "name": "Mini 2",
+     "titles": 5
+    },
+    {
+     "name": "Rs 4 Mini",
+     "titles": 5
+    },
+    {
+     "name": "Neo 2 Fly More",
+     "titles": 4
+    },
+    {
+     "name": "Mini 2S 1 Tx",
+     "titles": 4
+    },
+    {
+     "name": "Mini 2S Transmitter",
+     "titles": 4
+    },
+    {
+     "name": "Air 3S",
+     "titles": 4
+    },
+    {
+     "name": "Ronin Rs",
+     "titles": 4
+    },
+    {
+     "name": "Lito X1 Fly More",
+     "titles": 4
+    },
+    {
+     "name": "Osmo 360 Ii",
+     "titles": 3
+    },
+    {
+     "name": "Osmo 360 Adventure",
+     "titles": 3
+    },
+    {
+     "name": "Mini 2 1 Tx",
+     "titles": 3
+    },
+    {
+     "name": "Avata 360 Fly More",
+     "titles": 3
+    },
+    {
+     "name": "Osmo Action 6 Adventure",
+     "titles": 3
+    },
+    {
+     "name": "Mini 5 Pro Fly",
+     "titles": 3
+    },
+    {
+     "name": "Acc Osmo",
+     "titles": 3
+    },
+    {
+     "name": "Osmo 360 Standard",
+     "titles": 3
+    },
+    {
+     "name": "3 1 Tx Rx",
+     "titles": 3
+    },
+    {
+     "name": "Acao Osmo Pocket 3",
+     "titles": 3
+    },
+    {
+     "name": "Osmo Pocket 4 Creator",
+     "titles": 3
+    },
+    {
+     "name": "Acs Rs 4",
+     "titles": 3
+    },
+    {
+     "name": "Matrice 4T",
+     "titles": 3
+    },
+    {
+     "name": "Osmo Action 6 Standard",
+     "titles": 3
+    },
+    {
+     "name": "Avata 2 Fly",
+     "titles": 3
+    },
+    {
+     "name": "Flip Rc 2",
+     "titles": 3
+    },
+    {
+     "name": "2 1 Tx",
+     "titles": 3
+    },
+    {
+     "name": "Ronin Rs 4",
+     "titles": 3
+    },
+    {
+     "name": "Osmo Mobile OM160",
+     "titles": 3
+    },
+    {
+     "name": "Air 3S Fly More",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Samsung",
+   "aliases": [
+    "samsung"
+   ],
+   "titles": 188,
+   "models": [
+    {
+     "name": "Galaxy",
+     "titles": 32
+    },
+    {
+     "name": "Odyssey",
+     "titles": 11
+    },
+    {
+     "name": "Galaxy BUDS4",
+     "titles": 10
+    },
+    {
+     "name": "Galaxy S25 Ultra",
+     "titles": 8
+    },
+    {
+     "name": "Flip Gt",
+     "titles": 7
+    },
+    {
+     "name": "990 Pro",
+     "titles": 6
+    },
+    {
+     "name": "990 Evo Plus",
+     "titles": 6
+    },
+    {
+     "name": "Galaxy BUDS4 Pro Sm",
+     "titles": 6
+    },
+    {
+     "name": "Flip Gt E1272 Tela",
+     "titles": 5
+    },
+    {
+     "name": "Viewfinity",
+     "titles": 5
+    },
+    {
+     "name": "Galaxy Ei T5600",
+     "titles": 5
+    },
+    {
+     "name": "S25 Ultra Sm S938B",
+     "titles": 5
+    },
+    {
+     "name": "Tv",
+     "titles": 4
+    },
+    {
+     "name": "Tb Touch",
+     "titles": 4
+    },
+    {
+     "name": "Galaxy BUDS4 Sm R540",
+     "titles": 4
+    },
+    {
+     "name": "Printer Xpress Sl",
+     "titles": 4
+    },
+    {
+     "name": "Odyssey G5",
+     "titles": 4
+    },
+    {
+     "name": "Pencil",
+     "titles": 4
+    },
+    {
+     "name": "Galaxy S25 Ultra S938B",
+     "titles": 4
+    },
+    {
+     "name": "Galaxy S25 Ultra 5G",
+     "titles": 4
+    },
+    {
+     "name": "Tv Smart",
+     "titles": 3
+    },
+    {
+     "name": "990 Pro Mz Am",
+     "titles": 3
+    },
+    {
+     "name": "Sound Tower Mx",
+     "titles": 3
+    },
+    {
+     "name": "Ep",
+     "titles": 3
+    },
+    {
+     "name": "Gt E1272",
+     "titles": 3
+    },
+    {
+     "name": "Odyssey G4",
+     "titles": 3
+    },
+    {
+     "name": "990 Evo Plus Mz",
+     "titles": 3
+    },
+    {
+     "name": "Curve 34",
+     "titles": 3
+    },
+    {
+     "name": "990 Evo Plus Pci",
+     "titles": 3
+    },
+    {
+     "name": "Eo HS1303",
+     "titles": 3
+    },
+    {
+     "name": "Viewfinity S6",
+     "titles": 3
+    },
+    {
+     "name": "Odyssey G5 32",
+     "titles": 3
+    },
+    {
+     "name": "Hw",
+     "titles": 3
+    },
+    {
+     "name": "Galaxy Ei T5600 1",
+     "titles": 3
+    },
+    {
+     "name": "Sm B310E",
+     "titles": 3
+    },
+    {
+     "name": "990 Pro Pci Exp",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Asus",
+   "aliases": [
+    "asus"
+   ],
+   "titles": 169,
+   "models": [
+    {
+     "name": "Prime",
+     "titles": 79
+    },
+    {
+     "name": "Tuf",
+     "titles": 26
+    },
+    {
+     "name": "Rog Strix",
+     "titles": 23
+    },
+    {
+     "name": "Prime H610M",
+     "titles": 16
+    },
+    {
+     "name": "Prime B850M",
+     "titles": 8
+    },
+    {
+     "name": "Prime A520M",
+     "titles": 8
+    },
+    {
+     "name": "Prime B760M",
+     "titles": 8
+    },
+    {
+     "name": "Dual",
+     "titles": 7
+    },
+    {
+     "name": "Tuf B850M",
+     "titles": 6
+    },
+    {
+     "name": "Tuf B760M",
+     "titles": 6
+    },
+    {
+     "name": "Prime H610M D4",
+     "titles": 6
+    },
+    {
+     "name": "Prime B850M Socket AM5",
+     "titles": 5
+    },
+    {
+     "name": "Prime B550M",
+     "titles": 5
+    },
+    {
+     "name": "Dual Oc",
+     "titles": 5
+    },
+    {
+     "name": "Rog Strix B760 Wi",
+     "titles": 5
+    },
+    {
+     "name": "Prime H610M Socket Lga",
+     "titles": 4
+    },
+    {
+     "name": "Prime B840M",
+     "titles": 4
+    },
+    {
+     "name": "Tuf B760M Plus",
+     "titles": 4
+    },
+    {
+     "name": "Rog Strix B650E Wi",
+     "titles": 4
+    },
+    {
+     "name": "B760M Ayw",
+     "titles": 4
+    },
+    {
+     "name": "Rog Strix X870E",
+     "titles": 4
+    },
+    {
+     "name": "Prime B650M",
+     "titles": 4
+    },
+    {
+     "name": "Prime H610M DDR5",
+     "titles": 4
+    },
+    {
+     "name": "Prime A620M",
+     "titles": 3
+    },
+    {
+     "name": "Prime H510M",
+     "titles": 3
+    },
+    {
+     "name": "Prime A620AM",
+     "titles": 3
+    },
+    {
+     "name": "Tuf B760M Plus Ii",
+     "titles": 3
+    },
+    {
+     "name": "Prime A520M Ii",
+     "titles": 3
+    },
+    {
+     "name": "Prime B760M D4 Socket",
+     "titles": 3
+    },
+    {
+     "name": "Prime H610M D4 Socket",
+     "titles": 3
+    },
+    {
+     "name": "Tuf A520M Plus",
+     "titles": 3
+    },
+    {
+     "name": "Prime A520M Socket AM4",
+     "titles": 3
+    },
+    {
+     "name": "Dual Oc Geforce",
+     "titles": 3
+    },
+    {
+     "name": "Tuf B850M Plus",
+     "titles": 3
+    },
+    {
+     "name": "Rog Strix X870",
+     "titles": 3
+    },
+    {
+     "name": "Prime B850 Plus",
+     "titles": 3
+    },
+    {
+     "name": "Prime B650EM",
+     "titles": 3
+    },
+    {
+     "name": "Prime H610M DDR5 Socket",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "MSI",
+   "aliases": [
+    "msi"
+   ],
+   "titles": 153,
+   "models": [
+    {
+     "name": "Mag",
+     "titles": 33
+    },
+    {
+     "name": "Pro B760M",
+     "titles": 8
+    },
+    {
+     "name": "Ventus",
+     "titles": 8
+    },
+    {
+     "name": "Pro B550M",
+     "titles": 6
+    },
+    {
+     "name": "Water Mag Coreliquid",
+     "titles": 6
+    },
+    {
+     "name": "Pro H610M DDR4 Socket",
+     "titles": 5
+    },
+    {
+     "name": "Ventus 2X Oc Geforce",
+     "titles": 5
+    },
+    {
+     "name": "Pro A620AM Evo",
+     "titles": 4
+    },
+    {
+     "name": "Mpg",
+     "titles": 4
+    },
+    {
+     "name": "Mag A650BN",
+     "titles": 3
+    },
+    {
+     "name": "Mag 346CQ",
+     "titles": 3
+    },
+    {
+     "name": "23 8",
+     "titles": 3
+    },
+    {
+     "name": "Mag A600DN",
+     "titles": 3
+    },
+    {
+     "name": "Mag X870E Tomahawk",
+     "titles": 3
+    },
+    {
+     "name": "A520M Pro",
+     "titles": 3
+    },
+    {
+     "name": "Curvo",
+     "titles": 3
+    },
+    {
+     "name": "Mag A550BN",
+     "titles": 3
+    },
+    {
+     "name": "Pro B760M DDR4 Socket",
+     "titles": 3
+    },
+    {
+     "name": "Mag A750BN",
+     "titles": 3
+    },
+    {
+     "name": "Forge",
+     "titles": 3
+    },
+    {
+     "name": "Shadow 2X Oc",
+     "titles": 3
+    },
+    {
+     "name": "Mag X32 27 Wqhd",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Pioneer",
+   "aliases": [
+    "pioneer"
+   ],
+   "titles": 147,
+   "models": [
+    {
+     "name": "Ts",
+     "titles": 54
+    },
+    {
+     "name": "Toca",
+     "titles": 23
+    },
+    {
+     "name": "Toca Radio",
+     "titles": 16
+    },
+    {
+     "name": "Toca Radio MP3",
+     "titles": 8
+    },
+    {
+     "name": "Dj",
+     "titles": 7
+    },
+    {
+     "name": "Automotivo",
+     "titles": 7
+    },
+    {
+     "name": "Toca Radio MP3 Mvh",
+     "titles": 6
+    },
+    {
+     "name": "Controladora",
+     "titles": 5
+    },
+    {
+     "name": "Controlador",
+     "titles": 5
+    },
+    {
+     "name": "Toca Radio Dmh",
+     "titles": 5
+    },
+    {
+     "name": "Ts G1610F 2",
+     "titles": 4
+    },
+    {
+     "name": "Radio",
+     "titles": 4
+    },
+    {
+     "name": "Ts F1634R 6 5",
+     "titles": 4
+    },
+    {
+     "name": "Ts A1678S 6",
+     "titles": 4
+    },
+    {
+     "name": "Toca Cd Deh Aux",
+     "titles": 4
+    },
+    {
+     "name": "12 Ts",
+     "titles": 4
+    },
+    {
+     "name": "Toca Dvd Avh 6",
+     "titles": 3
+    },
+    {
+     "name": "Ts R1651S",
+     "titles": 3
+    },
+    {
+     "name": "Ts G6930F",
+     "titles": 3
+    },
+    {
+     "name": "Ts A1688S 6",
+     "titles": 3
+    },
+    {
+     "name": "Ts W312D4 12 Champion",
+     "titles": 3
+    },
+    {
+     "name": "Ts G1620F 2",
+     "titles": 3
+    },
+    {
+     "name": "Controladora Dj",
+     "titles": 3
+    },
+    {
+     "name": "Ts A6968S",
+     "titles": 3
+    },
+    {
+     "name": "Ts A1678S 6 5",
+     "titles": 3
+    },
+    {
+     "name": "Toca Radio Mvh",
+     "titles": 3
+    },
+    {
+     "name": "Controlador Dj",
+     "titles": 3
+    },
+    {
+     "name": "Central Multimidia Dmh",
+     "titles": 3
+    },
+    {
+     "name": "6 5 Ts",
+     "titles": 3
+    },
+    {
+     "name": "Ts W312S4 12 Champion",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Keepdata",
+   "aliases": [
+    "keepdata"
+   ],
+   "titles": 138,
+   "models": [
+    {
+     "name": "DDR4",
+     "titles": 23
+    },
+    {
+     "name": "DDR3",
+     "titles": 22
+    },
+    {
+     "name": "DDR5",
+     "titles": 14
+    },
+    {
+     "name": "DDR4 4G",
+     "titles": 11
+    },
+    {
+     "name": "8G",
+     "titles": 9
+    },
+    {
+     "name": "Hd",
+     "titles": 8
+    },
+    {
+     "name": "DDR4 8G",
+     "titles": 8
+    },
+    {
+     "name": "4G",
+     "titles": 8
+    },
+    {
+     "name": "DDR5 8G",
+     "titles": 7
+    },
+    {
+     "name": "DDR3 KD13N9",
+     "titles": 6
+    },
+    {
+     "name": "4G DDR4",
+     "titles": 6
+    },
+    {
+     "name": "Nvidia Geforce",
+     "titles": 5
+    },
+    {
+     "name": "DDR3 8G",
+     "titles": 5
+    },
+    {
+     "name": "Geforce",
+     "titles": 5
+    },
+    {
+     "name": "DDR3 KD13S9",
+     "titles": 4
+    },
+    {
+     "name": "2 5 3",
+     "titles": 4
+    },
+    {
+     "name": "8G DDR4",
+     "titles": 4
+    },
+    {
+     "name": "DDR3 4G",
+     "titles": 4
+    },
+    {
+     "name": "DDR5 32G",
+     "titles": 4
+    },
+    {
+     "name": "Gef",
+     "titles": 3
+    },
+    {
+     "name": "DDR5 16G",
+     "titles": 3
+    },
+    {
+     "name": "4G DDR4 Pc",
+     "titles": 3
+    },
+    {
+     "name": "DDR3 KD13N9 8G",
+     "titles": 3
+    },
+    {
+     "name": "Dragonfly",
+     "titles": 3
+    },
+    {
+     "name": "DDR3L",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Kingston",
+   "aliases": [
+    "kingston"
+   ],
+   "titles": 138,
+   "models": [
+    {
+     "name": "Fury",
+     "titles": 63
+    },
+    {
+     "name": "Fury Beast",
+     "titles": 37
+    },
+    {
+     "name": "Fury Beast DDR5",
+     "titles": 25
+    },
+    {
+     "name": "DDR5",
+     "titles": 22
+    },
+    {
+     "name": "DDR4",
+     "titles": 21
+    },
+    {
+     "name": "DDR5 Fury",
+     "titles": 14
+    },
+    {
+     "name": "Fury Impact",
+     "titles": 14
+    },
+    {
+     "name": "Fury Beast DDR4",
+     "titles": 12
+    },
+    {
+     "name": "Fury Renegade",
+     "titles": 12
+    },
+    {
+     "name": "DDR5 Fury Beast",
+     "titles": 10
+    },
+    {
+     "name": "Fury Beast DDR5 32",
+     "titles": 10
+    },
+    {
+     "name": "Fury Beast DDR5 16",
+     "titles": 8
+    },
+    {
+     "name": "Fury Impact DDR5",
+     "titles": 8
+    },
+    {
+     "name": "NV3",
+     "titles": 8
+    },
+    {
+     "name": "DDR4 Fury Beast",
+     "titles": 7
+    },
+    {
+     "name": "Fury Impact DDR4",
+     "titles": 6
+    },
+    {
+     "name": "Fury Beast DDR5 8",
+     "titles": 6
+    },
+    {
+     "name": "KC3000",
+     "titles": 5
+    },
+    {
+     "name": "Fury Beast DDR4 32",
+     "titles": 5
+    },
+    {
+     "name": "Fury Beast DDR4 16",
+     "titles": 5
+    },
+    {
+     "name": "Fury Impact DDR5 16",
+     "titles": 5
+    },
+    {
+     "name": "DDR5 Fury Beast 16",
+     "titles": 4
+    },
+    {
+     "name": "DDR4 16",
+     "titles": 4
+    },
+    {
+     "name": "DDR4 Fury Beast 16",
+     "titles": 4
+    },
+    {
+     "name": "DDR5 16",
+     "titles": 4
+    },
+    {
+     "name": "Fury Renegade Sfyrdk",
+     "titles": 3
+    },
+    {
+     "name": "Datatraveler Exodia",
+     "titles": 3
+    },
+    {
+     "name": "Hd",
+     "titles": 3
+    },
+    {
+     "name": "DDR3",
+     "titles": 3
+    },
+    {
+     "name": "NV3 SNV3S",
+     "titles": 3
+    },
+    {
+     "name": "DDR5 Fury Impact",
+     "titles": 3
+    },
+    {
+     "name": "DDR4 32",
+     "titles": 3
+    },
+    {
+     "name": "DDR5 Fury Beast 32",
+     "titles": 3
+    },
+    {
+     "name": "DDR4 8",
+     "titles": 3
+    },
+    {
+     "name": "NV3 Pci Exp",
+     "titles": 3
+    },
+    {
+     "name": "DDR5 Fury Beast 8",
+     "titles": 3
+    },
+    {
+     "name": "XS1000 3 2 Gen",
+     "titles": 3
+    },
+    {
+     "name": "Fury Renegade G5 SFYR2S",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Gigabyte",
+   "aliases": [
+    "gigabyte"
+   ],
+   "titles": 130,
+   "models": [
+    {
+     "name": "Gp",
+     "titles": 14
+    },
+    {
+     "name": "B860M",
+     "titles": 10
+    },
+    {
+     "name": "X870E Aorus",
+     "titles": 8
+    },
+    {
+     "name": "Eagle",
+     "titles": 6
+    },
+    {
+     "name": "B650M",
+     "titles": 6
+    },
+    {
+     "name": "B760M",
+     "titles": 6
+    },
+    {
+     "name": "A520M",
+     "titles": 6
+    },
+    {
+     "name": "Oc",
+     "titles": 5
+    },
+    {
+     "name": "X870E Aorus Pro",
+     "titles": 5
+    },
+    {
+     "name": "X870",
+     "titles": 5
+    },
+    {
+     "name": "B840M",
+     "titles": 4
+    },
+    {
+     "name": "B850",
+     "titles": 4
+    },
+    {
+     "name": "Eagle Oc",
+     "titles": 4
+    },
+    {
+     "name": "A620M",
+     "titles": 4
+    },
+    {
+     "name": "Gp P550SS",
+     "titles": 4
+    },
+    {
+     "name": "Curvo",
+     "titles": 4
+    },
+    {
+     "name": "B850M",
+     "titles": 4
+    },
+    {
+     "name": "H610M",
+     "titles": 4
+    },
+    {
+     "name": "B850 Aorus Elite Wi",
+     "titles": 3
+    },
+    {
+     "name": "X870E Aorus Pro X3D",
+     "titles": 3
+    },
+    {
+     "name": "B650M D3HP",
+     "titles": 3
+    },
+    {
+     "name": "X870 Aorus",
+     "titles": 3
+    },
+    {
+     "name": "B550M",
+     "titles": 3
+    },
+    {
+     "name": "B760M D3HP",
+     "titles": 3
+    },
+    {
+     "name": "A520M V2",
+     "titles": 3
+    },
+    {
+     "name": "B860M Socket Lga 1851",
+     "titles": 3
+    },
+    {
+     "name": "A520M DS3H",
+     "titles": 3
+    },
+    {
+     "name": "B860",
+     "titles": 3
+    },
+    {
+     "name": "B850M D3HP",
+     "titles": 3
+    },
+    {
+     "name": "Aorus Elite",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Sony",
+   "aliases": [
+    "sony"
+   ],
+   "titles": 123,
+   "models": [
+    {
+     "name": "Lente",
+     "titles": 77
+    },
+    {
+     "name": "DualSense",
+     "titles": 35
+    },
+    {
+     "name": "Lente Tamron",
+     "titles": 28
+    },
+    {
+     "name": "DualSense PS5 Cfi",
+     "titles": 19
+    },
+    {
+     "name": "Lente Sel Fe",
+     "titles": 16
+    },
+    {
+     "name": "Wh",
+     "titles": 13
+    },
+    {
+     "name": "Wf",
+     "titles": 12
+    },
+    {
+     "name": "Lente Sigma",
+     "titles": 11
+    },
+    {
+     "name": "Mdr",
+     "titles": 10
+    },
+    {
+     "name": "DualSense PS5 Cfi ZCT2W",
+     "titles": 10
+    },
+    {
+     "name": "Lente Viltrox Af 1",
+     "titles": 9
+    },
+    {
+     "name": "DualSense PS5 Cfi ZCT1W",
+     "titles": 9
+    },
+    {
+     "name": "Pulse",
+     "titles": 9
+    },
+    {
+     "name": "Lente Sel Fe 1",
+     "titles": 8
+    },
+    {
+     "name": "Srs",
+     "titles": 7
+    },
+    {
+     "name": "Lente Tamron 17",
+     "titles": 7
+    },
+    {
+     "name": "Wf LC900",
+     "titles": 5
+    },
+    {
+     "name": "Srs XB100",
+     "titles": 5
+    },
+    {
+     "name": "Lente Sigma Dg Dn",
+     "titles": 5
+    },
+    {
+     "name": "Lente Tamron 28",
+     "titles": 5
+    },
+    {
+     "name": "Wh CH520",
+     "titles": 5
+    },
+    {
+     "name": "Lente Tamron 17 2",
+     "titles": 5
+    },
+    {
+     "name": "Pulse Elite PS5",
+     "titles": 5
+    },
+    {
+     "name": "DualSense Edge PS5",
+     "titles": 4
+    },
+    {
+     "name": "Lente Tamron 35 2",
+     "titles": 4
+    },
+    {
+     "name": "Lente Sirui Sniper 1",
+     "titles": 4
+    },
+    {
+     "name": "Lente Laowa 2 8",
+     "titles": 4
+    },
+    {
+     "name": "Lente Sel Fe 24",
+     "titles": 4
+    },
+    {
+     "name": "PlayStation 5",
+     "titles": 4
+    },
+    {
+     "name": "Pulse Explore",
+     "titles": 4
+    },
+    {
+     "name": "Mdr ZX110",
+     "titles": 3
+    },
+    {
+     "name": "Lente Tamron 28 2",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "LG",
+   "aliases": [
+    "lg"
+   ],
+   "titles": 114,
+   "models": [
+    {
+     "name": "Ultragear",
+     "titles": 20
+    },
+    {
+     "name": "Xboom",
+     "titles": 19
+    },
+    {
+     "name": "Tv",
+     "titles": 12
+    },
+    {
+     "name": "Ultrawide",
+     "titles": 8
+    },
+    {
+     "name": "G360",
+     "titles": 6
+    },
+    {
+     "name": "B220",
+     "titles": 6
+    },
+    {
+     "name": "Xboom Go",
+     "titles": 6
+    },
+    {
+     "name": "Ultragear 27",
+     "titles": 6
+    },
+    {
+     "name": "Ultrafine",
+     "titles": 5
+    },
+    {
+     "name": "Qned",
+     "titles": 4
+    },
+    {
+     "name": "Xboom RNC5",
+     "titles": 4
+    },
+    {
+     "name": "Ultragear 32",
+     "titles": 4
+    },
+    {
+     "name": "Ultragear 45",
+     "titles": 3
+    },
+    {
+     "name": "Xboom RNC7",
+     "titles": 3
+    },
+    {
+     "name": "Lg",
+     "titles": 3
+    },
+    {
+     "name": "Smart",
+     "titles": 3
+    },
+    {
+     "name": "19M38L",
+     "titles": 3
+    },
+    {
+     "name": "Ultrawide 29 Wfhd",
+     "titles": 3
+    },
+    {
+     "name": "Ultrawide 34",
+     "titles": 3
+    },
+    {
+     "name": "Ultragear 27 Qhd Oled",
+     "titles": 3
+    },
+    {
+     "name": "Tv Smart",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Hollyland",
+   "aliases": [
+    "holly land",
+    "hollyland"
+   ],
+   "titles": 104,
+   "models": [
+    {
+     "name": "Lark",
+     "titles": 75
+    },
+    {
+     "name": "Lark Max",
+     "titles": 17
+    },
+    {
+     "name": "Lark Max 2",
+     "titles": 13
+    },
+    {
+     "name": "Lark A1",
+     "titles": 13
+    },
+    {
+     "name": "Lark M2S",
+     "titles": 10
+    },
+    {
+     "name": "Pyro",
+     "titles": 8
+    },
+    {
+     "name": "Lark A1 Mini",
+     "titles": 7
+    },
+    {
+     "name": "Lark Max 2 4",
+     "titles": 7
+    },
+    {
+     "name": "Lark Lightning",
+     "titles": 7
+    },
+    {
+     "name": "Lark A1 Mini Duo",
+     "titles": 5
+    },
+    {
+     "name": "Pyro 7",
+     "titles": 5
+    },
+    {
+     "name": "Lark A2",
+     "titles": 5
+    },
+    {
+     "name": "Melo P1",
+     "titles": 4
+    },
+    {
+     "name": "Sistema",
+     "titles": 4
+    },
+    {
+     "name": "Lark Shine Charcoal",
+     "titles": 3
+    },
+    {
+     "name": "Solidcom",
+     "titles": 3
+    },
+    {
+     "name": "Lark A1 Duo",
+     "titles": 3
+    },
+    {
+     "name": "Lark 1RX 2TX",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Intel",
+   "aliases": [
+    "intel"
+   ],
+   "titles": 100,
+   "models": [
+    {
+     "name": "Core",
+     "titles": 57
+    },
+    {
+     "name": "1700 Asus",
+     "titles": 17
+    },
+    {
+     "name": "Core I5",
+     "titles": 17
+    },
+    {
+     "name": "Core I3",
+     "titles": 12
+    },
+    {
+     "name": "Core I5 Socket Lga",
+     "titles": 11
+    },
+    {
+     "name": "Core Ultra",
+     "titles": 10
+    },
+    {
+     "name": "Core I7 Socket Lga",
+     "titles": 9
+    },
+    {
+     "name": "Core I9",
+     "titles": 8
+    },
+    {
+     "name": "1700 Asus H610M Prime",
+     "titles": 7
+    },
+    {
+     "name": "1851 Asus",
+     "titles": 6
+    },
+    {
+     "name": "Core I9 Socket Lga",
+     "titles": 6
+    },
+    {
+     "name": "Core Ultra 5",
+     "titles": 6
+    },
+    {
+     "name": "1700 Asus B760M",
+     "titles": 5
+    },
+    {
+     "name": "1700 Asus B760",
+     "titles": 4
+    },
+    {
+     "name": "1700 Gigabyte",
+     "titles": 4
+    },
+    {
+     "name": "Core I3 Socket Lga",
+     "titles": 4
+    },
+    {
+     "name": "1700 Asus B760 Rog",
+     "titles": 3
+    },
+    {
+     "name": "Core I3 10105F Socket",
+     "titles": 3
+    },
+    {
+     "name": "Core Ultra 7",
+     "titles": 3
+    },
+    {
+     "name": "Mb",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Philips",
+   "aliases": [
+    "philips"
+   ],
+   "titles": 100,
+   "models": [
+    {
+     "name": "Shaver",
+     "titles": 15
+    },
+    {
+     "name": "Depilador",
+     "titles": 15
+    },
+    {
+     "name": "Oneblade",
+     "titles": 10
+    },
+    {
+     "name": "Fechadura",
+     "titles": 7
+    },
+    {
+     "name": "Pilha 97",
+     "titles": 5
+    },
+    {
+     "name": "Fechadura Eletronica",
+     "titles": 5
+    },
+    {
+     "name": "Shaver 1000",
+     "titles": 4
+    },
+    {
+     "name": "One Blade",
+     "titles": 4
+    },
+    {
+     "name": "Series 3000",
+     "titles": 3
+    },
+    {
+     "name": "Shaver 1000 S1881 00",
+     "titles": 3
+    },
+    {
+     "name": "Oneblade QP2824 10",
+     "titles": 3
+    },
+    {
+     "name": "Xenium",
+     "titles": 3
+    },
+    {
+     "name": "Depilador Bikini Trimmer",
+     "titles": 3
+    },
+    {
+     "name": "Shaver 2000",
+     "titles": 3
+    },
+    {
+     "name": "Pilhas",
+     "titles": 3
+    },
+    {
+     "name": "Depilador Satinshave",
+     "titles": 3
+    },
+    {
+     "name": "Oneblade QP2724 10",
+     "titles": 3
+    },
+    {
+     "name": "Oneblade QP1424 10",
+     "titles": 3
+    },
+    {
+     "name": "Fechadura Eletronica Porta Easykey",
+     "titles": 3
+    },
+    {
+     "name": "Shaver 3000X",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "HYE",
+   "aliases": [
+    "hye"
+   ],
+   "titles": 95,
+   "models": [
+    {
+     "name": "Fechadura Eletronica Porta",
+     "titles": 8
+    },
+    {
+     "name": "Curvo",
+     "titles": 8
+    },
+    {
+     "name": "20 Hd",
+     "titles": 6
+    },
+    {
+     "name": "Tv",
+     "titles": 6
+    },
+    {
+     "name": "H2PRO",
+     "titles": 5
+    },
+    {
+     "name": "Curvo 27",
+     "titles": 5
+    },
+    {
+     "name": "Fechadura Eletronica Porta 630",
+     "titles": 4
+    },
+    {
+     "name": "Cargador",
+     "titles": 4
+    },
+    {
+     "name": "23 6",
+     "titles": 3
+    },
+    {
+     "name": "Tv 32",
+     "titles": 3
+    },
+    {
+     "name": "Curvo 27 Hd",
+     "titles": 3
+    },
+    {
+     "name": "27 Full Hd",
+     "titles": 3
+    },
+    {
+     "name": "15 6 Hd",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "AMD",
+   "aliases": [
+    "amd"
+   ],
+   "titles": 91,
+   "models": [
+    {
+     "name": "Ryzen",
+     "titles": 42
+    },
+    {
+     "name": "AM5",
+     "titles": 28
+    },
+    {
+     "name": "Ryzen 5",
+     "titles": 20
+    },
+    {
+     "name": "AM4",
+     "titles": 17
+    },
+    {
+     "name": "Ryzen 7",
+     "titles": 15
+    },
+    {
+     "name": "AM5 Asus",
+     "titles": 15
+    },
+    {
+     "name": "Mb",
+     "titles": 7
+    },
+    {
+     "name": "Ryzen 9",
+     "titles": 6
+    },
+    {
+     "name": "AM4 Asus",
+     "titles": 5
+    },
+    {
+     "name": "AM4 Ryzen",
+     "titles": 4
+    },
+    {
+     "name": "AM5 Asus Prime",
+     "titles": 4
+    },
+    {
+     "name": "Ryzen 7 Socket AM5",
+     "titles": 4
+    },
+    {
+     "name": "AM5 Ryzen",
+     "titles": 4
+    },
+    {
+     "name": "Mb AM4",
+     "titles": 4
+    },
+    {
+     "name": "AM5 Msi",
+     "titles": 4
+    },
+    {
+     "name": "AM4 Asus A520M",
+     "titles": 3
+    },
+    {
+     "name": "Mb AM5",
+     "titles": 3
+    },
+    {
+     "name": "Ryzen 9 Socket AM5",
+     "titles": 3
+    },
+    {
+     "name": "Ryzen 5 8500G",
+     "titles": 3
+    },
+    {
+     "name": "AM4 Ryzen R5",
+     "titles": 3
+    },
+    {
+     "name": "AM5 Asrock",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Smartfy",
+   "aliases": [
+    "smartfy"
+   ],
+   "titles": 88,
+   "models": [
+    {
+     "name": "TW02B Portugues",
+     "titles": 7
+    },
+    {
+     "name": "TW01B",
+     "titles": 7
+    },
+    {
+     "name": "FS02",
+     "titles": 5
+    },
+    {
+     "name": "FS06",
+     "titles": 4
+    },
+    {
+     "name": "FS03",
+     "titles": 4
+    },
+    {
+     "name": "FS01 Tela Touchscreen",
+     "titles": 4
+    },
+    {
+     "name": "Tv",
+     "titles": 4
+    },
+    {
+     "name": "TW01B Portugues",
+     "titles": 4
+    },
+    {
+     "name": "Massageador",
+     "titles": 4
+    },
+    {
+     "name": "Depilador Nasal",
+     "titles": 4
+    },
+    {
+     "name": "Depilador Nasal Dn",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Asrock",
+   "aliases": [
+    "asrock"
+   ],
+   "titles": 87,
+   "models": [
+    {
+     "name": "B760M",
+     "titles": 8
+    },
+    {
+     "name": "B650M",
+     "titles": 8
+    },
+    {
+     "name": "B850M",
+     "titles": 7
+    },
+    {
+     "name": "B550M",
+     "titles": 7
+    },
+    {
+     "name": "B850",
+     "titles": 6
+    },
+    {
+     "name": "B650M Pro",
+     "titles": 5
+    },
+    {
+     "name": "B760M Pg",
+     "titles": 4
+    },
+    {
+     "name": "Z890",
+     "titles": 4
+    },
+    {
+     "name": "X870E",
+     "titles": 4
+    },
+    {
+     "name": "X870 Challenger",
+     "titles": 4
+    },
+    {
+     "name": "B860M",
+     "titles": 4
+    },
+    {
+     "name": "27 Phantom",
+     "titles": 4
+    },
+    {
+     "name": "Phantom Mo",
+     "titles": 3
+    },
+    {
+     "name": "H610M Hdv",
+     "titles": 3
+    },
+    {
+     "name": "A620AM Hvs",
+     "titles": 3
+    },
+    {
+     "name": "B650M Pro X3D",
+     "titles": 3
+    },
+    {
+     "name": "Pro M1000G",
+     "titles": 3
+    },
+    {
+     "name": "B850 Rock",
+     "titles": 3
+    },
+    {
+     "name": "B850 Pro",
+     "titles": 3
+    },
+    {
+     "name": "B650 Rock",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Corsair",
+   "aliases": [
+    "corsair"
+   ],
+   "titles": 82,
+   "models": [
+    {
+     "name": "MP600",
+     "titles": 15
+    },
+    {
+     "name": "Vengeance",
+     "titles": 14
+    },
+    {
+     "name": "MP600 Pro",
+     "titles": 9
+    },
+    {
+     "name": "Water",
+     "titles": 8
+    },
+    {
+     "name": "Vengeance DDR4",
+     "titles": 5
+    },
+    {
+     "name": "Water Nautilus",
+     "titles": 5
+    },
+    {
+     "name": "Vengeance Pro DDR4",
+     "titles": 4
+    },
+    {
+     "name": "MP600 Pro Lpx",
+     "titles": 4
+    },
+    {
+     "name": "Katar Pro",
+     "titles": 4
+    },
+    {
+     "name": "MP600 Pro Nh",
+     "titles": 4
+    },
+    {
+     "name": "Water Icue",
+     "titles": 3
+    },
+    {
+     "name": "Water Nautilus 240 Rs",
+     "titles": 3
+    },
+    {
+     "name": "T3 Rush Cf",
+     "titles": 3
+    },
+    {
+     "name": "MP700",
+     "titles": 3
+    },
+    {
+     "name": "Katar Pro Ch Na",
+     "titles": 3
+    },
+    {
+     "name": "Liquid",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "AKG",
+   "aliases": [
+    "akg"
+   ],
+   "titles": 80,
+   "models": [
+    {
+     "name": "WP300",
+     "titles": 15
+    },
+    {
+     "name": "Perception",
+     "titles": 10
+    },
+    {
+     "name": "P3S",
+     "titles": 9
+    },
+    {
+     "name": "P3S Perception",
+     "titles": 7
+    },
+    {
+     "name": "P220",
+     "titles": 4
+    },
+    {
+     "name": "WP300 Dual",
+     "titles": 4
+    },
+    {
+     "name": "Perception P3S",
+     "titles": 4
+    },
+    {
+     "name": "Sistema",
+     "titles": 4
+    },
+    {
+     "name": "Sistema WP300",
+     "titles": 3
+    },
+    {
+     "name": "WP300 Mao",
+     "titles": 3
+    },
+    {
+     "name": "D112 Mkii",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Brother",
+   "aliases": [
+    "brother"
+   ],
+   "titles": 78,
+   "models": [
+    {
+     "name": "Hl",
+     "titles": 17
+    },
+    {
+     "name": "Multifuncional",
+     "titles": 15
+    },
+    {
+     "name": "Dcp",
+     "titles": 13
+    },
+    {
+     "name": "Monocromatica",
+     "titles": 11
+    },
+    {
+     "name": "Multifuncional Dcp",
+     "titles": 9
+    },
+    {
+     "name": "Monocromatica Hl",
+     "titles": 8
+    },
+    {
+     "name": "Tinta",
+     "titles": 7
+    },
+    {
+     "name": "Dcp Multifuncional",
+     "titles": 5
+    },
+    {
+     "name": "Tinta Compatible",
+     "titles": 4
+    },
+    {
+     "name": "Toner",
+     "titles": 4
+    },
+    {
+     "name": "Hl 1200",
+     "titles": 4
+    },
+    {
+     "name": "Botella Tinta",
+     "titles": 4
+    },
+    {
+     "name": "Botella Tinta 48 8ML",
+     "titles": 3
+    },
+    {
+     "name": "Hl L2320D",
+     "titles": 3
+    },
+    {
+     "name": "Hl Monocromatica",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Sennheiser",
+   "aliases": [
+    "sennheiser"
+   ],
+   "titles": 78,
+   "models": [
+    {
+     "name": "E608",
+     "titles": 6
+    },
+    {
+     "name": "Cardioide",
+     "titles": 6
+    },
+    {
+     "name": "Antena",
+     "titles": 6
+    },
+    {
+     "name": "Capsula",
+     "titles": 4
+    },
+    {
+     "name": "Md 421",
+     "titles": 4
+    },
+    {
+     "name": "Super Cardioide",
+     "titles": 4
+    },
+    {
+     "name": "Cardioide E835",
+     "titles": 3
+    },
+    {
+     "name": "Antena Direcional",
+     "titles": 3
+    },
+    {
+     "name": "Mao",
+     "titles": 3
+    },
+    {
+     "name": "XSW1",
+     "titles": 3
+    },
+    {
+     "name": "Vocal",
+     "titles": 3
+    },
+    {
+     "name": "E608 Supercardioide",
+     "titles": 3
+    },
+    {
+     "name": "Sistema",
+     "titles": 3
+    },
+    {
+     "name": "Md 421 Kompakt",
+     "titles": 3
+    },
+    {
+     "name": "Cardioide 604",
+     "titles": 3
+    },
+    {
+     "name": "E945 Supercardioide",
+     "titles": 3
+    },
+    {
+     "name": "Splitter Ativo",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Mox",
+   "aliases": [
+    "mox"
+   ],
+   "titles": 73,
+   "models": [
+    {
+     "name": "Mo",
+     "titles": 62
+    },
+    {
+     "name": "Mo K351",
+     "titles": 11
+    },
+    {
+     "name": "Mo MS15",
+     "titles": 8
+    },
+    {
+     "name": "Mo MS14",
+     "titles": 7
+    },
+    {
+     "name": "Mo K351 Espanhol",
+     "titles": 6
+    },
+    {
+     "name": "Mo MS15 Radio Fm",
+     "titles": 5
+    },
+    {
+     "name": "Mo F900",
+     "titles": 5
+    },
+    {
+     "name": "Mo MS14 Micro Sd",
+     "titles": 4
+    },
+    {
+     "name": "Mo D1010",
+     "titles": 3
+    },
+    {
+     "name": "Mo S804T",
+     "titles": 3
+    },
+    {
+     "name": "Mo PB1020",
+     "titles": 3
+    },
+    {
+     "name": "Mo HD4001",
+     "titles": 3
+    },
+    {
+     "name": "Mo K351 Portugues",
+     "titles": 3
+    },
+    {
+     "name": "Mo AFT08",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "QCY",
+   "aliases": [
+    "qcy"
+   ],
+   "titles": 68,
+   "models": [
+    {
+     "name": "Melobuds",
+     "titles": 30
+    },
+    {
+     "name": "T13",
+     "titles": 9
+    },
+    {
+     "name": "Crossky",
+     "titles": 7
+    },
+    {
+     "name": "Ailybuds",
+     "titles": 6
+    },
+    {
+     "name": "Melobuds N65",
+     "titles": 6
+    },
+    {
+     "name": "Melobuds N60",
+     "titles": 5
+    },
+    {
+     "name": "T13 Anc",
+     "titles": 4
+    },
+    {
+     "name": "Melobuds Neo",
+     "titles": 4
+    },
+    {
+     "name": "Ailybuds Pro",
+     "titles": 4
+    },
+    {
+     "name": "Melobuds Anc",
+     "titles": 4
+    },
+    {
+     "name": "Melobuds N50",
+     "titles": 3
+    },
+    {
+     "name": "Melobuds Anc Tws",
+     "titles": 3
+    },
+    {
+     "name": "Melobuds N20",
+     "titles": 3
+    },
+    {
+     "name": "Crossky C50",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Joog",
+   "aliases": [
+    "joog"
+   ],
+   "titles": 63,
+   "models": [
+    {
+     "name": "Raquete Beach Tennis",
+     "titles": 6
+    },
+    {
+     "name": "Boom 500",
+     "titles": 5
+    },
+    {
+     "name": "One Jof 01 Auracast",
+     "titles": 4
+    },
+    {
+     "name": "Pair",
+     "titles": 3
+    },
+    {
+     "name": "Aereo",
+     "titles": 3
+    },
+    {
+     "name": "Megasafe Mms 01 Tws",
+     "titles": 3
+    },
+    {
+     "name": "Boom 500 Thunder",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Insta360",
+   "aliases": [
+    "insta360"
+   ],
+   "titles": 62,
+   "models": [
+    {
+     "name": "Acao",
+     "titles": 35
+    },
+    {
+     "name": "Acao X5",
+     "titles": 10
+    },
+    {
+     "name": "Acao X6",
+     "titles": 7
+    },
+    {
+     "name": "Acao Ace Pro 2",
+     "titles": 6
+    },
+    {
+     "name": "Acao X5 360",
+     "titles": 5
+    },
+    {
+     "name": "Ace Pro 2",
+     "titles": 5
+    },
+    {
+     "name": "Go",
+     "titles": 5
+    },
+    {
+     "name": "Acao X4 Air",
+     "titles": 4
+    },
+    {
+     "name": "Acao Go",
+     "titles": 4
+    },
+    {
+     "name": "Flow",
+     "titles": 4
+    },
+    {
+     "name": "Acao X4 Air Starter",
+     "titles": 3
+    },
+    {
+     "name": "Acao X5 360 Action",
+     "titles": 3
+    },
+    {
+     "name": "Luna Ultra",
+     "titles": 3
+    },
+    {
+     "name": "Acao X5 Essentials Bundle",
+     "titles": 3
+    },
+    {
+     "name": "Go 3S Cinsaata",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Wmark",
+   "aliases": [
+    "wmark"
+   ],
+   "titles": 62,
+   "models": [
+    {
+     "name": "Ng",
+     "titles": 31
+    },
+    {
+     "name": "Maquina",
+     "titles": 10
+    },
+    {
+     "name": "Lamina",
+     "titles": 9
+    },
+    {
+     "name": "Ng V1",
+     "titles": 7
+    },
+    {
+     "name": "Professional Clipper Ng",
+     "titles": 5
+    },
+    {
+     "name": "Ng X1",
+     "titles": 5
+    },
+    {
+     "name": "Massageador",
+     "titles": 4
+    },
+    {
+     "name": "Maquina Shaver Ng",
+     "titles": 4
+    },
+    {
+     "name": "Ng 9009",
+     "titles": 4
+    },
+    {
+     "name": "Ng 119",
+     "titles": 3
+    },
+    {
+     "name": "Lamina Ceramica Detailer Acabamento",
+     "titles": 3
+    },
+    {
+     "name": "Maquina Shaver Ng XS1",
+     "titles": 3
+    },
+    {
+     "name": "Ng 1209",
+     "titles": 3
+    },
+    {
+     "name": "Maquina Acabamento",
+     "titles": 3
+    },
+    {
+     "name": "Ng V1 Acessorios Recarregavel",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "DarkFlash",
+   "aliases": [
+    "darkflash"
+   ],
+   "titles": 60,
+   "models": [
+    {
+     "name": "Rc",
+     "titles": 20
+    },
+    {
+     "name": "Water",
+     "titles": 11
+    },
+    {
+     "name": "Rc 360",
+     "titles": 6
+    },
+    {
+     "name": "Rc 400",
+     "titles": 3
+    },
+    {
+     "name": "DK431",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Nakamichi",
+   "aliases": [
+    "nakamichi"
+   ],
+   "titles": 58,
+   "models": [
+    {
+     "name": "Re",
+     "titles": 10
+    },
+    {
+     "name": "Amplificada",
+     "titles": 5
+    },
+    {
+     "name": "Marine Nmsp",
+     "titles": 4
+    },
+    {
+     "name": "Re Nc",
+     "titles": 4
+    },
+    {
+     "name": "Toca Dvd",
+     "titles": 4
+    },
+    {
+     "name": "Re Automotivo Nc",
+     "titles": 4
+    },
+    {
+     "name": "Marine Nmsp E8057",
+     "titles": 3
+    },
+    {
+     "name": "Dvd",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "GoPro",
+   "aliases": [
+    "gopro"
+   ],
+   "titles": 57,
+   "models": [
+    {
+     "name": "Acao",
+     "titles": 30
+    },
+    {
+     "name": "Acao Hero",
+     "titles": 19
+    },
+    {
+     "name": "Hero",
+     "titles": 10
+    },
+    {
+     "name": "Acao Hero 13",
+     "titles": 7
+    },
+    {
+     "name": "Acao Lit Hero",
+     "titles": 4
+    },
+    {
+     "name": "Fluid Pro Ai",
+     "titles": 4
+    },
+    {
+     "name": "Acao Hero Chdhf 131",
+     "titles": 4
+    },
+    {
+     "name": "Hero 13",
+     "titles": 4
+    },
+    {
+     "name": "Mission 1 Pro",
+     "titles": 3
+    },
+    {
+     "name": "Acao Lit Hero Chdhf",
+     "titles": 3
+    },
+    {
+     "name": "Acao MAX2",
+     "titles": 3
+    },
+    {
+     "name": "Fluid Pro Ai Agmss",
+     "titles": 3
+    },
+    {
+     "name": "Acao Hero 12",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Sandisk",
+   "aliases": [
+    "sandisk"
+   ],
+   "titles": 55,
+   "models": [
+    {
+     "name": "Extreme",
+     "titles": 14
+    },
+    {
+     "name": "Optimus",
+     "titles": 7
+    },
+    {
+     "name": "Micro",
+     "titles": 5
+    },
+    {
+     "name": "Extreme V2 3 2",
+     "titles": 4
+    },
+    {
+     "name": "Optimus Gx 7100",
+     "titles": 4
+    },
+    {
+     "name": "3 2",
+     "titles": 4
+    },
+    {
+     "name": "Micro Sdxc",
+     "titles": 3
+    },
+    {
+     "name": "Plus 2 5 3",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Stetsom",
+   "aliases": [
+    "stetsom"
+   ],
+   "titles": 55,
+   "models": [
+    {
+     "name": "Longa Distancia",
+     "titles": 26
+    },
+    {
+     "name": "Remoto",
+     "titles": 18
+    },
+    {
+     "name": "Remoto SX1",
+     "titles": 13
+    },
+    {
+     "name": "Remoto SX1 8 Funcoes",
+     "titles": 9
+    },
+    {
+     "name": "Longa Distancia SX1",
+     "titles": 9
+    },
+    {
+     "name": "Longa Distancia SX2",
+     "titles": 8
+    },
+    {
+     "name": "Longa Distancia SX1 8",
+     "titles": 6
+    },
+    {
+     "name": "SX1500 Longa Distancia Universal",
+     "titles": 5
+    },
+    {
+     "name": "Longa Distancia SX2 Ultra",
+     "titles": 4
+    },
+    {
+     "name": "Remoto SX1 Longa Distancia",
+     "titles": 3
+    },
+    {
+     "name": "Longa Distancia Sx",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Hikvision",
+   "aliases": [
+    "hikvision"
+   ],
+   "titles": 54,
+   "models": [
+    {
+     "name": "Sensor",
+     "titles": 6
+    },
+    {
+     "name": "Ae",
+     "titles": 6
+    },
+    {
+     "name": "Bullet",
+     "titles": 5
+    },
+    {
+     "name": "Seguranca",
+     "titles": 4
+    },
+    {
+     "name": "Ethernet Switch Ds",
+     "titles": 4
+    },
+    {
+     "name": "Sensor Movimento Ds",
+     "titles": 4
+    },
+    {
+     "name": "Ip",
+     "titles": 4
+    },
+    {
+     "name": "Interfone Montagem Ds Kd",
+     "titles": 3
+    },
+    {
+     "name": "Dome",
+     "titles": 3
+    },
+    {
+     "name": "Video Porteiro",
+     "titles": 3
+    },
+    {
+     "name": "Ae DC5113 F6S",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "C Idea",
+   "aliases": [
+    "c idea"
+   ],
+   "titles": 53,
+   "models": [
+    {
+     "name": "CM8300",
+     "titles": 13
+    },
+    {
+     "name": "Tab",
+     "titles": 12
+    },
+    {
+     "name": "CM8800",
+     "titles": 9
+    },
+    {
+     "name": "CM9800 Ultra 5G",
+     "titles": 8
+    },
+    {
+     "name": "CM8800 Ultra 5G",
+     "titles": 7
+    },
+    {
+     "name": "CM8300 Ultra",
+     "titles": 7
+    },
+    {
+     "name": "CM8300 Ultra 5G Tela",
+     "titles": 5
+    },
+    {
+     "name": "Tab Ultra Wf 5G",
+     "titles": 4
+    },
+    {
+     "name": "CM9800 Ultra 5G 10",
+     "titles": 4
+    },
+    {
+     "name": "CM8300 Plus",
+     "titles": 4
+    },
+    {
+     "name": "8 5G Ultra 10",
+     "titles": 4
+    },
+    {
+     "name": "Tab CM9800 Ultra 5G",
+     "titles": 4
+    },
+    {
+     "name": "CM8800 Ultra 5G Gb",
+     "titles": 4
+    },
+    {
+     "name": "CM9800 Ultra 5G Gb",
+     "titles": 4
+    },
+    {
+     "name": "Tab CM8800 Ultra 5G",
+     "titles": 4
+    },
+    {
+     "name": "CM8800 Ultra 5G 10",
+     "titles": 3
+    },
+    {
+     "name": "CM8300 Plus Tela 10",
+     "titles": 3
+    },
+    {
+     "name": "Plus Tela 10 5",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Aigo",
+   "aliases": [
+    "aigo"
+   ],
+   "titles": 52,
+   "models": [
+    {
+     "name": "Darkflash",
+     "titles": 18
+    },
+    {
+     "name": "Water Darkflash",
+     "titles": 17
+    },
+    {
+     "name": "Water Darkflash Twister",
+     "titles": 7
+    },
+    {
+     "name": "Water Darkflash Radiant",
+     "titles": 3
+    },
+    {
+     "name": "V600",
+     "titles": 3
+    },
+    {
+     "name": "ARC1",
+     "titles": 3
+    },
+    {
+     "name": "Water Darkflash DX360",
+     "titles": 3
+    },
+    {
+     "name": "Water Darkflash Twister DX120",
+     "titles": 3
+    },
+    {
+     "name": "Water Darkflash Twister DX240",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Thermaltake",
+   "aliases": [
+    "thermaltake"
+   ],
+   "titles": 51,
+   "models": [
+    {
+     "name": "View",
+     "titles": 15
+    },
+    {
+     "name": "Smart",
+     "titles": 11
+    },
+    {
+     "name": "Tower",
+     "titles": 10
+    },
+    {
+     "name": "Toughpower",
+     "titles": 9
+    },
+    {
+     "name": "View 380",
+     "titles": 7
+    },
+    {
+     "name": "Tower 300",
+     "titles": 7
+    },
+    {
+     "name": "View 270 Plus Tg",
+     "titles": 5
+    },
+    {
+     "name": "Toughpower Pt",
+     "titles": 4
+    },
+    {
+     "name": "View 380 Tg Argb",
+     "titles": 4
+    },
+    {
+     "name": "Smart Series",
+     "titles": 4
+    },
+    {
+     "name": "Smart BX1 Atx Nao",
+     "titles": 4
+    },
+    {
+     "name": "Toughpower Pt 80 Plus",
+     "titles": 3
+    },
+    {
+     "name": "Toughpower Gt",
+     "titles": 3
+    },
+    {
+     "name": "Smart Series Spd",
+     "titles": 3
+    },
+    {
+     "name": "Tower 600",
+     "titles": 3
+    },
+    {
+     "name": "View 380 Xl Tg",
+     "titles": 3
+    },
+    {
+     "name": "View 170 Tg Argb",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Bose",
+   "aliases": [
+    "bose"
+   ],
+   "titles": 50,
+   "models": [
+    {
+     "name": "Soundlink",
+     "titles": 18
+    },
+    {
+     "name": "Quietcomfort",
+     "titles": 8
+    },
+    {
+     "name": "Soundlink Max",
+     "titles": 5
+    },
+    {
+     "name": "Soundlink Micro",
+     "titles": 5
+    },
+    {
+     "name": "Soundlink Plus",
+     "titles": 5
+    },
+    {
+     "name": "Quiet Comfort",
+     "titles": 4
+    },
+    {
+     "name": "Quietcomfort 0200",
+     "titles": 3
+    },
+    {
+     "name": "L1",
+     "titles": 3
+    },
+    {
+     "name": "Soundlink Home",
+     "titles": 3
+    },
+    {
+     "name": "Quietcomfort Ultra",
+     "titles": 3
+    },
+    {
+     "name": "S1 Pro",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Voyager",
+   "aliases": [
+    "voyager"
+   ],
+   "titles": 50,
+   "models": [
+    {
+     "name": "Vgr",
+     "titles": 26
+    },
+    {
+     "name": "Radio Amador Vr",
+     "titles": 11
+    },
+    {
+     "name": "Ptt Tks Radio Px",
+     "titles": 4
+    },
+    {
+     "name": "Vgr 360",
+     "titles": 3
+    },
+    {
+     "name": "Depiladora",
+     "titles": 3
+    },
+    {
+     "name": "Vgr 938",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Ecopower",
+   "aliases": [
+    "ecopower"
+   ],
+   "titles": 49,
+   "models": [
+    {
+     "name": "Ep",
+     "titles": 31
+    },
+    {
+     "name": "Ep 2220",
+     "titles": 4
+    },
+    {
+     "name": "Bateria Auxiliar Ep",
+     "titles": 3
+    },
+    {
+     "name": "Ep 2220 Fm Sd",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Creality",
+   "aliases": [
+    "creality"
+   ],
+   "titles": 48,
+   "models": [
+    {
+     "name": "3D",
+     "titles": 28
+    },
+    {
+     "name": "3D Halot",
+     "titles": 18
+    },
+    {
+     "name": "Resina",
+     "titles": 13
+    },
+    {
+     "name": "3D Halot Mage",
+     "titles": 5
+    },
+    {
+     "name": "3D Halot One",
+     "titles": 4
+    },
+    {
+     "name": "Filamento",
+     "titles": 4
+    },
+    {
+     "name": "Resina Curavel 3D",
+     "titles": 4
+    },
+    {
+     "name": "3D Halot X1",
+     "titles": 4
+    },
+    {
+     "name": "Resina Standard",
+     "titles": 4
+    },
+    {
+     "name": "Resina Pla Based Uv",
+     "titles": 3
+    },
+    {
+     "name": "Filamento Hyper",
+     "titles": 3
+    },
+    {
+     "name": "3D Halot Sky 2022",
+     "titles": 3
+    },
+    {
+     "name": "Resina Standard Lcd Plus",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Taramps",
+   "aliases": [
+    "taramps"
+   ],
+   "titles": 45,
+   "models": [
+    {
+     "name": "Modulo",
+     "titles": 35
+    },
+    {
+     "name": "Modulo Digital",
+     "titles": 5
+    },
+    {
+     "name": "Modulo 400",
+     "titles": 4
+    },
+    {
+     "name": "Modulo Hd",
+     "titles": 4
+    },
+    {
+     "name": "Modulo Ds",
+     "titles": 4
+    },
+    {
+     "name": "Modulo Md",
+     "titles": 4
+    },
+    {
+     "name": "Modulo Ds 2 Ohms",
+     "titles": 3
+    },
+    {
+     "name": "Modulo Ts",
+     "titles": 3
+    },
+    {
+     "name": "Pro 2",
+     "titles": 3
+    },
+    {
+     "name": "Modulo Digital 2 Ohms",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Marshall",
+   "aliases": [
+    "marshall"
+   ],
+   "titles": 44,
+   "models": [
+    {
+     "name": "Major",
+     "titles": 4
+    },
+    {
+     "name": "Emberton",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Western Digital",
+   "aliases": [
+    "western digital"
+   ],
+   "titles": 44,
+   "models": [
+    {
+     "name": "Wd",
+     "titles": 23
+    },
+    {
+     "name": "Wd 2 5 3",
+     "titles": 5
+    },
+    {
+     "name": "Wd SN3000",
+     "titles": 4
+    },
+    {
+     "name": "Wd SN8100",
+     "titles": 4
+    },
+    {
+     "name": "SN350",
+     "titles": 4
+    },
+    {
+     "name": "SN350 Pci Exp",
+     "titles": 3
+    },
+    {
+     "name": "2 5",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Kodak",
+   "aliases": [
+    "kodak"
+   ],
+   "titles": 43,
+   "models": [
+    {
+     "name": "Pixpro WPZ2",
+     "titles": 13
+    },
+    {
+     "name": "Compacta",
+     "titles": 8
+    },
+    {
+     "name": "Filme",
+     "titles": 6
+    },
+    {
+     "name": "Filme M35 Lente",
+     "titles": 4
+    },
+    {
+     "name": "Film Ultra",
+     "titles": 4
+    },
+    {
+     "name": "Digital Pixpro WPZ2",
+     "titles": 4
+    },
+    {
+     "name": "Pixpro WPZ2 Digital",
+     "titles": 4
+    },
+    {
+     "name": "Pixpro WPZ2 X2 Bat",
+     "titles": 3
+    },
+    {
+     "name": "Compacta Analogica",
+     "titles": 3
+    },
+    {
+     "name": "Digital Pixpro WPZ2 4X",
+     "titles": 3
+    },
+    {
+     "name": "Film Ultra F8",
+     "titles": 3
+    },
+    {
+     "name": "Compacta Ultra Series",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "GameSir",
+   "aliases": [
+    "gamesir"
+   ],
+   "titles": 42,
+   "models": [
+    {
+     "name": "G7 Se",
+     "titles": 12
+    },
+    {
+     "name": "T7",
+     "titles": 6
+    },
+    {
+     "name": "G7 Se Xbox Series",
+     "titles": 6
+    },
+    {
+     "name": "G7 Se Wired Xbox",
+     "titles": 5
+    },
+    {
+     "name": "Kaleid",
+     "titles": 4
+    },
+    {
+     "name": "Lite Nintendo Switch",
+     "titles": 3
+    },
+    {
+     "name": "T7 Xbox",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Behringer",
+   "aliases": [
+    "behringer"
+   ],
+   "titles": 41,
+   "models": [
+    {
+     "name": "Powerplay",
+     "titles": 5
+    },
+    {
+     "name": "Pedal",
+     "titles": 4
+    },
+    {
+     "name": "Digital",
+     "titles": 4
+    },
+    {
+     "name": "Powerplay HA8000",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Huawei",
+   "aliases": [
+    "huawei"
+   ],
+   "titles": 41,
+   "models": [
+    {
+     "name": "Freebuds",
+     "titles": 17
+    },
+    {
+     "name": "Freeclip",
+     "titles": 12
+    },
+    {
+     "name": "Freeclip 2",
+     "titles": 9
+    },
+    {
+     "name": "Freebuds Pro 4",
+     "titles": 6
+    },
+    {
+     "name": "Freebuds 6",
+     "titles": 5
+    },
+    {
+     "name": "Freeclip 2 T0027",
+     "titles": 4
+    },
+    {
+     "name": "Freearc",
+     "titles": 4
+    },
+    {
+     "name": "Freebuds Se",
+     "titles": 4
+    }
+   ]
+  },
+  {
+   "name": "JVC",
+   "aliases": [
+    "jvc"
+   ],
+   "titles": 41,
+   "models": [
+    {
+     "name": "Tv",
+     "titles": 13
+    },
+    {
+     "name": "Lt",
+     "titles": 5
+    },
+    {
+     "name": "Tv Smart Lt",
+     "titles": 5
+    },
+    {
+     "name": "Tv 32",
+     "titles": 4
+    },
+    {
+     "name": "Boombox Xs",
+     "titles": 4
+    },
+    {
+     "name": "Xs",
+     "titles": 3
+    },
+    {
+     "name": "Tv Smart Lt 40",
+     "titles": 3
+    },
+    {
+     "name": "Tv 32 Smart Hd",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Nintendo",
+   "aliases": [
+    "nintendo"
+   ],
+   "titles": 40,
+   "models": [
+    {
+     "name": "Switch",
+     "titles": 20
+    },
+    {
+     "name": "Boneco Amiibo",
+     "titles": 8
+    },
+    {
+     "name": "Switch 2",
+     "titles": 7
+    },
+    {
+     "name": "Switch Joy",
+     "titles": 5
+    },
+    {
+     "name": "Amiibo",
+     "titles": 4
+    },
+    {
+     "name": "Switch Oled",
+     "titles": 4
+    },
+    {
+     "name": "Switch 2 Choose Your",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Aiwa",
+   "aliases": [
+    "aiwa"
+   ],
+   "titles": 39,
+   "models": [
+    {
+     "name": "Radio",
+     "titles": 6
+    },
+    {
+     "name": "Qled",
+     "titles": 4
+    },
+    {
+     "name": "Radio Fm",
+     "titles": 3
+    },
+    {
+     "name": "Aws 01",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Yookie",
+   "aliases": [
+    "yookie"
+   ],
+   "titles": 38,
+   "models": [
+    {
+     "name": "ES45",
+     "titles": 4
+    },
+    {
+     "name": "Filtro Energia",
+     "titles": 3
+    },
+    {
+     "name": "YE13",
+     "titles": 3
+    },
+    {
+     "name": "YM07",
+     "titles": 3
+    },
+    {
+     "name": "KI35Y 3 0",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "3nStar",
+   "aliases": [
+    "3nstar"
+   ],
+   "titles": 37,
+   "models": [
+    {
+     "name": "Termica",
+     "titles": 15
+    },
+    {
+     "name": "Codigo Barras",
+     "titles": 13
+    },
+    {
+     "name": "Termica Direta Recibos",
+     "titles": 6
+    },
+    {
+     "name": "Cod",
+     "titles": 4
+    },
+    {
+     "name": "Termica Etiquetas",
+     "titles": 3
+    },
+    {
+     "name": "Cod Barras Pos",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Biostar",
+   "aliases": [
+    "biostar"
+   ],
+   "titles": 37,
+   "models": [
+    {
+     "name": "Extreme Geforce",
+     "titles": 5
+    },
+    {
+     "name": "H610MH",
+     "titles": 3
+    },
+    {
+     "name": "Amd Radeon Rx",
+     "titles": 3
+    },
+    {
+     "name": "Extreme Geforce GDDR6",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Boya",
+   "aliases": [
+    "boya"
+   ],
+   "titles": 36,
+   "models": [
+    {
+     "name": "By",
+     "titles": 11
+    },
+    {
+     "name": "Magic",
+     "titles": 7
+    },
+    {
+     "name": "Boyamic",
+     "titles": 5
+    },
+    {
+     "name": "Boyalink",
+     "titles": 4
+    },
+    {
+     "name": "By V4D Lightning",
+     "titles": 3
+    },
+    {
+     "name": "Boyalink 3 01 Lightning",
+     "titles": 3
+    },
+    {
+     "name": "Magic 02",
+     "titles": 3
+    },
+    {
+     "name": "Omic Lightning",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "GoLine",
+   "aliases": [
+    "goline"
+   ],
+   "titles": 34,
+   "models": [
+    {
+     "name": "Gl",
+     "titles": 6
+    },
+    {
+     "name": "GLTV50",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Cooler Master",
+   "aliases": [
+    "cooler master"
+   ],
+   "titles": 33,
+   "models": [
+    {
+     "name": "Cpu",
+     "titles": 9
+    },
+    {
+     "name": "Masterbox",
+     "titles": 7
+    },
+    {
+     "name": "Cpu Masterliquid",
+     "titles": 4
+    },
+    {
+     "name": "Masterfan MF120",
+     "titles": 4
+    },
+    {
+     "name": "Cpu Masterliquid ML240",
+     "titles": 3
+    },
+    {
+     "name": "Masterbox NR200P",
+     "titles": 3
+    },
+    {
+     "name": "Haf 700 Evo",
+     "titles": 3
+    },
+    {
+     "name": "MM730",
+     "titles": 3
+    },
+    {
+     "name": "Masterfan MF120 Halo",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Kemei",
+   "aliases": [
+    "kemei"
+   ],
+   "titles": 33,
+   "models": [
+    {
+     "name": "Maquina",
+     "titles": 12
+    },
+    {
+     "name": "Aparelho Shaver Km 2024",
+     "titles": 5
+    },
+    {
+     "name": "Maquina Corte",
+     "titles": 4
+    },
+    {
+     "name": "Lamina",
+     "titles": 4
+    },
+    {
+     "name": "Km",
+     "titles": 3
+    },
+    {
+     "name": "Maquina Barbear",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "X-Tech",
+   "aliases": [
+    "x tech"
+   ],
+   "titles": 31,
+   "models": [
+    {
+     "name": "Xt",
+     "titles": 22
+    },
+    {
+     "name": "Xt SB554",
+     "titles": 3
+    },
+    {
+     "name": "Vapor Xt EL1002",
+     "titles": 3
+    },
+    {
+     "name": "Xt BT192",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Realme",
+   "aliases": [
+    "realme"
+   ],
+   "titles": 30,
+   "models": [
+    {
+     "name": "Buds",
+     "titles": 24
+    },
+    {
+     "name": "Buds Clip",
+     "titles": 8
+    },
+    {
+     "name": "Buds Air 8",
+     "titles": 8
+    },
+    {
+     "name": "Buds T500 Pro",
+     "titles": 6
+    },
+    {
+     "name": "Buds Air 8 Pro",
+     "titles": 4
+    },
+    {
+     "name": "Techlife Buds",
+     "titles": 4
+    }
+   ]
+  },
+  {
+   "name": "TEC",
+   "aliases": [
+    "tec"
+   ],
+   "titles": 29,
+   "models": [
+    {
+     "name": "Mtek Kb",
+     "titles": 7
+    },
+    {
+     "name": "Wire",
+     "titles": 6
+    },
+    {
+     "name": "Wire Logitech",
+     "titles": 4
+    },
+    {
+     "name": "Logitech",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "BLG",
+   "aliases": [
+    "blg"
+   ],
+   "titles": 28,
+   "models": [
+    {
+     "name": "Ativa",
+     "titles": 6
+    },
+    {
+     "name": "Fio",
+     "titles": 5
+    },
+    {
+     "name": "Duplo Uhf",
+     "titles": 4
+    }
+   ]
+  },
+  {
+   "name": "Hinor",
+   "aliases": [
+    "hinor"
+   ],
+   "titles": 28,
+   "models": [
+    {
+     "name": "New City",
+     "titles": 8
+    },
+    {
+     "name": "Super",
+     "titles": 6
+    },
+    {
+     "name": "Super Tweeter",
+     "titles": 4
+    },
+    {
+     "name": "Corneta Curta Musicall Boca",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Magnavox",
+   "aliases": [
+    "magnavox"
+   ],
+   "titles": 28,
+   "models": [
+    {
+     "name": "Mo",
+     "titles": 24
+    },
+    {
+     "name": "Mo Aux",
+     "titles": 4
+    },
+    {
+     "name": "Mo Espanhol",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Hartke",
+   "aliases": [
+    "hartke"
+   ],
+   "titles": 27,
+   "models": [
+    {
+     "name": "Cabecote",
+     "titles": 4
+    },
+    {
+     "name": "Contrabaixo",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Acer",
+   "aliases": [
+    "acer"
+   ],
+   "titles": 26,
+   "models": [
+    {
+     "name": "Nitro",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Coby",
+   "aliases": [
+    "coby"
+   ],
+   "titles": 26,
+   "models": [
+    {
+     "name": "CY3344",
+     "titles": 8
+    },
+    {
+     "name": "CY3360",
+     "titles": 5
+    },
+    {
+     "name": "CY3344 6 5IN",
+     "titles": 4
+    },
+    {
+     "name": "CY3344 4X2IN",
+     "titles": 4
+    },
+    {
+     "name": "CY3344 6 5IN Cl",
+     "titles": 3
+    },
+    {
+     "name": "CY3344 4X2IN Ov",
+     "titles": 3
+    },
+    {
+     "name": "CY3370",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Nokia",
+   "aliases": [
+    "nokia"
+   ],
+   "titles": 26,
+   "models": [
+    {
+     "name": "3210 4G Ta 1618",
+     "titles": 5
+    },
+    {
+     "name": "8210 4G Ta 1485",
+     "titles": 3
+    },
+    {
+     "name": "5310 4G Ta 1212",
+     "titles": 3
+    },
+    {
+     "name": "Flip 2660 Ta 1474",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Blu",
+   "aliases": [
+    "blu"
+   ],
+   "titles": 25,
+   "models": [
+    {
+     "name": "Z4 Music",
+     "titles": 7
+    },
+    {
+     "name": "Z4 Music Z253 1",
+     "titles": 5
+    },
+    {
+     "name": "Z5",
+     "titles": 4
+    },
+    {
+     "name": "Tank Ii",
+     "titles": 3
+    },
+    {
+     "name": "Z5 Z214",
+     "titles": 3
+    },
+    {
+     "name": "Joy",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Roland",
+   "aliases": [
+    "roland"
+   ],
+   "titles": 25,
+   "models": [
+    {
+     "name": "Sintetizador",
+     "titles": 8
+    },
+    {
+     "name": "Sintetizador Xps",
+     "titles": 4
+    },
+    {
+     "name": "Sintetizador Xps 30",
+     "titles": 3
+    },
+    {
+     "name": "Xps",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "XO",
+   "aliases": [
+    "xo"
+   ],
+   "titles": 25,
+   "models": [
+    {
+     "name": "Umidificador",
+     "titles": 6
+    },
+    {
+     "name": "Kb",
+     "titles": 6
+    },
+    {
+     "name": "Maleta CB01",
+     "titles": 3
+    },
+    {
+     "name": "Umidificador Difusor",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Elegoo",
+   "aliases": [
+    "elegoo"
+   ],
+   "titles": 24,
+   "models": [
+    {
+     "name": "Filamento",
+     "titles": 15
+    },
+    {
+     "name": "Resina 3D",
+     "titles": 9
+    },
+    {
+     "name": "Filamento 3D",
+     "titles": 8
+    },
+    {
+     "name": "Filamento 3D Petg",
+     "titles": 5
+    },
+    {
+     "name": "Resina 3D Standard",
+     "titles": 5
+    },
+    {
+     "name": "Resina 3D Abs Like",
+     "titles": 4
+    },
+    {
+     "name": "Filamento 3D Petg Pro",
+     "titles": 3
+    },
+    {
+     "name": "Filamento Petg",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "APS",
+   "aliases": [
+    "aps"
+   ],
+   "titles": 23,
+   "models": [
+    {
+     "name": "Ups",
+     "titles": 19
+    },
+    {
+     "name": "Ups Power",
+     "titles": 9
+    },
+    {
+     "name": "Lente",
+     "titles": 9
+    },
+    {
+     "name": "Lente Viltrox",
+     "titles": 5
+    },
+    {
+     "name": "Power",
+     "titles": 4
+    },
+    {
+     "name": "Ups Power Vista",
+     "titles": 3
+    },
+    {
+     "name": "Lente Samyang",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Marvo",
+   "aliases": [
+    "marvo"
+   ],
+   "titles": 23,
+   "models": [
+    {
+     "name": "Scorpion",
+     "titles": 14
+    }
+   ]
+  },
+  {
+   "name": "Adata",
+   "aliases": [
+    "adata"
+   ],
+   "titles": 22,
+   "models": [
+    {
+     "name": "Xpg",
+     "titles": 11
+    },
+    {
+     "name": "DDR4 Sgn",
+     "titles": 6
+    },
+    {
+     "name": "Xpg Gammix",
+     "titles": 6
+    },
+    {
+     "name": "DDR5",
+     "titles": 4
+    }
+   ]
+  },
+  {
+   "name": "HTC",
+   "aliases": [
+    "htc"
+   ],
+   "titles": 22,
+   "models": [
+    {
+     "name": "At",
+     "titles": 12
+    },
+    {
+     "name": "Maquina Corte",
+     "titles": 5
+    },
+    {
+     "name": "Maquina Corte At",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Macrovip",
+   "aliases": [
+    "macrovip"
+   ],
+   "titles": 22,
+   "models": [
+    {
+     "name": "DDR4",
+     "titles": 10
+    },
+    {
+     "name": "Mv",
+     "titles": 10
+    },
+    {
+     "name": "DDR4 8",
+     "titles": 6
+    }
+   ]
+  },
+  {
+   "name": "Thermalright",
+   "aliases": [
+    "thermalright"
+   ],
+   "titles": 22,
+   "models": [
+    {
+     "name": "Cpu",
+     "titles": 5
+    },
+    {
+     "name": "Water",
+     "titles": 5
+    },
+    {
+     "name": "Phantom Spirit 120",
+     "titles": 3
+    },
+    {
+     "name": "Tl",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Blade",
+   "aliases": [
+    "blade"
+   ],
+   "titles": 21,
+   "models": [
+    {
+     "name": "Navalha Seguranca",
+     "titles": 6
+    },
+    {
+     "name": "Navalha Seguranca Vikings",
+     "titles": 4
+    }
+   ]
+  },
+  {
+   "name": "Microsoft",
+   "aliases": [
+    "microsoft"
+   ],
+   "titles": 21,
+   "models": [
+    {
+     "name": "Xbox",
+     "titles": 5
+    }
+   ]
+  },
+  {
+   "name": "Seagate",
+   "aliases": [
+    "seagate"
+   ],
+   "titles": 21,
+   "models": [
+    {
+     "name": "2 5",
+     "titles": 9
+    },
+    {
+     "name": "Expansion",
+     "titles": 5
+    },
+    {
+     "name": "2 5 3 0",
+     "titles": 5
+    },
+    {
+     "name": "2 5 Drive 3",
+     "titles": 4
+    },
+    {
+     "name": "Hard Disk Expansion 2",
+     "titles": 3
+    },
+    {
+     "name": "Expansion 2 5 3",
+     "titles": 3
+    },
+    {
+     "name": "3 0 2 5",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Toshiba",
+   "aliases": [
+    "toshiba"
+   ],
+   "titles": 21,
+   "models": [
+    {
+     "name": "Canvio",
+     "titles": 14
+    },
+    {
+     "name": "Canvio Advance",
+     "titles": 6
+    },
+    {
+     "name": "Canvio 2 5 3",
+     "titles": 4
+    },
+    {
+     "name": "Canvio Advance 2 5",
+     "titles": 4
+    },
+    {
+     "name": "Canvio Ready 2 5",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Tronsmart",
+   "aliases": [
+    "tronsmart"
+   ],
+   "titles": 21,
+   "models": [
+    {
+     "name": "Mirtune",
+     "titles": 9
+    },
+    {
+     "name": "Mirtune C3",
+     "titles": 5
+    },
+    {
+     "name": "Bang",
+     "titles": 4
+    },
+    {
+     "name": "Halo 200",
+     "titles": 4
+    },
+    {
+     "name": "Mirtune H1",
+     "titles": 4
+    }
+   ]
+  },
+  {
+   "name": "Bambu Lab",
+   "aliases": [
+    "bambu lab"
+   ],
+   "titles": 20,
+   "models": [
+    {
+     "name": "3D",
+     "titles": 20
+    },
+    {
+     "name": "3D A1",
+     "titles": 14
+    },
+    {
+     "name": "3D A1 Mini",
+     "titles": 6
+    },
+    {
+     "name": "3D A1 PF002",
+     "titles": 4
+    },
+    {
+     "name": "3D PF002",
+     "titles": 3
+    },
+    {
+     "name": "3D A1 PF002 SA005",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Fujifilm",
+   "aliases": [
+    "fujifilm"
+   ],
+   "titles": 20,
+   "models": [
+    {
+     "name": "Instantanea Instax Mini",
+     "titles": 17
+    },
+    {
+     "name": "Instantanea Instax Mini 13",
+     "titles": 10
+    },
+    {
+     "name": "Instantanea Instax Mini 12",
+     "titles": 6
+    }
+   ]
+  },
+  {
+   "name": "JOY",
+   "aliases": [
+    "joy"
+   ],
+   "titles": 20,
+   "models": [
+    {
+     "name": "Nintendo Switch",
+     "titles": 12
+    }
+   ]
+  },
+  {
+   "name": "4life",
+   "aliases": [
+    "4life"
+   ],
+   "titles": 19,
+   "models": []
+  },
+  {
+   "name": "Hyte",
+   "aliases": [
+    "hyte"
+   ],
+   "titles": 19,
+   "models": [
+    {
+     "name": "Y70",
+     "titles": 14
+    },
+    {
+     "name": "Y70 Touch Infinite",
+     "titles": 6
+    },
+    {
+     "name": "Y70 Cs",
+     "titles": 6
+    },
+    {
+     "name": "X50",
+     "titles": 4
+    },
+    {
+     "name": "X50 Cs X50G",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Afox",
+   "aliases": [
+    "afox"
+   ],
+   "titles": 18,
+   "models": [
+    {
+     "name": "A68",
+     "titles": 5
+    },
+    {
+     "name": "A68 MA5",
+     "titles": 3
+    },
+    {
+     "name": "Radeon",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Azza",
+   "aliases": [
+    "azza"
+   ],
+   "titles": 18,
+   "models": [
+    {
+     "name": "Psaz",
+     "titles": 8
+    },
+    {
+     "name": "80 Plus",
+     "titles": 5
+    },
+    {
+     "name": "80 Plus Psaz",
+     "titles": 3
+    },
+    {
+     "name": "Psaz 80 Plus Bronze",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Dell",
+   "aliases": [
+    "dell"
+   ],
+   "titles": 18,
+   "models": []
+  },
+  {
+   "name": "Kolke",
+   "aliases": [
+    "kolke"
+   ],
+   "titles": 18,
+   "models": [
+    {
+     "name": "Kga",
+     "titles": 3
+    },
+    {
+     "name": "Kvv 783",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Harman/Kardon",
+   "aliases": [
+    "harman kardon"
+   ],
+   "titles": 17,
+   "models": [
+    {
+     "name": "Luna",
+     "titles": 8
+    },
+    {
+     "name": "Aura Studio",
+     "titles": 4
+    },
+    {
+     "name": "Soundsticks 4",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Multilaser",
+   "aliases": [
+    "multilaser"
+   ],
+   "titles": 17,
+   "models": []
+  },
+  {
+   "name": "Audio-Technica",
+   "aliases": [
+    "audio technica"
+   ],
+   "titles": 16,
+   "models": [
+    {
+     "name": "Ath",
+     "titles": 8
+    },
+    {
+     "name": "AT2020",
+     "titles": 5
+    },
+    {
+     "name": "Ath M40X",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Audisat",
+   "aliases": [
+    "audisat"
+   ],
+   "titles": 16,
+   "models": [
+    {
+     "name": "Qled",
+     "titles": 3
+    },
+    {
+     "name": "X80 Plus Micro Sd",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Shokz",
+   "aliases": [
+    "shokz"
+   ],
+   "titles": 16,
+   "models": [
+    {
+     "name": "Conducao Ossea",
+     "titles": 8
+    },
+    {
+     "name": "Conducao Ossea Openrun",
+     "titles": 6
+    },
+    {
+     "name": "Openfit",
+     "titles": 5
+    },
+    {
+     "name": "Conducao Ossea Openrun Pro",
+     "titles": 4
+    },
+    {
+     "name": "Openfit 2 T920",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Blackview",
+   "aliases": [
+    "blackview"
+   ],
+   "titles": 15,
+   "models": [
+    {
+     "name": "Airbuds",
+     "titles": 13
+    },
+    {
+     "name": "Airbuds 12",
+     "titles": 4
+    }
+   ]
+  },
+  {
+   "name": "Honor",
+   "aliases": [
+    "honor"
+   ],
+   "titles": 15,
+   "models": [
+    {
+     "name": "Choice",
+     "titles": 10
+    },
+    {
+     "name": "Choice Mini",
+     "titles": 5
+    },
+    {
+     "name": "Choice Pro",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Ipro",
+   "aliases": [
+    "ipro"
+   ],
+   "titles": 15,
+   "models": [
+    {
+     "name": "F188",
+     "titles": 4
+    },
+    {
+     "name": "F183",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Klip Xtreme",
+   "aliases": [
+    "klip xtreme"
+   ],
+   "titles": 15,
+   "models": []
+  },
+  {
+   "name": "Xion",
+   "aliases": [
+    "xion"
+   ],
+   "titles": 15,
+   "models": [
+    {
+     "name": "Xi",
+     "titles": 10
+    }
+   ]
+  },
+  {
+   "name": "Elg",
+   "aliases": [
+    "elg"
+   ],
+   "titles": 14,
+   "models": []
+  },
+  {
+   "name": "Patriot",
+   "aliases": [
+    "patriot"
+   ],
+   "titles": 14,
+   "models": [
+    {
+     "name": "Viper",
+     "titles": 4
+    },
+    {
+     "name": "P220 2 5 3",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Play Game",
+   "aliases": [
+    "play game"
+   ],
+   "titles": 14,
+   "models": [
+    {
+     "name": "Dualshock",
+     "titles": 13
+    },
+    {
+     "name": "Dualshock 3",
+     "titles": 7
+    },
+    {
+     "name": "Dualshock PS3",
+     "titles": 6
+    },
+    {
+     "name": "Dualshock 3 PS3",
+     "titles": 5
+    }
+   ]
+  },
+  {
+   "name": "PowerA",
+   "aliases": [
+    "powera"
+   ],
+   "titles": 14,
+   "models": [
+    {
+     "name": "Enhanced Wired",
+     "titles": 5
+    },
+    {
+     "name": "Advantage Wired",
+     "titles": 3
+    },
+    {
+     "name": "Nintendo Switch",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Roadstar",
+   "aliases": [
+    "roadstar"
+   ],
+   "titles": 14,
+   "models": [
+    {
+     "name": "Rs",
+     "titles": 3
+    },
+    {
+     "name": "Modulo",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "BAK",
+   "aliases": [
+    "bak"
+   ],
+   "titles": 13,
+   "models": [
+    {
+     "name": "Bk",
+     "titles": 7
+    }
+   ]
+  },
+  {
+   "name": "Forza",
+   "aliases": [
+    "forza"
+   ],
+   "titles": 13,
+   "models": [
+    {
+     "name": "Ups",
+     "titles": 8
+    },
+    {
+     "name": "Nanlite",
+     "titles": 3
+    },
+    {
+     "name": "Nt",
+     "titles": 3
+    },
+    {
+     "name": "Ups Nt",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Soundpeats",
+   "aliases": [
+    "soundpeats"
+   ],
+   "titles": 13,
+   "models": [
+    {
+     "name": "Pearlclip Pro",
+     "titles": 6
+    },
+    {
+     "name": "Pearlclip Pro 5 4",
+     "titles": 3
+    },
+    {
+     "name": "Clear",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "AOC",
+   "aliases": [
+    "aoc"
+   ],
+   "titles": 12,
+   "models": []
+  },
+  {
+   "name": "Gamemax",
+   "aliases": [
+    "gamemax"
+   ],
+   "titles": 12,
+   "models": [
+    {
+     "name": "Iceberg",
+     "titles": 5
+    }
+   ]
+  },
+  {
+   "name": "Phantom",
+   "aliases": [
+    "phantom"
+   ],
+   "titles": 12,
+   "models": [
+    {
+     "name": "27 Full Hd Ips",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "uleFone",
+   "aliases": [
+    "ulefone"
+   ],
+   "titles": 12,
+   "models": [
+    {
+     "name": "Armor",
+     "titles": 12
+    },
+    {
+     "name": "Armor 28 Ultra",
+     "titles": 7
+    },
+    {
+     "name": "Armor 28 Ultra Thermal",
+     "titles": 4
+    },
+    {
+     "name": "Armor 28 Ultra 5G",
+     "titles": 3
+    },
+    {
+     "name": "Armor Pad",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Arktek",
+   "aliases": [
+    "arktek"
+   ],
+   "titles": 11,
+   "models": [
+    {
+     "name": "Ak",
+     "titles": 5
+    },
+    {
+     "name": "Cyclops",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Blulory",
+   "aliases": [
+    "blulory"
+   ],
+   "titles": 11,
+   "models": [
+    {
+     "name": "Bs",
+     "titles": 4
+    },
+    {
+     "name": "T6 Max",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Mercusys",
+   "aliases": [
+    "mercusys"
+   ],
+   "titles": 11,
+   "models": [
+    {
+     "name": "Sinal",
+     "titles": 3
+    },
+    {
+     "name": "MW301R",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Mibro",
+   "aliases": [
+    "mibro"
+   ],
+   "titles": 11,
+   "models": [
+    {
+     "name": "Open Ear",
+     "titles": 4
+    },
+    {
+     "name": "One Anc",
+     "titles": 3
+    },
+    {
+     "name": "Open Ear Pro",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Rapoo",
+   "aliases": [
+    "rapoo"
+   ],
+   "titles": 11,
+   "models": [
+    {
+     "name": "V25S",
+     "titles": 3
+    },
+    {
+     "name": "M100 Silent 2",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Satechi",
+   "aliases": [
+    "satechi"
+   ],
+   "titles": 11,
+   "models": [
+    {
+     "name": "M1 St",
+     "titles": 5
+    },
+    {
+     "name": "Chaveiro",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "T-Dagger",
+   "aliases": [
+    "t dagger"
+   ],
+   "titles": 11,
+   "models": []
+  },
+  {
+   "name": "Attack Shark",
+   "aliases": [
+    "attack shark"
+   ],
+   "titles": 10,
+   "models": [
+    {
+     "name": "G3 Pro Switch Omron",
+     "titles": 3
+    }
+   ]
+  },
+  {
+   "name": "Denon",
+   "aliases": [
+    "denon"
+   ],
+   "titles": 10,
+   "models": [
+    {
+     "name": "Avr",
+     "titles": 8
+    }
+   ]
+  },
+  {
+   "name": "HiLook",
+   "aliases": [
+    "hilook"
+   ],
+   "titles": 10,
+   "models": [
+    {
+     "name": "Seguranca",
+     "titles": 4
+    }
+   ]
+  },
+  {
+   "name": "Siera",
+   "aliases": [
+    "siera"
+   ],
+   "titles": 10,
+   "models": [
+    {
+     "name": "Interactiva",
+     "titles": 3
+    },
+    {
+     "name": "UPS650",
+     "titles": 3
+    }
+   ]
+  }
+ ]
+}

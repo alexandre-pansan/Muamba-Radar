@@ -9,7 +9,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from app.schemas import OfferModel, PriceModel
-from app.services.matcher import _is_perfume_offer, _extract_perfume_concentration
+from app.services.matcher import _is_perfume_offer, _extract_perfume_concentration, group_offers
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -74,8 +74,24 @@ class TestExtractPerfumeConcentration:
     def test_body_oil(self) -> None:
         assert _extract_perfume_concentration("Oleo Corporal Sol de Janeiro 200ml") == "Body Oil"
 
-    def test_body_mist(self) -> None:
-        assert _extract_perfume_concentration("Jasmine Body Mist 250ml") == "Body Mist"
+    @pytest.mark.parametrize("title", [
+        "Jasmine Body Mist 250ml",
+        "Victoria's Secret Splash Love Spell 250ml",
+        "Body Mist Feminino Victoria's Secret Amber Romance Brume Parfumée 250ML",
+        "Colônia Corporal Victoria's Secret Pure Seduction 250ML",
+    ])
+    def test_body_mist_splash_brume_are_body_splash(self, title: str) -> None:
+        # Body Mist, Splash, Brume e Colônia Corporal são o mesmo produto
+        assert _extract_perfume_concentration(title) == "Body Splash"
+
+    @pytest.mark.parametrize("title", [
+        "Loção Corporal Victoria's Secret Pure Seduction 236ML",
+        "Locion Corporal Victoria S Secret Cactus 236ml",
+        "Creme Hidratante Victoria's Secret Bare Vanilla 236ml",
+        "Victoria's Secret Fragrance Lotion Love Spell 236ml",
+    ])
+    def test_lotion_synonyms_are_body_lotion(self, title: str) -> None:
+        assert _extract_perfume_concentration(title) == "Body Lotion"
 
     def test_body_lotion(self) -> None:
         assert _extract_perfume_concentration("Vanilla Body Lotion 250ml") == "Body Lotion"
@@ -88,3 +104,42 @@ class TestExtractPerfumeConcentration:
 
     def test_none_when_unrecognized(self) -> None:
         assert _extract_perfume_concentration("Perfume Generico 100ml") is None
+
+
+# ── Body splash / lotion grouping ─────────────────────────────────────────────
+
+class TestBodyFormatGrouping:
+    def test_splash_without_body_word_is_perfume(self) -> None:
+        assert _is_perfume_offer(_make_offer("Victoria S Secret Splash Love Spell 250ml"))
+
+    def test_splash_without_ml_is_not_perfume(self) -> None:
+        assert not _is_perfume_offer(_make_offer("Caixa de Som JBL Splash Proof"))
+
+    def test_html_entity_and_synonyms_land_in_one_group(self) -> None:
+        titles = [
+            "Victoria&#8217;s Secret Splash Pure Seduction 250ML",
+            "Body Mist Feminino Victoria's Secret Pure Seduction 250ML",
+            "Colônia Corporal Victoria´s Secret Pure Seduction 250ML",
+            "Body Splash Victoria's Secret Pure Seduction - 250ML",
+        ]
+        groups, _ = group_offers("victoria secret", [_make_offer(t) for t in titles])
+        assert len(groups) == 1
+        assert groups[0][5] == "Body Splash"
+
+    def test_brand_query_splits_by_product_name(self) -> None:
+        # Fora da LUT: buscar só a marca não pode juntar fragrâncias diferentes
+        titles = [
+            "Body Splash Victoria's Secret Electric Mango 250ML",
+            "Victoria Secret Body Splash 250ML Electric Mango",
+            "Body Splash Victoria's Secret Wild Neroli 250ML",
+        ]
+        groups, _ = group_offers("victoria secret", [_make_offer(t) for t in titles])
+        assert sorted(len(g[4]) for g in groups) == [1, 2]
+
+    def test_lotion_236_and_250_same_group(self) -> None:
+        titles = [
+            "Loção Corporal Victoria's Secret Love Spell 236ML",
+            "Victoria's Secret Body Lotion Love Spell 250ML",
+        ]
+        groups, _ = group_offers("victoria secret", [_make_offer(t) for t in titles])
+        assert len(groups) == 1

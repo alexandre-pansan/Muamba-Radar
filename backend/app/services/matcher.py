@@ -5,6 +5,8 @@ import re
 from app.schemas import OfferModel
 from app.services.normalization import expand_gaming_aliases, normalize_text, slugify
 from app.services.product_lut import lookup as lut_lookup, lookup_perfume as lut_perfume
+from app.services.perfume_catalog import identify as identify_perfume, match_perfume as catalog_perfume
+from app.services.product_catalog import match_product as catalog_product
 
 # Gaming brands — brand+model shortcut is unreliable for these; let specific patterns handle them
 _GAMING_BRANDS = frozenset({"sony", "microsoft", "nintendo", "valve", "sega"})
@@ -172,17 +174,30 @@ def _extract_voltage(title: str) -> str | None:
     return None
 
 
+# Formatos de corpo: nomes diferentes pro mesmo produto. Body Mist, Splash, Brume e
+# Colônia Corporal são todos o spray corporal de 250ml — um grupo só ("Body Splash").
+# Loção/creme/hidratante corporal idem ("Body Lotion").
+_BODY_OIL_RE = re.compile(r"\boleo\s+corporal\b|\boleo\s+concentrado\b|\bbody\s+oil\b|oil\s+concentrat")
+_BODY_LOTION_RE = re.compile(
+    r"\bbody\s+(lotion|cream|butter)\b|\bfragrance\s+lotion\b"
+    r"|\blotion\b|\blocao\b|\blocion\s+(corporal|hidratante)\b|\bcrema\s+corporal\b"
+    r"|\bcreme\s+(corporal|hidratante|para\s+o\s+corpo)\b|\bhidratante\s+corporal\b"
+)
+_BODY_SPLASH_RE = re.compile(
+    r"\bbody\s+(splash|mist|spray)\b|\bsplash\b|\bbrume\b|\bbruma\b|\bfragrance\s+mist\b"
+    r"|\bmist\s+corporal\b|\bcolonia\s+(corporal|body)\b"
+)
+
+
 def _extract_perfume_concentration(title: str) -> str | None:
     text = normalize_text(title)
     # Body/skincare formats — check before parfum keywords
-    if re.search(r"\boleo\s+corporal\b|\boleo\s+concentrado\b|oil\s+concentrat", text):
+    if _BODY_OIL_RE.search(text):
         return "Body Oil"
-    if re.search(r"\bbody\s+splash\b|\bsplash\s+corporal\b", text):
-        return "Body Splash"
-    if re.search(r"\bbody\s+mist\b", text):
-        return "Body Mist"
-    if re.search(r"\bbody\s+lotion\b|\blocao\s+corporal\b", text):
+    if _BODY_LOTION_RE.search(text):
         return "Body Lotion"
+    if _BODY_SPLASH_RE.search(text):
+        return "Body Splash"
     # Check most-specific multi-word phrases first
     if "extrait de parfum" in text or re.search(r"\bextrait\b", text):
         return "Extrait"
@@ -226,16 +241,42 @@ def extract_specs(title: str) -> dict[str, str]:
 
 def _is_perfume_offer(offer: OfferModel) -> bool:
     text = normalize_text(offer.title)
-    return any(hint in text for hint in PERFUME_HINTS)
+    if any(hint in text for hint in PERFUME_HINTS):
+        return True
+    # "Victoria's Secret Splash Love Spell 250ml", "Colônia Corporal ...", fragrância
+    # conhecida da LUT: só com volume em ml, pra "splash" de outra coisa não entrar.
+    has_ml = bool(re.search(r"\b\d{2,4}\s?ml\b", text))
+    lut = lut_perfume(text) is not None or (has_ml and catalog_perfume(offer.title) is not None)
+    body_format = bool(
+        _BODY_SPLASH_RE.search(text) or _BODY_LOTION_RE.search(text) or re.search(r"\b(colonia|locion)\b", text)
+    )
+    return (body_format and (has_ml or lut)) or (lut and has_ml)
+
+
+# Palavras de formato/embalagem que não fazem parte do nome do perfume
+_BODY_FORMAT_WORDS_RE = re.compile(
+    r"\b(body|splash|mist|spray|brume|bruma|parfumee|lotion|locao|creme|cream|butter|hidratante"
+    r"|corporal|colonia|fragrance|oleo|oil|concentrado|locion|crema)\b"
+)
+_PERFUME_NOISE = frozenset({
+    "promo", "promocao", "oferta", "original", "importado", "kit", "frasco", "danificado",
+    "tester", "com", "sem", "caixa", "the", "and", "para", "corpo", "unisex",
+    "perf", "uni", "fem", "masc", "unissex",
+    "feminina", "masculina", "femenino", "femenina", "masculino", "mujer", "hombre", "new", "nova", "novo",
+})
+
+
+# Conectivos dentro de nomes ("Qaed Al Fursan", "Art Of Arabia") — não contam como palavra
+_NAME_CONNECTORS = frozenset({"al", "el", "of", "de", "da", "do", "la", "le", "me", "my", "in", "on", "by"})
 
 
 def _perfume_name_key(offer: OfferModel, query: str) -> str:
     text = normalize_text(offer.title)
 
-    # LUT first — gives stable key for known fragrances
-    lut = lut_perfume(text)
-    if lut:
-        return lut.key
+    # LUT curada + catálogo minerado (app/data/perfume_catalog.json) — chave estável
+    known = identify_perfume(offer.title)
+    if known and (known.fragrance or lut_perfume(text)):
+        return known.key
 
     # Fallback: strip volume/concentration markers then extract by query tokens
     text = re.sub(r"\b(\d{2,4})\s?ml\b", " ", text)
@@ -245,14 +286,38 @@ def _perfume_name_key(offer: OfferModel, query: str) -> str:
     text = re.sub(r"\beau de parfum\b|\beau de toilette\b|\beau de cologne\b", " ", text)
     text = re.sub(r"\bextrait de parfum\b|\bparfum de toilette\b", " ", text)
 
-    query_tokens = _perfume_query_tokens(query)
-    title_tokens = set(text.split())
-    from_query = [token for token in query_tokens if token in title_tokens]
-    if from_query:
-        return " ".join(from_query[:3])
+    text = re.sub(r"\bvictorias\b", "victoria s", text)  # "Victorias Secret" sem apóstrofo
+    text = _BODY_FORMAT_WORDS_RE.sub(" ", text)
+    tokens = [
+        t for t in text.split()
+        if t not in PERFUME_STOPWORDS and t not in _PERFUME_NOISE and len(t) > 1 and not t.isdigit()
+    ]
 
-    tokens = [token for token in text.split() if token not in PERFUME_STOPWORDS]
+    query_tokens = _perfume_query_tokens(query)
+    from_query = [token for token in query_tokens if token in tokens]
+    if from_query:
+        # Busca pela marca ("victoria secret"): o que sobra do título é o nome do produto
+        # (Amber Romance, Coconut Passion...). Sem isso, toda a marca virava um grupo só.
+        rest: list[str] = []
+        meaningful = 0
+        for t in (t for t in tokens if t not in from_query):
+            rest.append(t)
+            if t not in _NAME_CONNECTORS:  # "Art Of Arabia" ≠ "Art Of Universe"
+                meaningful += 1
+                if meaningful == 2:
+                    break
+        while rest and rest[-1] in _NAME_CONNECTORS:
+            rest.pop()
+        return " ".join(from_query[:3] + rest)
+
     return " ".join(tokens[:5]) if tokens else "perfume"
+
+
+_SPECIFIC_FAMILY_RE = re.compile(r"\b(iphone|playstation|xbox|nintendo\s+switch)\b")
+
+_CATEGORY_PREFIX_RE = re.compile(
+    r"^(?:protetor|bloqueador|filtro)\s+solar\s+"
+)
 
 
 def _base_model_key(offer: OfferModel) -> str:
@@ -294,6 +359,13 @@ def _base_model_key(offer: OfferModel) -> str:
             if has_jogo or has_named_bundle:
                 key = f"{key}_bundle"
         return key
+
+    # Catálogo minerado de eletrônicos (marca → modelos, app/data/product_catalog.json).
+    # iPhone e consoles seguem nos ramos específicos abaixo.
+    if not _SPECIFIC_FAMILY_RE.search(text):
+        product = catalog_product(offer.title)
+        if product:
+            return product.key
 
     # Detect critical variant suffixes present in the title (must never be merged)
     # Use a meaningful order (pro before max, etc.) rather than alphabetical
@@ -396,6 +468,9 @@ def _base_model_key(offer: OfferModel) -> str:
         suffix_str = " ".join(variants)
         return normalize_text(f"nintendo switch {suffix_str}".strip())
 
+    # Prefixo de categoria que uma loja põe e outra não ("Protetor Solar Celimax ..."
+    # vs "Celimax ...") — senão as 6 primeiras palavras nunca batem
+    text = _CATEGORY_PREFIX_RE.sub("", text)
     text = re.sub(r"\b\d{1,4}\s?(gb|tb)\b", " ", text)
     text = re.sub(r"\bram\b", " ", text)
     for token in COLOR_MAP:
@@ -419,6 +494,10 @@ def _canonical_name(base_model: str, storage: str | None, voltage: str | None, o
             name = lut_entry.display
         else:
             name = _gaming_display_name(base_model.replace("_", " "))
+    elif product := next(
+        (m for m in map(catalog_product, (o.title for o in offers)) if m and m.key == base_model), None
+    ):
+        name = f"{product.brand} {product.model}"
     else:
         brand_norm = (sample.brand or "").lower()
         if sample.brand and sample.model and brand_norm not in _GAMING_BRANDS:
@@ -434,10 +513,9 @@ def _canonical_name(base_model: str, storage: str | None, voltage: str | None, o
 
 def _canonical_perfume_name(name_key: str, concentration: str | None, volume_ml: str | None, offers: list[OfferModel]) -> str:
     # LUT gives authoritative "Brand Fragrance" display name
-    sample = min(offers, key=lambda o: len(o.title))
-    lut = lut_perfume(normalize_text(sample.title))
-    if lut:
-        base = f"{lut.brand} {lut.fragrance}"
+    known = next((m for m in map(identify_perfume, (o.title for o in offers)) if m and m.key == name_key), None)
+    if known:
+        base = f"{known.brand} {known.fragrance}" if known.fragrance else known.brand
     else:
         base = name_key.title()
 
@@ -471,6 +549,9 @@ def group_offers(
                 if lut_entry and lut_entry.concentration:
                     concentration = lut_entry.concentration
             volume_ml = _extract_volume_ml(offer.title)
+            # Mesmo frasco anunciado como 236ml (8 fl oz) ou 250ml
+            if volume_ml in ("236ml", "250ml") and concentration in ("Body Lotion", "Body Splash"):
+                volume_ml = "236ml" if concentration == "Body Lotion" else "250ml"
             key = ("perfume", perfume_name, volume_ml, concentration)
             grouped.setdefault(key, []).append(offer)
             continue

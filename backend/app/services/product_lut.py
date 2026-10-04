@@ -962,16 +962,52 @@ _PERFUME_RAW: list[PerfumeLUTEntry] = [
        r"\bvictoria.?s?\s+secret\b.*\bbombshell\b|\bbombshell\b.*\bvictoria.?s?\s+secret\b",  "Body Splash"),
 
     _p("vs_pure_seduction",         "Victoria's Secret", "Pure Seduction",
-       r"\bpure\s+seduction\b",                                            "Body Splash"),
+       r"\bpure\s+sed\w*tion\b",                                          "Body Splash"),
 
     _p("vs_love_spell",             "Victoria's Secret", "Love Spell",
        r"\blove\s+spell\b",                                                "Body Splash"),
 
     _p("vs_bare_vanilla",           "Victoria's Secret", "Bare Vanilla",
-       r"\bbare\s+vanilla\b",                                              "Body Splash"),
+       r"\bbare\s+vai?nill?a\b",                                           "Body Splash"),
 
     _p("vs_velvet_petals",          "Victoria's Secret", "Velvet Petals",
-       r"\bvelvet\s+petals\b",                                             "Body Splash"),
+       r"\bvelvet\s+petals?\b",                                             "Body Splash"),
+
+    _p("vs_amber_romance",          "Victoria's Secret", "Amber Romance",
+       r"\bamber\s+romance\b",                                             "Body Splash"),
+
+    _p("vs_coconut_passion",        "Victoria's Secret", "Coconut Passion",
+       r"\bcoconut\s+passion\b",                                           "Body Splash"),
+
+    _p("vs_aqua_kiss",              "Victoria's Secret", "Aqua Kiss",
+       r"\baqua\s+kiss\b",                                                 "Body Splash"),
+
+    _p("vs_midnight_bloom",         "Victoria's Secret", "Midnight Bloom",
+       r"\bmidnight\s+bloom\b",                                            "Body Splash"),
+
+    _p("vs_strawberries_champagne", "Victoria's Secret", "Strawberries & Champagne",
+       r"\bstrawberr(y|ies)\s+(and\s+|e\s+)?champagne\b",                    "Body Splash"),
+
+    _p("vs_pear_glace",             "Victoria's Secret", "Pear Glacé",
+       r"\bpear\s+glace\b",                                                "Body Splash"),
+
+    _p("vs_neon_tropic",            "Victoria's Secret", "Neon Tropic",
+       r"\bneon\s+tropic\b",                                               "Body Splash"),
+
+    _p("vs_guava_fiesta",           "Victoria's Secret", "Guava Fiesta",
+       r"\bguava\s+fiesta\b",                                              "Body Splash"),
+
+    _p("vs_moon_spiced",            "Victoria's Secret", "Moon Spiced",
+       r"\bmoon\s+spiced\b",                                               "Body Splash"),
+
+    _p("vs_temptation_shimmer",     "Victoria's Secret", "Temptation Shimmer",
+       r"\bvictoria.?s?\s+secret\b.*\b(temptation\s+shimmer|shimmer\s+temptation)\b",  "Body Splash"),
+
+    _p("vs_temptation",             "Victoria's Secret", "Temptation",
+       r"\bvictoria.?s?\s+secret\b.*\btemptation\b|\btemptation\b.*\bvictoria.?s?\s+secret\b",  "Body Splash"),
+
+    _p("vs_romantic",               "Victoria's Secret", "Romantic",
+       r"\bvictoria.?s?\s+secret\b.*\bromantic\b|\bromantic\b.*\bvictoria.?s?\s+secret\b",  "Body Splash"),
 
     _p("vs_in_the_stars",           "Victoria's Secret", "In The Stars",
        r"\bin\s+the\s+stars\b.*\bvictoria.?s?\s+secret\b|\bvictoria.?s?\s+secret\b.*\bin\s+the\s+stars\b",  "Body Splash"),

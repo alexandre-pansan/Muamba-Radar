@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import html
 import re
 import unicodedata
 
@@ -84,11 +85,38 @@ EXCLUDED_CONDITION_PATTERNS = (
 
 
 def normalize_text(value: str) -> str:
-    value = value.strip().lower()
+    # Lojas mandam entidade HTML no título ("Victoria&#8217;s") — sem isso vira "8217"
+    value = html.unescape(value).strip().lower()
     value = unicodedata.normalize("NFKD", value)
     value = "".join(ch for ch in value if not unicodedata.combining(ch))
     value = re.sub(r"[^a-z0-9\s]", " ", value)
-    return re.sub(r"\s+", " ", value).strip()
+    value = re.sub(r"\s+", " ", value).strip()
+    for pattern, canonical in _BRAND_SPELLINGS:
+        value = pattern.sub(canonical, value)
+    return value
+
+
+# Grafias da mesma marca (títulos e buscas): "Paco Rabane", "Rabbane" → "rabanne"
+_BRAND_SPELLINGS: list[tuple[re.Pattern[str], str]] = [
+    (re.compile(r"\bpac+o\s+rab+an+e\b"), "paco rabanne"),
+    (re.compile(r"\brab+an+e\b"), "rabanne"),
+    (re.compile(r"\bla+taf+a\b|\blataff?a\b"), "lattafa"),
+]
+
+# Abreviações que só valem na BUSCA — nos títulos "pr" aparece solto em outra coisa
+# ("Tênis ... PR"), então não entra em normalize_text.
+_QUERY_ABBREVIATIONS: list[tuple[re.Pattern[str], str]] = [
+    (re.compile(r"\bpr\b"), "rabanne"),  # "pr 1 million", "pr invictus"
+]
+
+
+def expand_query_aliases(query: str) -> str:
+    """Busca do usuário com abreviações de marca resolvidas ("pr invictus" → "rabanne
+    invictus"). Grafias erradas já são corrigidas por normalize_text."""
+    value = normalize_text(query)
+    for pattern, canonical in _QUERY_ABBREVIATIONS:
+        value = pattern.sub(canonical, value)
+    return value
 
 
 def _expand_storage_tokens(value: str) -> str:
@@ -132,7 +160,8 @@ _ACCESSORY_PATTERNS = re.compile(
     r"\b(controles?|control|joy.?con|joysticks?|gamepads?|"
     r"cabo|carregador|dock|base|suporte|stand|"
     r"capa|case|bolsa|bag|sleeve|cover|skin|"
-    r"pel[ií]cula|protetor|protector|tempered|vidro|"
+    # "protetor de tela" é acessório; protetor solar/labial/térmico é o produto
+    r"pel[ií]cula|protet[oe]r(?!\s+(solar|labial|termico|facial|capilar))|protector(?!\s+(solar|labial))|tempered|vidro|"
     r"headset|fone|earphone|earbuds|headphone|"
     r"bateria|battery|power\s*bank|"
     r"mouse|teclado|keyboard|webcam|"

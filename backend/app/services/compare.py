@@ -11,6 +11,8 @@ from app.adapters.registry import get_adapters
 from app.schemas import CheapestModel, CompareResponseModel, CountryFilter, OfferModel, ProductGroupModel, SortOption
 from app.services.fx import build_price
 from app.services.matcher import group_offers
+from app.services.perfume_catalog import identify
+from app.services.product_catalog import match_product
 from app.services.normalization import (
     is_real_store,
     expand_gaming_aliases,
@@ -20,6 +22,7 @@ from app.services.normalization import (
     matches_query_loose,
     normalize_text,
     slugify,
+    tokenize,
 )
 
 
@@ -232,6 +235,20 @@ def _br_queries_from_py_offers(py_offers: list[OfferModel], original_query: str)
     return queries[:6]  # cap to avoid too many adapter calls
 
 
+def _filter_br_by_py(br_offers: list[OfferModel], py_offers: list[OfferModel], query: str) -> list[OfferModel]:
+    """As buscas BR derivadas dos títulos PY são longas ("celimax heart pink tone") e o
+    filtro frouxo aceita metade das palavras — voltava "Livro Pink Heart Jam". Palavra da
+    busca original que está em TODAS as ofertas PY (a marca, o modelo) tem que estar na
+    oferta BR também. "ps5" não exige nada (os títulos dizem "playstation 5")."""
+    if not py_offers:
+        return br_offers
+    py_token_sets = [set(tokenize(o.title)) for o in py_offers]
+    required = {t for t in tokenize(query) if len(t) > 1 and all(t in toks for toks in py_token_sets)}
+    if not required:
+        return br_offers
+    return [o for o in br_offers if required <= set(tokenize(o.title))]
+
+
 def scrape_offers(query: str, country: CountryFilter) -> list[OfferModel]:
     """Scrape live offers from all adapters. Returns raw OfferModel list, no grouping."""
     normalized_query = normalize_text(query)
@@ -256,7 +273,7 @@ def scrape_offers(query: str, country: CountryFilter) -> list[OfferModel]:
             seen_queries.add(br_q)
             br_offers.extend(_run_adapters(br_adapters, br_q))
 
-        return py_offers + br_offers
+        return py_offers + _filter_br_by_py(br_offers, py_offers, normalized_query)
     else:
         return _collect_offers(normalized_query, country)
 
@@ -302,6 +319,7 @@ def build_group_model(
     matcher.group_offers). Shared by build_response_from_offers's per-query loop and by
     any endpoint that resolves a single known product_key against a seller's live offers
     (e.g. GET /highlights) without running a full search."""
+    brand, line = _brand_line(product_key, family_key, group_offers_list)
     sorted_offers = (
         sorted(group_offers_list, key=lambda offer: offer.price.amount_brl)
         if sort == SortOption.LOWEST_PRICE
@@ -319,7 +337,32 @@ def build_group_model(
         concentration=concentration,
         volume_ml=volume_ml,
         voltage=voltage,
+        brand=brand,
+        line=line,
     )
+
+
+def _brand_line(product_key: str, family_key: str, offers: list[OfferModel]) -> tuple[str | None, str | None]:
+    """Marca e nome do produto sem a marca — "Victoria's Secret" / "Love Spell",
+    "JBL" / "Flip 6" — pros catálogos de perfume (LUT + minerado) e de eletrônicos."""
+    if not product_key.startswith("perfume"):
+        product = next((m for m in map(match_product, (o.title for o in offers)) if m and m.key == family_key), None)
+        return (product.brand, product.model) if product else (None, None)
+    matches = [m for m in map(identify, (o.title for o in offers)) if m]
+    named = next((m for m in matches if m.fragrance), None)
+    if named:
+        return named.brand, named.fragrance
+    return (matches[0].brand if matches else None), None
+
+
+def _fallback_line(family_key: str, query_norm: str) -> str | None:
+    """Perfume fora da LUT: nome do produto = chave do grupo sem as palavras da busca
+    (buscou "victoria secret" → "victoria secret amber romance" vira "Amber Romance")."""
+    query_tokens = set(query_norm.split())
+    rest = [t for t in family_key.split() if t not in query_tokens]
+    if not rest or len(rest) == len(family_key.split()):
+        return None
+    return " ".join(rest).title()
 
 
 def build_response_from_offers(
@@ -337,6 +380,9 @@ def build_response_from_offers(
         build_group_model(product_key, family_key, canonical_name, confidence, group_offers_list, concentration, volume_ml, voltage, sort)
         for product_key, family_key, canonical_name, confidence, group_offers_list, concentration, volume_ml, voltage in grouped
     ]
+    for group in groups:
+        if group.product_key.startswith("perfume") and not group.line:
+            group.line = _fallback_line(group.family_key, normalized_query)
 
     return CompareResponseModel(query=query, generated_at=datetime.now(UTC), groups=groups)
 

@@ -88,6 +88,9 @@ class ProductGroupModel(BaseModel):
     volume_ml: str | None = None       # e.g. "100ml"
     # Appliance voltage variant (None for non-appliance groups)
     voltage: str | None = None         # e.g. "127V", "220V", "Bivolt"
+    # Perfumes: marca e nome do produto sem a marca ("Love Spell") — filtro "Modelo"
+    brand: str | None = None
+    line: str | None = None
     # Seller highlight/coupon enrichment (backend Phase 2) — both intentionally public.
     is_highlighted: bool = False
     coupon: CouponInfo | None = None

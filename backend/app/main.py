@@ -103,7 +103,7 @@ from app.services.compare import build_compare_response, build_group_model, buil
 # from app.services.image_detect import detect_product_from_image  # image detection deferred
 from app.services.fx import build_price
 from app.services.matcher import extract_specs, group_offers
-from app.services.normalization import is_real_store, matches_query, normalize_text, slugify
+from app.services.normalization import expand_query_aliases, is_real_store, matches_query, normalize_text, slugify
 
 logging.basicConfig(
     level=logging.INFO,
@@ -833,6 +833,8 @@ def compare(
     db: Session = Depends(get_db),
     current_user: User | None = Depends(get_current_user_optional),
 ) -> CompareResponseModel:
+    q_user = q
+    q = expand_query_aliases(q)  # "pr invictus" → "rabanne invictus"
     query_norm = normalize_text(q)
     country_val = country.value
     sort_val = sort.value
@@ -893,7 +895,7 @@ def compare(
         existing.expires_at = now + timedelta(minutes=settings.cache_ttl_minutes)
     else:
         db.add(SearchCache(
-            query_raw=q,
+            query_raw=q_user,
             query_norm=query_norm,
             country=country_val,
             sort=sort_val,
@@ -904,17 +906,17 @@ def compare(
         ))
     # Só conta busca que achou algo — termo digitado errado não vira "Mais pesquisados".
     if all_offers:
-        _bump_search_stat(db, q, query_norm, now)
+        _bump_search_stat(db, q_user, normalize_text(q_user), now)
     db.commit()
 
     # ── 5b. Record per-user search history ───────────────────────────────────
     if current_user:
-        _save_user_search(db, current_user.id, q, now)
+        _save_user_search(db, current_user.id, q_user, now)
 
     # ── 6. Set cache header and build response ────────────────────────────────
     if not all_offers:
         log.warning("  → EMPTY  no results anywhere  (%.0fms)", (time.perf_counter() - t0) * 1000)
-        return CompareResponseModel(query=q, generated_at=now, groups=[])
+        return CompareResponseModel(query=q_user, generated_at=now, groups=[])
 
     if live_offers:
         response.headers["X-Cache"] = "MISS"
@@ -922,6 +924,7 @@ def compare(
         response.headers["X-Cache"] = "FALLBACK"
 
     result = build_response_from_offers(query=q, offers=all_offers, sort=sort, country=country)
+    result.query = q_user
     try:
         _enrich_with_seller_data(db, result.groups)
     except Exception as exc:
@@ -1143,6 +1146,7 @@ SHOWCASE_CATEGORIES: dict[str, dict[str, list[str]]] = {
     },
 }
 
+SHOWCASE_MAX_OFFERS = 400
 SHOWCASE_MAX_ATTEMPTS = 30  # teto de termos testados por request (cada um é uma ida ao catálogo)
 
 
@@ -1203,10 +1207,15 @@ def _showcase_group(db: Session, query: str, now: datetime) -> ProductGroupModel
     nome contém todas as palavras do termo ("PlayStation 5", não "PlayStation VR2") >
     tem preço BR (dá pra mostrar a economia) > mais ofertas (mais lojas vendendo) >
     nome mais enxuto."""
-    query_norm = normalize_text(query)
+    query_norm = expand_query_aliases(query)
     offers = _load_db_offers(db, query_norm, "all", now)
     if not offers:
         return None
+    if len(offers) > SHOWCASE_MAX_OFFERS:
+        # Termo amplo ("perfume", 12 mil ofertas) levava ~15s pra agrupar tudo — pra
+        # escolher UM card basta uma amostra; PY primeiro (o card exige oferta PY).
+        offers.sort(key=lambda o: o.country != "py")
+        offers = offers[:SHOWCASE_MAX_OFFERS]
     groups = build_response_from_offers(query, offers, SortOption.BEST_MATCH, CountryFilter.ALL).groups
     tokens = set(query_norm.split())
 
