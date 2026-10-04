@@ -51,6 +51,23 @@ class SearchCache(Base):
     )
 
 
+class SearchStatDaily(Base):
+    """Contagem de buscas por termo e dia — alimenta "Mais pesquisados" na Home.
+    SearchCache expira em ~30min, então não serve como histórico de popularidade."""
+    __tablename__ = "search_stats_daily"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    query_norm: Mapped[str] = mapped_column(Text, nullable=False)
+    query_raw: Mapped[str] = mapped_column(Text, nullable=False)
+    day: Mapped[date] = mapped_column(Date, nullable=False)
+    count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("query_norm", "day", name="uq_search_stats_daily_query_day"),
+        Index("ix_search_stats_daily_day", "day"),
+    )
+
+
 class ProductOffer(Base):
     """One row per scraped listing URL — the live offer catalogue."""
     __tablename__ = "product_offers"
@@ -86,6 +103,10 @@ class UserPrefs(Base):
     show_margin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     hide_beta_notice: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     tax_rates: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    # Lista salva que o carrinho representa agora (ver ShoppingList). NULL = carrinho avulso.
+    active_list_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Pré-filtro de busca: nomes das lojas PY (como vêm nas ofertas) em que o usuário foca.
+    preferred_stores: Mapped[list | None] = mapped_column(JSONB, nullable=True)
 
 
 class UserSearch(Base):
@@ -357,4 +378,53 @@ class Category(Base):
     __table_args__ = (
         UniqueConstraint("url", name="uq_categories_url"),
         Index("ix_categories_department", "department"),
+    )
+
+
+class ShoppingList(Base):
+    """Lista de compras salva. A lista ativa (UserPrefs.active_list_id) é o próprio
+    carrinho — os itens daqui só valem enquanto ela está inativa; ao trocar de lista o
+    carrinho é gravado de volta aqui."""
+    __tablename__ = "shopping_lists"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    owner_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    name: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class ShoppingListItem(Base):
+    """Fotografia de um item do carrinho dentro de uma lista salva (mesmos campos)."""
+    __tablename__ = "shopping_list_items"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    list_id: Mapped[int] = mapped_column(Integer, ForeignKey("shopping_lists.id"), nullable=False, index=True)
+    offer_url: Mapped[str] = mapped_column(Text, nullable=False)
+    source: Mapped[str] = mapped_column(Text, nullable=False)
+    country: Mapped[str] = mapped_column(Text, nullable=False)
+    store_name: Mapped[str] = mapped_column(Text, nullable=False)
+    title: Mapped[str] = mapped_column(Text, nullable=False)
+    price_amount: Mapped[float] = mapped_column(Float, nullable=False)
+    price_currency: Mapped[str] = mapped_column(Text, nullable=False)
+    image_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    store_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("stores.id"), nullable=True)
+    quantity: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    br_price_brl: Mapped[float | None] = mapped_column(Float, nullable=True)
+    br_store: Mapped[str | None] = mapped_column(Text, nullable=True)
+    br_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    added_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class ShoppingListShare(Base):
+    """Lista compartilhada (só leitura) com outro usuário, convidado pelo e-mail."""
+    __tablename__ = "shopping_list_shares"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    list_id: Mapped[int] = mapped_column(Integer, ForeignKey("shopping_lists.id"), nullable=False)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("list_id", "user_id", name="uq_shopping_list_shares_list_user"),
     )

@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useMemo, useRef, useState } from 'react'
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n.jsx'
@@ -195,6 +195,13 @@ function groupPyStores(g) {
     .filter(Boolean))]
 }
 
+// Com filtro de loja, o card só considera as ofertas PY dessas lojas (preço, economia,
+// contagem) — as do Brasil ficam pra comparação. __fullGroup guarda o original.
+function narrowToStores(g, stores) {
+  const offers = (g.offers || []).filter(o => (o.country || '').toLowerCase() !== 'py' || stores.has(o.store))
+  return { ...g, offers, __fullGroup: g.__fullGroup || g }
+}
+
 // valores de cada faceta pra um grupo (sempre lista — loja pode ter várias)
 const FACETS = {
   cat: { title: 'Categoria', values: g => [groupCategory(g)].filter(Boolean) },
@@ -231,6 +238,7 @@ export default function ResultsArea({
   onNeedAuth,
   onReport,
   scrollRef,
+  preferredStores,
 }) {
   const { t } = useI18n()
   const [params, setParams] = useSearchParams()
@@ -273,6 +281,32 @@ export default function ResultsArea({
     updateParams(p => FILTER_KEYS.forEach(k => p.delete(k)))
   }
 
+  // Pré-filtro (lojas preferidas em /conta#lojas): a cada resultado novo, se a URL
+  // ainda não tem filtro de loja, marca as lojas preferidas que aparecem nele.
+  // Link com ?loja= (F5, compartilhado) manda mais que a preferência.
+  const prefKey = (preferredStores || []).join('\n')
+  const prefAppliedRef = useRef(null)
+  const [prefNotice, setPrefNotice] = useState(null) // 'applied' | 'none' | null
+  useEffect(() => {
+    if (isLoading || !lastData?.groups) return
+    const marker = prefAppliedRef.current
+    if (marker?.data === lastData && marker?.prefKey === prefKey) return
+    prefAppliedRef.current = { data: lastData, prefKey }
+    setPrefNotice(null)
+    const prefs = prefKey ? prefKey.split('\n') : []
+    if (!prefs.length || params.getAll('loja').length) return
+    const available = new Set(lastData.groups.flatMap(groupPyStores))
+    const hit = prefs.filter(name => available.has(name))
+    if (!hit.length) { setPrefNotice('none'); return }
+    updateParams(p => { p.delete('loja'); hit.forEach(v => p.append('loja', v)) })
+    setPrefNotice('applied')
+  }, [lastData, isLoading, prefKey]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function showAllStores() {
+    updateParams(p => p.delete('loja'))
+    setPrefNotice(null)
+  }
+
   const showClear = Boolean(lastData)
   const showRetry = status?.isError && lastQuery != null
 
@@ -288,10 +322,13 @@ export default function ResultsArea({
     })),
     [sorted],
   )
-  const displayed = useMemo(
-    () => indexed.filter(e => matches(e, selected, null)).map(e => e.group),
-    [indexed, selected],
-  )
+  const displayed = useMemo(() => {
+    const groups = indexed.filter(e => matches(e, selected, null)).map(e => e.group)
+    if (selected.loja.size === 0) return groups
+    const narrowed = groups.map(g => narrowToStores(g, selected.loja))
+    // ordem por preço/economia tem que refletir o preço das lojas escolhidas
+    return order === 'relevancia' ? narrowed : sortResults(narrowed, order, targetMargin)
+  }, [indexed, selected, order, targetMargin])
 
   // Opções de cada faceta com contagem "se marcar isto": conta sobre os resultados
   // filtrados por todos os OUTROS grupos. Grupo com menos de 2 opções não aparece
@@ -308,9 +345,9 @@ export default function ResultsArea({
         .map(b => ({ value: b.value, label: b.label, count: counts.get(b.value) }))
     } else {
       options.sort((a, b) => b.count - a.count || String(a.value).localeCompare(String(b.value)))
-      options = options.slice(0, key === 'loja' ? 15 : 12).map(o => ({ ...o, label: o.value }))
+      options = options.map(o => ({ ...o, label: o.value })) // todas — o grupo tem busca própria
     }
-    // mantém visível o que está marcado mesmo se saiu do top-N
+    // mantém visível o que está marcado mesmo se não aparece nos resultados (ex.: link com ?loja=)
     selected[key].forEach(v => {
       if (!options.some(o => o.value === v)) options.push({ value: v, label: PRICE_BUCKETS.find(b => b.value === v)?.label || v, count: 0 })
     })
@@ -426,6 +463,18 @@ export default function ResultsArea({
             <div className="results-capped">
               <strong>Mostrando os {sorted.length} produtos mais relevantes de {lastData.total_groups.toLocaleString('pt-BR')}.</strong>
               {' '}Busca muito ampla — use os filtros ou seja mais específico (ex.: marca e modelo) para achar o que procura.
+            </div>
+          )}
+
+          {!isLoading && prefNotice === 'applied' && selected.loja.size > 0 && (
+            <div className="pref-notice">
+              <span>⭐ Mostrando o menor preço entre as suas lojas preferidas.</span>
+              <button type="button" className="btn-inline" onClick={showAllStores}>Ver todas as lojas</button>
+            </div>
+          )}
+          {!isLoading && prefNotice === 'none' && (
+            <div className="pref-notice">
+              <span>Nenhuma das suas lojas preferidas tem este produto — mostrando todas.</span>
             </div>
           )}
 

@@ -6,6 +6,7 @@ import { apiFetchFxRate } from '../api.js'
 import CartCouponsModal from './CartCouponsModal.jsx'
 import { useFeatures } from '../features.js'
 import ProductImage from './ui/ProductImage.jsx'
+import { ListSwitcher } from './ShoppingLists.jsx'
 
 // Regras da cota de isenção (Receita Federal): por pessoa, 50% de imposto sobre o
 // que passar. Mesmos números do ImportDutyCalculator.
@@ -157,6 +158,7 @@ export default function CartPage({ onNeedAuth }) {
   return (
     <div className="cart-page">
       <h1 className="page-title">🛒 Meu Carrinho</h1>
+      <ListSwitcher />
 
       <div className="cart-layout">
         <div className="cart-items">

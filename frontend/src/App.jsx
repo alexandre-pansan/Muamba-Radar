@@ -66,6 +66,7 @@ import DonateModal from './components/DonateModal.jsx'
 import { HelpModal, TutorialCard } from './components/HelpCenter.jsx'
 import ReportModal from './components/ReportModal.jsx'
 import CartPage from './components/CartPage.jsx'
+import SharedListPage from './components/SharedListPage.jsx'
 import Plans from './components/Plans.jsx'
 import Checkout from './components/Checkout.jsx'
 import Lojista from './components/Lojista.jsx'
@@ -391,10 +392,6 @@ function AppShell({ currentUser, setCurrentUser }) {
     }
   }
 
-  function handleRecentClick(q) {
-    goSearch(q)
-  }
-
   // ── Offers dialog ───────────────────────────────────────────────────────────
 
   function openOffersDialog(group, name, config) {
@@ -464,6 +461,7 @@ function AppShell({ currentUser, setCurrentUser }) {
       <Routes>
       <Route path="/admin" element={<AdminPage onBack={goHome} />} />
       <Route path="/cart" element={<RoutePage><CartPage onNeedAuth={() => openAuthModal('login')} /></RoutePage>} />
+      <Route path="/lista/:id" element={<RoutePage><SharedListPage currentUser={currentUser} onNeedAuth={() => openAuthModal('login')} /></RoutePage>} />
       <Route path="/favorites" element={<RoutePage><Favorites onNeedAuth={() => openAuthModal('login')} /></RoutePage>} />
       <Route path="/map" element={<RoutePage><MapPage /></RoutePage>} />
       <Route path="/product/:productKey/lojas" element={
@@ -524,7 +522,6 @@ function AppShell({ currentUser, setCurrentUser }) {
             <Home
               onSearch={goSearch}
               recentSearches={recentSearches}
-              onRecentClick={handleRecentClick}
               targetMargin={targetMargin}
               showMargin={showMargin}
               onOpenOffers={openOffersDialog}
@@ -547,6 +544,7 @@ function AppShell({ currentUser, setCurrentUser }) {
               onNeedAuth={() => openAuthModal('login')}
               onReport={openReportModal}
               scrollRef={resultsScrollRef}
+              preferredStores={currentUser ? currentPrefs?.preferred_stores : null}
             />
           )}
           {showScrollTop && (

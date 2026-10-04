@@ -39,6 +39,8 @@ export default defineConfig({
       '/admin/': 'http://localhost:8000',
       '/seller/': 'http://localhost:8000',
       '/billing/': 'http://localhost:8000',
+      '/lists': 'http://localhost:8000',   // API; a página /lista/:id não casa com o prefixo
+      '/stores/': 'http://localhost:8000',
       // Same SPA-route/API-path collision as '/cart' above — '/favorites' is both.
       '/favorites': {
         target: 'http://localhost:8000',

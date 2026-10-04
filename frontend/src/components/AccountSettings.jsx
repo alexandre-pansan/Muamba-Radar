@@ -3,6 +3,8 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { useI18n } from '../i18n.jsx'
 import { apiUpdateMe, apiFetchUserSearches, getApiBase, getToken } from '../api.js'
 import { PasswordRules } from './AuthForms.jsx'
+import { ShoppingListsSection } from './ShoppingLists.jsx'
+import PreferredStoresSection from './PreferredStoresSection.jsx'
 
 // Seções da página — o id vira âncora na URL (/conta#taxas), então recarregar ou
 // mandar o link abre direto na seção.
@@ -10,6 +12,8 @@ const SECTIONS = [
   { id: 'perfil', label: 'Perfil' },
   { id: 'senha', label: 'Senha' },
   { id: 'preferencias', label: 'Preferências' },
+  { id: 'lojas', label: 'Lojas preferidas' },
+  { id: 'listas', label: 'Listas de compras' },
   { id: 'buscas', label: 'Buscas recentes' },
   { id: 'privacidade', label: 'Privacidade (LGPD)' },
 ]
@@ -250,6 +254,10 @@ export default function AccountSettings({
           />
         </label>
       </section>
+
+      <PreferredStoresSection preferred={currentPrefs?.preferred_stores || []} onChange={onPrefChange} />
+
+      <ShoppingListsSection />
 
       {/* Recent searches section */}
       <section className="ucm-section account-card" id="buscas">

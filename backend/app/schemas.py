@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from datetime import date, datetime
 from enum import Enum
+from typing import Annotated
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
@@ -197,6 +198,7 @@ class UpdateProfileRequest(BaseModel):
 class UserPrefsModel(BaseModel):
     show_margin: bool = False
     tax_rates: dict | None = None
+    preferred_stores: list[str] = []
 
 
 def _validate_small_dict(v: dict | None, max_bytes: int = 8192) -> dict | None:
@@ -208,6 +210,8 @@ def _validate_small_dict(v: dict | None, max_bytes: int = 8192) -> dict | None:
 class UpdatePrefsRequest(BaseModel):
     show_margin: bool | None = None
     tax_rates: dict | None = None
+    # [] limpa o pré-filtro; None = não mexe
+    preferred_stores: list[Annotated[str, Field(min_length=1, max_length=120)]] | None = Field(default=None, max_length=60)
 
     @field_validator("tax_rates")
     @classmethod
@@ -568,3 +572,48 @@ class ReportResponse(BaseModel):
 
 class AdminReportResolve(BaseModel):
     admin_notes: str | None = Field(default=None, max_length=1000)
+
+
+# ── Listas de compras salvas ──────────────────────────────────────────────────
+
+class ShoppingListCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=80)
+
+
+class ShoppingListRename(BaseModel):
+    name: str = Field(min_length=1, max_length=80)
+
+
+class ShoppingListShareCreate(BaseModel):
+    email: str = Field(min_length=3, max_length=254)
+
+
+class ShoppingListShareInfo(BaseModel):
+    user_id: int
+    email: str
+
+
+class ShoppingListSummary(BaseModel):
+    id: int
+    name: str
+    item_count: int
+    updated_at: datetime
+    is_active: bool = False
+    shared_with: list[ShoppingListShareInfo] = []
+
+
+class SharedShoppingListSummary(BaseModel):
+    id: int
+    name: str
+    owner_name: str
+    item_count: int
+    updated_at: datetime
+
+
+class ShoppingListDetail(BaseModel):
+    id: int
+    name: str
+    owner_name: str
+    is_owner: bool
+    updated_at: datetime
+    items: list[CartItemResponse]

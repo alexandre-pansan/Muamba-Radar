@@ -6,6 +6,7 @@ import hmac
 import json
 import logging
 import os
+import random
 import subprocess
 import sys
 import time
@@ -23,6 +24,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from sqlalchemy.dialects.postgresql import insert as pg_insert
@@ -32,8 +34,15 @@ from app.auth import create_access_token, create_refresh_token, get_current_user
 from app.config import settings
 from app.crypto import blind_index
 from app.database import SessionLocal, engine, get_db, init_db
-from app.models import AccessLog, DataReport, ProductOffer, RefreshToken, SearchCache, SellerBannerCampaign, SellerCoupon, SellerProductHighlight, SellerProfile, Store, User, UserCartItem, UserFavorite, UserPrefs, UserSearch
+from app.models import AccessLog, DataReport, ProductOffer, RefreshToken, SearchCache, SearchStatDaily, SellerBannerCampaign, SellerCoupon, SellerProductHighlight, SellerProfile, ShoppingList, ShoppingListItem, ShoppingListShare, Store, User, UserCartItem, UserFavorite, UserPrefs, UserSearch
 from app.schemas import (
+    SharedShoppingListSummary,
+    ShoppingListCreate,
+    ShoppingListDetail,
+    ShoppingListRename,
+    ShoppingListShareCreate,
+    ShoppingListShareInfo,
+    ShoppingListSummary,
     # CompareByImageResponseModel,  # image detection deferred
     AdminAdapterResult,
     AdminDonateStatsRequest,
@@ -325,6 +334,18 @@ def _upsert_offers(db: Session, offers: list[OfferModel], now: datetime) -> None
 
 # ── User search history helper ────────────────────────────────────────────────
 
+def _bump_search_stat(db: Session, query_raw: str, query_norm: str, now: datetime) -> None:
+    """+1 na contagem do dia (upsert atômico). Commit fica com quem chama."""
+    stmt = pg_insert(SearchStatDaily).values(
+        query_norm=query_norm, query_raw=query_raw, day=now.date(), count=1,
+    )
+    stmt = stmt.on_conflict_do_update(
+        constraint="uq_search_stats_daily_query_day",
+        set_={"count": SearchStatDaily.count + 1, "query_raw": stmt.excluded.query_raw},
+    )
+    db.execute(stmt)
+
+
 def _save_user_search(db: Session, user_id: int, query: str, now: datetime) -> None:
     """Upsert a user search entry (update timestamp if query already exists)."""
     existing = (
@@ -579,7 +600,15 @@ def get_prefs(
     prefs = db.get(UserPrefs, current_user.id)
     if not prefs:
         return UserPrefsModel()
-    return UserPrefsModel(show_margin=prefs.show_margin, tax_rates=prefs.tax_rates)
+    return _prefs_model(prefs)
+
+
+def _prefs_model(prefs: UserPrefs) -> UserPrefsModel:
+    return UserPrefsModel(
+        show_margin=prefs.show_margin,
+        tax_rates=prefs.tax_rates,
+        preferred_stores=prefs.preferred_stores or [],
+    )
 
 
 @app.patch("/auth/me/prefs", response_model=UserPrefsModel)
@@ -596,8 +625,10 @@ def update_prefs(
         prefs.show_margin = body.show_margin
     if body.tax_rates is not None:
         prefs.tax_rates = body.tax_rates
+    if body.preferred_stores is not None:
+        prefs.preferred_stores = list(dict.fromkeys(s.strip() for s in body.preferred_stores if s.strip()))
     db.commit()
-    return UserPrefsModel(show_margin=prefs.show_margin, tax_rates=prefs.tax_rates)
+    return _prefs_model(prefs)
 
 
 @app.get("/auth/me/export")
@@ -631,6 +662,7 @@ def export_account(
         "preferences": {
             "show_margin": prefs.show_margin if prefs else False,
             "tax_rates": prefs.tax_rates if prefs else None,
+            "preferred_stores": (prefs.preferred_stores or []) if prefs else [],
         },
         "search_history": [
             {"query": s.query, "searched_at": s.searched_at.isoformat()}
@@ -646,6 +678,18 @@ def export_account(
                 "added_at": c.added_at.isoformat(),
             }
             for c in cart_items
+        ],
+        "shopping_lists": [
+            {
+                "name": lst.name,
+                "created_at": lst.created_at.isoformat(),
+                "items": [
+                    {"title": i.title, "store": i.store_name, "price": i.price_amount,
+                     "currency": i.price_currency, "url": i.offer_url, "quantity": i.quantity}
+                    for i in _list_items(db, lst)
+                ],
+            }
+            for lst in db.query(ShoppingList).filter(ShoppingList.owner_id == current_user.id).all()
         ],
     }
 
@@ -670,6 +714,9 @@ def _delete_user_data(db: Session, user: User) -> None:
         for model in (SellerProductHighlight, SellerCoupon, SellerBannerCampaign):
             db.query(model).filter(model.seller_profile_id == profile.id).delete()
         db.delete(profile)
+    for lst in db.query(ShoppingList).filter(ShoppingList.owner_id == user.id).all():
+        _delete_list_rows(db, lst)
+    db.query(ShoppingListShare).filter(ShoppingListShare.user_id == user.id).delete()
     for model in (RefreshToken, UserSearch, UserPrefs, UserCartItem, UserFavorite):
         db.query(model).filter(model.user_id == user.id).delete()
     db.flush()
@@ -855,6 +902,9 @@ def compare(
             expires_at=now + timedelta(minutes=settings.cache_ttl_minutes),
             hit_count=1,
         ))
+    # Só conta busca que achou algo — termo digitado errado não vira "Mais pesquisados".
+    if all_offers:
+        _bump_search_stat(db, q, query_norm, now)
     db.commit()
 
     # ── 5b. Record per-user search history ───────────────────────────────────
@@ -918,33 +968,41 @@ def suggestions(
     return result
 
 
+TRENDING_WINDOW_DAYS = 7
+TRENDING_MIN_SEARCHES = 2
+
+
 @app.get("/trending")
 def trending(
     limit: int = Query(default=8, ge=1, le=20),
     db: Session = Depends(get_db),
 ) -> list[str]:
-    """Real top-searched queries (by SearchCache.hit_count, unexpired rows only — the
-    same signal /suggestions already uses for autocomplete ranking). Home's "Mais
-    pesquisados" section feeds each of these through /compare, same pattern as its
-    "Populares" seed-query carousel. Note: SearchCache rows purge on expiry (~30min TTL
-    by default), so this reflects recent traffic, not a long-lived trending history —
-    an accepted trade-off already baked into how /suggestions works."""
-    now = datetime.now(timezone.utc)
+    """Termos mais buscados nos últimos TRENDING_WINDOW_DAYS dias (SearchStatDaily — só
+    conta busca com resultado). Home passa cada termo pelo /showcase. Termos com menos de
+    TRENDING_MIN_SEARCHES buscas ficam de fora pra não exibir ruído."""
+    since = datetime.now(timezone.utc).date() - timedelta(days=TRENDING_WINDOW_DAYS - 1)
+    total = func.sum(SearchStatDaily.count)
     rows = (
-        db.query(SearchCache.query_raw, SearchCache.query_norm, SearchCache.hit_count)
-        .filter(SearchCache.expires_at > now)
-        .order_by(SearchCache.hit_count.desc(), SearchCache.created_at.desc())
+        db.query(SearchStatDaily.query_norm, total.label("total"), func.max(SearchStatDaily.day).label("last_day"))
+        .filter(SearchStatDaily.day >= since)
+        .group_by(SearchStatDaily.query_norm)
+        .having(total >= TRENDING_MIN_SEARCHES)
+        .order_by(total.desc(), func.max(SearchStatDaily.day).desc())
+        .limit(limit)
         .all()
     )
-    seen: set[str] = set()
-    result: list[str] = []
-    for row in rows:
-        if row.query_norm not in seen:
-            seen.add(row.query_norm)
-            result.append(row.query_raw)
-        if len(result) >= limit:
-            break
-    return result
+    if not rows:
+        return []
+    # Grafia exibida = a da busca mais recente do termo
+    norms = [r.query_norm for r in rows]
+    raw_by_norm: dict[str, str] = {}
+    for r in (
+        db.query(SearchStatDaily.query_norm, SearchStatDaily.query_raw)
+        .filter(SearchStatDaily.query_norm.in_(norms), SearchStatDaily.day >= since)
+        .order_by(SearchStatDaily.day.asc())
+    ):
+        raw_by_norm[r.query_norm] = r.query_raw
+    return [raw_by_norm.get(n, n) for n in norms]
 
 
 @app.get("/highlights", response_model=list[ProductGroupModel])
@@ -1047,9 +1105,96 @@ ELECTRONICS_SHOWCASE = [
 ]
 
 
+# Termos de reserva por categoria — completam as seções da Home quando não há buscas
+# reais suficientes. Vários por categoria porque o catálogo muda (termo sem oferta PY é
+# pulado). `keywords` servem pra adivinhar a categoria de uma busca do usuário.
+SHOWCASE_CATEGORIES: dict[str, dict[str, list[str]]] = {
+    "celulares": {
+        "keywords": ["iphone", "galaxy", "redmi", "xiaomi", "poco", "motorola", "moto", "celular", "smartphone", "realme", "pixel", "infinix"],
+        "terms": ["iPhone 16", "Galaxy S25", "iPhone 17 Pro Max", "Redmi Note 14", "Poco X7", "Motorola Edge"],
+    },
+    "audio": {
+        "keywords": ["jbl", "airpods", "fone", "headphone", "headset", "caixa", "soundcore", "buds", "earbuds", "sony wh"],
+        "terms": ["JBL Flip", "JBL Charge", "AirPods Pro", "Galaxy Buds", "Sony WH-1000XM5"],
+    },
+    "games": {
+        "keywords": ["playstation", "ps5", "ps4", "xbox", "nintendo", "switch", "dualsense", "controle", "joystick"],
+        "terms": ["PlayStation 5", "Nintendo Switch 2", "Xbox Series X", "DualSense"],
+    },
+    "hardware": {
+        "keywords": ["rtx", "gtx", "radeon", "ryzen", "intel", "ssd", "nvme", "placa", "memoria", "ram", "monitor", "gpu", "processador"],
+        "terms": ["Ryzen 7", "SSD 1TB", "Monitor Gamer", "RTX 5070"],
+    },
+    "notebooks": {
+        "keywords": ["macbook", "notebook", "laptop", "ipad", "tablet", "tab", "kindle"],
+        "terms": ["MacBook Air", "Galaxy Tab", "Notebook Gamer"],
+    },
+    "wearables": {
+        "keywords": ["watch", "relogio", "smartwatch", "band", "amazfit", "garmin"],
+        "terms": ["Xiaomi Smart Band", "Apple Watch", "Galaxy Watch", "Amazfit"],
+    },
+    "cameras": {
+        "keywords": ["drone", "dji", "gopro", "camera", "canon", "nikon", "osmo", "insta360"],
+        "terms": ["Drone DJI Mini", "GoPro Hero", "DJI Osmo"],
+    },
+    "perfumes": {
+        "keywords": ["perfume", "parfum", "eau", "edp", "edt", "colonia", "dior", "lattafa", "carolina herrera", "paco rabanne", "sauvage"],
+        "terms": ["Dior Sauvage", "Carolina Herrera 212", "Paco Rabanne", "Lattafa"],
+    },
+}
+
+SHOWCASE_MAX_ATTEMPTS = 30  # teto de termos testados por request (cada um é uma ida ao catálogo)
+
+
+def _guess_categories(terms: list[str]) -> list[str]:
+    """Categorias das buscas do usuário, da mais frequente pra menos."""
+    hits: dict[str, int] = {}
+    for term in terms:
+        norm = f" {normalize_text(term)} "
+        for cat, cfg in SHOWCASE_CATEGORIES.items():
+            if any(f" {kw} " in norm or norm.strip().startswith(kw) for kw in cfg["keywords"]):
+                hits[cat] = hits.get(cat, 0) + 1
+    return sorted(hits, key=lambda c: -hits[c])
+
+
+def _fill_terms(preferred: list[str]) -> list[str]:
+    """Termos de reserva: primeiro os das categorias preferidas, depois um de cada
+    categoria em rodízio. Embaralha dentro da categoria pra Home variar entre visitas."""
+    pools = {cat: random.sample(cfg["terms"], len(cfg["terms"])) for cat, cfg in SHOWCASE_CATEGORIES.items()}
+    out: list[str] = []
+    for cat in preferred:
+        out.extend(pools.pop(cat, []))
+    others = list(pools)
+    random.shuffle(others)
+    while any(pools[c] for c in others):
+        for c in others:
+            if pools[c]:
+                out.append(pools[c].pop(0))
+    return out
+
+
 class ShowcaseItem(BaseModel):
     query: str
     group: ProductGroupModel
+    suggested: bool = False  # True = veio do preenchimento, não de busca real
+
+
+_SHOWCASE_CACHE: dict[str, tuple[float, ProductGroupModel | None]] = {}
+SHOWCASE_CACHE_TTL_S = 1800
+
+
+def _showcase_group_cached(db: Session, query: str, now: datetime) -> ProductGroupModel | None:
+    """_showcase_group com cache em memória (inclui "não achou") — a Home pede várias
+    seções a cada visita e termo de perfume chega a 2s no catálogo."""
+    key = normalize_text(query)
+    hit = _SHOWCASE_CACHE.get(key)
+    if hit and time.monotonic() - hit[0] < SHOWCASE_CACHE_TTL_S:
+        group = hit[1]
+    else:
+        group = _showcase_group(db, query, now)
+        _SHOWCASE_CACHE[key] = (time.monotonic(), group)
+    # cópia: _enrich_with_seller_data altera o grupo
+    return group.model_copy(deep=True) if group else None
 
 
 def _showcase_group(db: Session, query: str, now: datetime) -> ProductGroupModel | None:
@@ -1084,20 +1229,25 @@ def _showcase_group(db: Session, query: str, now: datetime) -> ProductGroupModel
 def showcase(
     q: list[str] = Query(default=[], max_length=12, description="Termos; vazio = vitrine de eletrônicos"),
     limit: int = Query(default=8, ge=1, le=12),
+    fill: bool = Query(default=False, description="Completa até `limit` com sugestões por categoria"),
     db: Session = Depends(get_db),
 ) -> list[ShowcaseItem]:
     """Um card por termo, montado do catálogo. Não grava SearchCache — senão a própria
-    Home viraria "Mais pesquisados" de si mesma."""
+    Home viraria "Mais pesquisados" de si mesma. Com fill=true, o que faltar vem de
+    SHOWCASE_CATEGORIES: primeiro categorias parecidas com os termos, depois uma de cada."""
     now = datetime.now(timezone.utc)
-    terms = [t.strip()[:200] for t in q if t.strip()] or ELECTRONICS_SHOWCASE
+    given = [t.strip()[:200] for t in q if t.strip()]
+    terms = [(t, False) for t in (given or ([] if fill else ELECTRONICS_SHOWCASE))]
+    if fill:
+        terms += [(t, True) for t in _fill_terms(_guess_categories(given))]
     result: list[ShowcaseItem] = []
     seen: set[str] = set()
-    for term in terms:
-        group = _showcase_group(db, term, now)
+    for term, suggested in terms[:len(given) + SHOWCASE_MAX_ATTEMPTS]:
+        group = _showcase_group_cached(db, term, now)
         if not group or group.product_key in seen:
             continue
         seen.add(group.product_key)
-        result.append(ShowcaseItem(query=term, group=group))
+        result.append(ShowcaseItem(query=term, group=group, suggested=suggested))
         if len(result) >= limit:
             break
     try:
@@ -1730,6 +1880,360 @@ def get_cart_coupons(
                     product_title=item.title,
                 ))
     return out
+
+
+# ── Listas de compras salvas ──────────────────────────────────────────────────
+# A lista ativa É o carrinho (UserPrefs.active_list_id): enquanto ativa, quem a vê
+# (dono ou convidado) vê o carrinho ao vivo. Ao trocar de lista, o carrinho é gravado
+# na lista que estava ativa e substituído pelos itens da nova.
+
+_LIST_ITEM_FIELDS = (
+    "offer_url", "source", "country", "store_name", "title", "price_amount",
+    "price_currency", "image_url", "store_id", "quantity", "br_price_brl", "br_store",
+    "br_url", "added_at",
+)
+
+
+def _get_or_create_prefs(db: Session, user_id: int) -> UserPrefs:
+    prefs = db.get(UserPrefs, user_id)
+    if not prefs:
+        prefs = UserPrefs(user_id=user_id, show_margin=False, hide_beta_notice=False)
+        db.add(prefs)
+        db.flush()
+    return prefs
+
+
+def _active_list_id(db: Session, user_id: int) -> int | None:
+    prefs = db.get(UserPrefs, user_id)
+    return prefs.active_list_id if prefs else None
+
+
+def _cart_rows(db: Session, user_id: int) -> list[UserCartItem]:
+    return (
+        db.query(UserCartItem)
+        .filter(UserCartItem.user_id == user_id)
+        .order_by(UserCartItem.added_at.desc())
+        .all()
+    )
+
+
+def _snapshot_cart_into(db: Session, lst: ShoppingList, user_id: int, now: datetime) -> None:
+    db.query(ShoppingListItem).filter(ShoppingListItem.list_id == lst.id).delete()
+    for row in _cart_rows(db, user_id):
+        db.add(ShoppingListItem(list_id=lst.id, **{f: getattr(row, f) for f in _LIST_ITEM_FIELDS}))
+    lst.updated_at = now
+
+
+def _load_list_into_cart(db: Session, lst: ShoppingList, user_id: int) -> None:
+    db.query(UserCartItem).filter(UserCartItem.user_id == user_id).delete()
+    items = db.query(ShoppingListItem).filter(ShoppingListItem.list_id == lst.id).all()
+    for item in items:
+        db.add(UserCartItem(user_id=user_id, **{f: getattr(item, f) for f in _LIST_ITEM_FIELDS}))
+
+
+def _list_items(db: Session, lst: ShoppingList) -> list:
+    """Itens da lista: carrinho do dono se ela está ativa, senão a fotografia salva."""
+    if _active_list_id(db, lst.owner_id) == lst.id:
+        return _cart_rows(db, lst.owner_id)
+    return (
+        db.query(ShoppingListItem)
+        .filter(ShoppingListItem.list_id == lst.id)
+        .order_by(ShoppingListItem.added_at.desc())
+        .all()
+    )
+
+
+def _list_updated_at(db: Session, lst: ShoppingList, items: list) -> datetime:
+    if _active_list_id(db, lst.owner_id) == lst.id and items:
+        return max([lst.updated_at, *(i.added_at for i in items)])
+    return lst.updated_at
+
+
+def _owned_list(db: Session, list_id: int, user: User) -> ShoppingList:
+    lst = db.get(ShoppingList, list_id)
+    if not lst or lst.owner_id != user.id:
+        raise HTTPException(status_code=404, detail="Lista não encontrada.")
+    return lst
+
+
+def _user_display_name(user: User | None) -> str:
+    if not user:
+        return "?"
+    return user.name or user.username or user.email
+
+
+def _list_summary(db: Session, lst: ShoppingList, active_id: int | None) -> ShoppingListSummary:
+    items = _list_items(db, lst)
+    shares = (
+        db.query(ShoppingListShare, User)
+        .join(User, User.id == ShoppingListShare.user_id)
+        .filter(ShoppingListShare.list_id == lst.id)
+        .order_by(ShoppingListShare.created_at)
+        .all()
+    )
+    return ShoppingListSummary(
+        id=lst.id,
+        name=lst.name,
+        item_count=len(items),
+        updated_at=_list_updated_at(db, lst, items),
+        is_active=lst.id == active_id,
+        shared_with=[ShoppingListShareInfo(user_id=u.id, email=u.email) for _, u in shares],
+    )
+
+
+def _guard_unsaved_cart(db: Session, user_id: int) -> None:
+    """Carrinho avulso (nenhuma lista ativa) com itens seria apagado na troca."""
+    if _active_list_id(db, user_id) is None and _cart_rows(db, user_id):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Seu carrinho atual não está salvo. Salve como lista antes de trocar.",
+        )
+
+
+@app.get("/lists", response_model=list[ShoppingListSummary])
+def list_shopping_lists(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> list[ShoppingListSummary]:
+    active_id = _active_list_id(db, current_user.id)
+    lists = (
+        db.query(ShoppingList)
+        .filter(ShoppingList.owner_id == current_user.id)
+        .order_by(ShoppingList.created_at)
+        .all()
+    )
+    return [_list_summary(db, lst, active_id) for lst in lists]
+
+
+@app.post("/lists", response_model=ShoppingListSummary, status_code=status.HTTP_201_CREATED)
+def create_shopping_list(
+    body: ShoppingListCreate,
+    empty: bool = Query(default=False, description="true = lista nova vazia; false = salva o carrinho atual"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ShoppingListSummary:
+    if db.query(ShoppingList).filter(ShoppingList.owner_id == current_user.id).count() >= 30:
+        raise HTTPException(status_code=400, detail="Limite de 30 listas atingido.")
+    if empty:
+        _guard_unsaved_cart(db, current_user.id)
+    now = datetime.now(timezone.utc)
+    prefs = _get_or_create_prefs(db, current_user.id)
+    # a lista que estava ativa guarda o carrinho como está
+    if prefs.active_list_id:
+        old = db.get(ShoppingList, prefs.active_list_id)
+        if old:
+            _snapshot_cart_into(db, old, current_user.id, now)
+    lst = ShoppingList(owner_id=current_user.id, name=body.name.strip(), created_at=now, updated_at=now)
+    db.add(lst)
+    db.flush()
+    if empty:
+        db.query(UserCartItem).filter(UserCartItem.user_id == current_user.id).delete()
+    prefs.active_list_id = lst.id
+    db.commit()
+    return _list_summary(db, lst, lst.id)
+
+
+@app.post("/lists/{list_id}/activate", response_model=ShoppingListSummary)
+def activate_shopping_list(
+    list_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ShoppingListSummary:
+    lst = _owned_list(db, list_id, current_user)
+    prefs = _get_or_create_prefs(db, current_user.id)
+    if prefs.active_list_id == lst.id:
+        return _list_summary(db, lst, lst.id)
+    _guard_unsaved_cart(db, current_user.id)
+    now = datetime.now(timezone.utc)
+    if prefs.active_list_id:
+        old = db.get(ShoppingList, prefs.active_list_id)
+        if old:
+            _snapshot_cart_into(db, old, current_user.id, now)
+    _load_list_into_cart(db, lst, current_user.id)
+    prefs.active_list_id = lst.id
+    db.commit()
+    return _list_summary(db, lst, lst.id)
+
+
+@app.patch("/lists/{list_id}", response_model=ShoppingListSummary)
+def rename_shopping_list(
+    list_id: int,
+    body: ShoppingListRename,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ShoppingListSummary:
+    lst = _owned_list(db, list_id, current_user)
+    lst.name = body.name.strip()
+    db.commit()
+    return _list_summary(db, lst, _active_list_id(db, current_user.id))
+
+
+@app.delete("/lists/{list_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_shopping_list(
+    list_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> None:
+    """Apaga a lista salva. Se era a ativa, o carrinho continua (vira avulso)."""
+    lst = _owned_list(db, list_id, current_user)
+    prefs = db.get(UserPrefs, current_user.id)
+    if prefs and prefs.active_list_id == lst.id:
+        prefs.active_list_id = None
+    _delete_list_rows(db, lst)
+    db.commit()
+
+
+def _delete_list_rows(db: Session, lst: ShoppingList) -> None:
+    db.query(ShoppingListShare).filter(ShoppingListShare.list_id == lst.id).delete()
+    db.query(ShoppingListItem).filter(ShoppingListItem.list_id == lst.id).delete()
+    db.delete(lst)
+
+
+@app.post("/lists/{list_id}/shares", response_model=ShoppingListSummary)
+@limiter.limit("10/minute")
+def share_shopping_list(
+    request: Request,
+    list_id: int,
+    body: ShoppingListShareCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ShoppingListSummary:
+    lst = _owned_list(db, list_id, current_user)
+    email = body.email.strip()
+    email_bi = blind_index(email)
+    target = (
+        db.query(User).filter(User.email_blind == email_bi).first()
+        if email_bi else db.query(User).filter(func.lower(User.email) == email.lower()).first()
+    )
+    if not target:
+        raise HTTPException(status_code=404, detail="Nenhuma conta com este e-mail. A pessoa precisa se cadastrar antes.")
+    if target.id == current_user.id:
+        raise HTTPException(status_code=400, detail="Essa lista já é sua.")
+    exists = (
+        db.query(ShoppingListShare)
+        .filter(ShoppingListShare.list_id == lst.id, ShoppingListShare.user_id == target.id)
+        .first()
+    )
+    if not exists:
+        db.add(ShoppingListShare(list_id=lst.id, user_id=target.id, created_at=datetime.now(timezone.utc)))
+        db.commit()
+    return _list_summary(db, lst, _active_list_id(db, current_user.id))
+
+
+@app.delete("/lists/{list_id}/shares/{user_id}", response_model=ShoppingListSummary)
+def unshare_shopping_list(
+    list_id: int,
+    user_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ShoppingListSummary:
+    lst = _owned_list(db, list_id, current_user)
+    db.query(ShoppingListShare).filter(
+        ShoppingListShare.list_id == lst.id, ShoppingListShare.user_id == user_id,
+    ).delete()
+    db.commit()
+    return _list_summary(db, lst, _active_list_id(db, current_user.id))
+
+
+@app.get("/lists/shared", response_model=list[SharedShoppingListSummary])
+def shared_shopping_lists(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> list[SharedShoppingListSummary]:
+    rows = (
+        db.query(ShoppingList, User)
+        .join(ShoppingListShare, ShoppingListShare.list_id == ShoppingList.id)
+        .join(User, User.id == ShoppingList.owner_id)
+        .filter(ShoppingListShare.user_id == current_user.id)
+        .order_by(ShoppingListShare.created_at.desc())
+        .all()
+    )
+    out = []
+    for lst, owner in rows:
+        items = _list_items(db, lst)
+        out.append(SharedShoppingListSummary(
+            id=lst.id, name=lst.name, owner_name=_user_display_name(owner),
+            item_count=len(items), updated_at=_list_updated_at(db, lst, items),
+        ))
+    return out
+
+
+@app.delete("/lists/shared/{list_id}", status_code=status.HTTP_204_NO_CONTENT)
+def leave_shared_shopping_list(
+    list_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> None:
+    """Convidado tira da própria conta uma lista que compartilharam com ele."""
+    db.query(ShoppingListShare).filter(
+        ShoppingListShare.list_id == list_id, ShoppingListShare.user_id == current_user.id,
+    ).delete()
+    db.commit()
+
+
+def _readable_list(db: Session, list_id: int, user: User) -> ShoppingList:
+    lst = db.get(ShoppingList, list_id)
+    if lst and (lst.owner_id == user.id or db.query(ShoppingListShare).filter(
+        ShoppingListShare.list_id == lst.id, ShoppingListShare.user_id == user.id,
+    ).first()):
+        return lst
+    raise HTTPException(status_code=404, detail="Lista não encontrada.")
+
+
+@app.get("/lists/{list_id}", response_model=ShoppingListDetail)
+def get_shopping_list(
+    list_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ShoppingListDetail:
+    lst = _readable_list(db, list_id, current_user)
+    items = _list_items(db, lst)
+    return ShoppingListDetail(
+        id=lst.id,
+        name=lst.name,
+        owner_name=_user_display_name(db.get(User, lst.owner_id)),
+        is_owner=lst.owner_id == current_user.id,
+        updated_at=_list_updated_at(db, lst, items),
+        items=[_enrich_cart_item(i, db) for i in items],
+    )
+
+
+@app.post("/lists/{list_id}/copy-to-cart")
+def copy_shopping_list_to_cart(
+    list_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict[str, int]:
+    """Copia os itens de uma lista (normalmente compartilhada) pro carrinho de quem pede.
+    Item que já está no carrinho fica como está."""
+    lst = _readable_list(db, list_id, current_user)
+    in_cart = {r.offer_url for r in _cart_rows(db, current_user.id)}
+    added = 0
+    for item in _list_items(db, lst):
+        if item.offer_url in in_cart:
+            continue
+        db.add(UserCartItem(user_id=current_user.id, **{f: getattr(item, f) for f in _LIST_ITEM_FIELDS}))
+        in_cart.add(item.offer_url)
+        added += 1
+    db.commit()
+    return {"added": added}
+
+
+# ── Lojas PY (pré-filtro de busca) ────────────────────────────────────────────
+
+@app.get("/stores/py-names")
+def py_store_names(db: Session = Depends(get_db)) -> list[str]:
+    """Nomes das lojas do Paraguai como aparecem nas ofertas do catálogo — os mesmos
+    valores do filtro "Loja" da busca, pra o pré-filtro casar exatamente."""
+    now = datetime.now(timezone.utc)
+    rows = (
+        db.query(ProductOffer.store, func.count(ProductOffer.id))
+        .filter(ProductOffer.country == "py", ProductOffer.expires_at > now)
+        .group_by(ProductOffer.store)
+        .all()
+    )
+    names = [name for name, _ in rows if is_real_store(name)]
+    return sorted(names, key=lambda n: n.lower())
 
 
 # ── Favorites ────────────────────────────────────────────────────────────────

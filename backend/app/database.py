@@ -134,6 +134,17 @@ def init_db() -> None:
         except Exception:
             conn.rollback()
 
+        # Listas de compras salvas + pré-filtro de lojas
+        for col_sql in [
+            "ALTER TABLE user_prefs ADD COLUMN active_list_id INTEGER",
+            "ALTER TABLE user_prefs ADD COLUMN preferred_stores JSONB",
+        ]:
+            try:
+                conn.execute(text(col_sql))
+                conn.commit()
+            except Exception:
+                conn.rollback()
+
         # Add hide_beta_notice column to user_prefs
         try:
             conn.execute(text("ALTER TABLE user_prefs ADD COLUMN hide_beta_notice BOOLEAN NOT NULL DEFAULT FALSE"))

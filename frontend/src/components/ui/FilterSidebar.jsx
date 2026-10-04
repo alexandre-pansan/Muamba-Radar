@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 
 /**
  * Barra lateral de filtros da busca (layout do protótipo): grupos de checkbox,
@@ -41,28 +41,62 @@ export default function FilterSidebar({
       )}
 
       {sections.map(section => (
-        <div className="filter-group" key={section.key}>
-          <h4 className="filter-group__title">{section.title}</h4>
-          {section.options.map(opt => {
-            const checked = selected[section.key]?.has(opt.value) || false
-            return (
-              <label className={`filter-checkbox${opt.count === 0 && !checked ? ' is-empty' : ''}`} key={opt.value}>
-                <input
-                  type="checkbox"
-                  checked={checked}
-                  onChange={() => onToggle?.(section.key, opt.value)}
-                />
-                <span className="filter-checkbox__label">{opt.label}</span>
-                {opt.count != null && <span className="filter-checkbox__count">{opt.count}</span>}
-              </label>
-            )
-          })}
-        </div>
+        <FilterGroup key={section.key} section={section} selected={selected[section.key]} onToggle={onToggle} />
       ))}
 
       <button type="button" className="filter-apply-btn" onClick={onCloseMobile}>
         Ver {resultCount ?? ''} resultado{resultCount === 1 ? '' : 's'}
       </button>
     </aside>
+  )
+}
+
+// Acima disso o grupo ganha campo de busca e rolagem própria
+const SEARCHABLE_MIN = 8
+
+function FilterGroup({ section, selected, onToggle }) {
+  const [query, setQuery] = useState('')
+  const searchable = section.options.length > SEARCHABLE_MIN
+  const needle = query.trim().toLowerCase()
+  const isChecked = opt => selected?.has(opt.value) || false
+  // marcados ficam no topo — numa lista longa não somem lá embaixo
+  const options = section.options
+    .filter(opt => !needle || isChecked(opt) || String(opt.label).toLowerCase().includes(needle))
+    .sort((a, b) => isChecked(b) - isChecked(a))
+
+  return (
+    <div className="filter-group">
+      <h4 className="filter-group__title">
+        {section.title}
+        {searchable && <span className="filter-group__total">{section.options.length}</span>}
+      </h4>
+      {searchable && (
+        <input
+          type="search"
+          className="filter-group__search"
+          placeholder={`Buscar ${section.title.toLowerCase().replace(/\s*\(.*\)$/, '')}...`}
+          aria-label={`Buscar em ${section.title}`}
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+        />
+      )}
+      <div className={searchable ? 'filter-group__options is-scroll' : 'filter-group__options'}>
+        {options.map(opt => {
+          const checked = isChecked(opt)
+          return (
+            <label className={`filter-checkbox${opt.count === 0 && !checked ? ' is-empty' : ''}`} key={opt.value}>
+              <input
+                type="checkbox"
+                checked={checked}
+                onChange={() => onToggle?.(section.key, opt.value)}
+              />
+              <span className="filter-checkbox__label" title={String(opt.label)}>{opt.label}</span>
+              {opt.count != null && <span className="filter-checkbox__count">{opt.count}</span>}
+            </label>
+          )
+        })}
+        {options.length === 0 && <p className="filter-group__none">Nada encontrado.</p>}
+      </div>
+    </div>
   )
 }

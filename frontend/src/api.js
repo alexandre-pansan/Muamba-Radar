@@ -201,8 +201,9 @@ export async function apiFetchHighlights(limit = 8) {
 
 /** Cards montados só do catálogo (sem raspagem ao vivo). Sem termos = vitrine de
  * eletrônicos definida no backend. Retorna [{ query, group }]. */
-export async function apiFetchShowcase(queries = [], limit = 8) {
+export async function apiFetchShowcase(queries = [], limit = 8, { fill = false } = {}) {
   const params = new URLSearchParams({ limit: String(limit) })
+  if (fill) params.set('fill', 'true')
   for (const q of queries) params.append('q', q)
   const res = await fetch(`${getApiBase()}/showcase?${params}`)
   if (!res.ok) return []
@@ -402,6 +403,45 @@ export async function apiFetchCartCoupons() {
   const res = await fetchWithRefresh(`${getApiBase()}/cart/coupons`, {
     headers: { Authorization: `Bearer ${getToken()}` },
   })
+  if (!res.ok) return []
+  return res.json()
+}
+
+// ── Listas de compras salvas ─────────────────────────────────────────────────
+
+async function listsRequest(path, { method = 'GET', body } = {}) {
+  const res = await fetchWithRefresh(`${getApiBase()}${path}`, {
+    method,
+    headers: {
+      Authorization: `Bearer ${getToken()}`,
+      ...(body ? { 'Content-Type': 'application/json' } : {}),
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(typeof err.detail === 'string' ? err.detail : `HTTP ${res.status}`)
+  }
+  return res.status === 204 ? null : res.json()
+}
+
+export const apiFetchLists = () => listsRequest('/lists')
+export const apiFetchSharedLists = () => listsRequest('/lists/shared')
+export const apiFetchList = id => listsRequest(`/lists/${id}`)
+/** empty=false salva o carrinho atual como lista nova; true começa uma lista vazia. */
+export const apiCreateList = (name, empty = false) =>
+  listsRequest(`/lists${empty ? '?empty=true' : ''}`, { method: 'POST', body: { name } })
+export const apiActivateList = id => listsRequest(`/lists/${id}/activate`, { method: 'POST' })
+export const apiRenameList = (id, name) => listsRequest(`/lists/${id}`, { method: 'PATCH', body: { name } })
+export const apiDeleteList = id => listsRequest(`/lists/${id}`, { method: 'DELETE' })
+export const apiShareList = (id, email) => listsRequest(`/lists/${id}/shares`, { method: 'POST', body: { email } })
+export const apiUnshareList = (id, userId) => listsRequest(`/lists/${id}/shares/${userId}`, { method: 'DELETE' })
+export const apiLeaveSharedList = id => listsRequest(`/lists/shared/${id}`, { method: 'DELETE' })
+export const apiCopyListToCart = id => listsRequest(`/lists/${id}/copy-to-cart`, { method: 'POST' })
+
+/** Lojas do Paraguai com os nomes que aparecem nas ofertas (pré-filtro de busca). */
+export async function apiFetchPyStoreNames() {
+  const res = await fetch(`${getApiBase()}/stores/py-names`)
   if (!res.ok) return []
   return res.json()
 }

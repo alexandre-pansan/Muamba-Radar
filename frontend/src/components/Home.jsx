@@ -33,17 +33,18 @@ function economyPct(group) {
   return Math.round(((br.price.amount_brl - py.price.amount_brl) / br.price.amount_brl) * 100)
 }
 
-export default function Home({ onSearch, recentSearches, onRecentClick, targetMargin, showMargin, onOpenOffers, onNeedAuth, onReport }) {
+export default function Home({ onSearch, recentSearches, targetMargin, showMargin, onOpenOffers, onNeedAuth, onReport }) {
   const [electronics, setElectronics] = useState([]) // [{ query, group }]
   const [loadingElectronics, setLoadingElectronics] = useState(true)
   const [trending, setTrending] = useState([]) // [{ query, group }]
   const [loadingTrending, setLoadingTrending] = useState(true)
+  const [forYou, setForYou] = useState([]) // [{ query, group }] — produtos das buscas recentes
   const [highlighted, setHighlighted] = useState([]) // [group]
   const [loadingHighlights, setLoadingHighlights] = useState(true)
 
   useEffect(() => {
     let cancelled = false
-    apiFetchShowcase([], 8)
+    apiFetchShowcase([], 12) // 12: sobra depois de tirar o que já apareceu acima
       .then(items => { if (!cancelled) setElectronics(items) })
       .catch(() => {})
       .finally(() => { if (!cancelled) setLoadingElectronics(false) })
@@ -52,13 +53,26 @@ export default function Home({ onSearch, recentSearches, onRecentClick, targetMa
 
   useEffect(() => {
     let cancelled = false
+    // fill: sem buscas reais suficientes, o backend completa com um produto de cada categoria
     apiFetchTrending(8)
-      .then(queries => (queries.length ? apiFetchShowcase(queries, 8) : []))
+      .then(queries => apiFetchShowcase(queries, 8, { fill: true }))
       .then(items => { if (!cancelled) setTrending(items) })
       .catch(() => {})
       .finally(() => { if (!cancelled) setLoadingTrending(false) })
     return () => { cancelled = true }
   }, [])
+
+  // Chave estável: recentSearches vira um array novo a cada render do App
+  const recentKey = (recentSearches || []).slice(0, 12).join('\n')
+  useEffect(() => {
+    let cancelled = false
+    // Pede 12 pra sobrar depois de tirar o que já está em "Mais pesquisados".
+    // fill: completa com a mesma categoria das buscas; sem buscas, vira sugestões gerais.
+    apiFetchShowcase(recentKey ? recentKey.split('\n') : [], 12, { fill: true })
+      .then(items => { if (!cancelled) setForYou(items) })
+      .catch(() => { if (!cancelled) setForYou([]) })
+    return () => { cancelled = true }
+  }, [recentKey])
 
   useEffect(() => {
     let cancelled = false
@@ -68,6 +82,14 @@ export default function Home({ onSearch, recentSearches, onRecentClick, targetMa
       .finally(() => { if (!cancelled) setLoadingHighlights(false) })
     return () => { cancelled = true }
   }, [])
+
+  const trendingKeys = new Set(trending.map(({ group }) => group.product_key))
+  const forYouShown = loadingTrending
+    ? []
+    : forYou.filter(({ group }) => !trendingKeys.has(group.product_key)).slice(0, 8)
+
+  const shownAbove = new Set([...trendingKeys, ...forYouShown.map(({ group }) => group.product_key)])
+  const electronicsShown = electronics.filter(({ group }) => !shownAbove.has(group.product_key)).slice(0, 8)
 
   // Real "maiores economias" — reordered from the same already-fetched real pools
   // (Mais pesquisados + Eletrônicos), not a separate fabricated ranking and not a claim
@@ -132,21 +154,11 @@ export default function Home({ onSearch, recentSearches, onRecentClick, targetMa
         </section>
       )}
 
-      {recentSearches?.length > 0 && (
+      {forYouShown.length > 0 && (
         <section className="home-section">
-          <h2 className="home-section-title">🕑 Baseado nas suas buscas</h2>
-          <Carousel ariaLabel="Buscas recentes">
-            {recentSearches.map((q, i) => (
-              <button
-                key={`${q}-${i}`}
-                type="button"
-                className="home-recent-card"
-                onClick={() => onRecentClick(q)}
-              >
-                <span className="home-recent-icon">🔍</span>
-                <span className="home-recent-query">{q}</span>
-              </button>
-            ))}
+          <h2 className="home-section-title">{recentKey ? '🕑 Baseado nas suas buscas' : '✨ Sugestões para você'}</h2>
+          <Carousel ariaLabel={recentKey ? 'Produtos baseados nas suas buscas' : 'Sugestões de produtos'}>
+            {forYouShown.map(({ group }, i) => renderProductCard(group, i))}
           </Carousel>
         </section>
       )}
@@ -164,11 +176,11 @@ export default function Home({ onSearch, recentSearches, onRecentClick, targetMa
         <h2 className="home-section-title">📱 Eletrônicos em destaque</h2>
         {loadingElectronics ? (
           <p className="home-section-loading">Carregando…</p>
-        ) : electronics.length === 0 ? (
+        ) : electronicsShown.length === 0 ? (
           <p className="home-section-loading">Não foi possível carregar sugestões agora.</p>
         ) : (
           <Carousel ariaLabel="Eletrônicos em destaque">
-            {electronics.map(({ group }, i) => renderProductCard(group, i))}
+            {electronicsShown.map(({ group }, i) => renderProductCard(group, i))}
           </Carousel>
         )}
       </section>
