@@ -6667,6 +6667,14 @@ a.cart-item__price-br:hover { text-decoration: underline; }
   margin: 0 0 var(--space-md);
 }
 
+/* Esqueleto de seção da home: mesma largura/espaço dos cards do carrossel */
+.home-skeleton-row {
+  display: flex;
+  gap: var(--space-md);
+  overflow: hidden;
+}
+.home-skeleton-row > .skeleton-card { flex: 0 0 260px; }
+
 .home-section-loading {
   color: var(--muted);
   font-size: var(--font-size-sm);

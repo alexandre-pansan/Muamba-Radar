@@ -33,12 +33,36 @@ function economyPct(group) {
   return Math.round(((br.price.amount_brl - py.price.amount_brl) / br.price.amount_brl) * 100)
 }
 
+/** Fileira de cards-esqueleto (mesmo brilho da busca) enquanto a seção carrega. */
+function SectionSkeleton({ label }) {
+  return (
+    <div className="home-skeleton-row" role="status" aria-busy="true" aria-label={`Carregando ${label}`}>
+      {Array.from({ length: 5 }, (_, i) => (
+        <div className="skeleton-card" key={i} aria-hidden="true">
+          <div className="skeleton skeleton-image" />
+          <div className="skeleton-card__body">
+            <div className="skeleton skeleton-text skeleton-text--short" />
+            <div className="skeleton skeleton-text skeleton-text--title" />
+            <div className="skeleton skeleton-chip" />
+            <div className="skeleton-row">
+              <div className="skeleton skeleton-text skeleton-text--short" />
+              <div className="skeleton skeleton-text skeleton-text--price" />
+            </div>
+            <div className="skeleton skeleton-button" />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default function Home({ onSearch, recentSearches, targetMargin, showMargin, onOpenOffers, onNeedAuth, onReport }) {
   const [electronics, setElectronics] = useState([]) // [{ query, group }]
   const [loadingElectronics, setLoadingElectronics] = useState(true)
   const [trending, setTrending] = useState([]) // [{ query, group }]
   const [loadingTrending, setLoadingTrending] = useState(true)
   const [forYou, setForYou] = useState([]) // [{ query, group }] — produtos das buscas recentes
+  const [loadingForYou, setLoadingForYou] = useState(true)
   const [highlighted, setHighlighted] = useState([]) // [group]
   const [loadingHighlights, setLoadingHighlights] = useState(true)
 
@@ -71,6 +95,7 @@ export default function Home({ onSearch, recentSearches, targetMargin, showMargi
     apiFetchShowcase(recentKey ? recentKey.split('\n') : [], 12, { fill: true })
       .then(items => { if (!cancelled) setForYou(items) })
       .catch(() => { if (!cancelled) setForYou([]) })
+      .finally(() => { if (!cancelled) setLoadingForYou(false) })
     return () => { cancelled = true }
   }, [recentKey])
 
@@ -84,9 +109,9 @@ export default function Home({ onSearch, recentSearches, targetMargin, showMargi
   }, [])
 
   const trendingKeys = new Set(trending.map(({ group }) => group.product_key))
-  const forYouShown = loadingTrending
-    ? []
-    : forYou.filter(({ group }) => !trendingKeys.has(group.product_key)).slice(0, 8)
+  // Não espera "Mais pesquisados" (termo amplo leva segundos na 1ª carga): mostra já e
+  // tira os repetidos quando ele chegar
+  const forYouShown = forYou.filter(({ group }) => !trendingKeys.has(group.product_key)).slice(0, 8)
 
   const shownAbove = new Set([...trendingKeys, ...forYouShown.map(({ group }) => group.product_key)])
   const electronicsShown = electronics.filter(({ group }) => !shownAbove.has(group.product_key)).slice(0, 8)
@@ -145,37 +170,49 @@ export default function Home({ onSearch, recentSearches, targetMargin, showMargi
     <div className="home-page">
       <HeroBanner slides={slides} />
 
-      {!loadingHighlights && highlighted.length > 0 && (
+      {(loadingHighlights || highlighted.length > 0) && (
         <section className="home-section">
           <h2 className="home-section-title">⭐ Destaques Recomendados</h2>
-          <Carousel ariaLabel="Produtos em destaque">
-            {highlighted.map((group, i) => renderProductCard(group, i))}
-          </Carousel>
+          {loadingHighlights ? (
+            <SectionSkeleton label="destaques" />
+          ) : (
+            <Carousel ariaLabel="Produtos em destaque">
+              {highlighted.map((group, i) => renderProductCard(group, i))}
+            </Carousel>
+          )}
         </section>
       )}
 
-      {forYouShown.length > 0 && (
+      {(loadingForYou || forYouShown.length > 0) && (
         <section className="home-section">
           <h2 className="home-section-title">{recentKey ? '🕑 Baseado nas suas buscas' : '✨ Sugestões para você'}</h2>
-          <Carousel ariaLabel={recentKey ? 'Produtos baseados nas suas buscas' : 'Sugestões de produtos'}>
-            {forYouShown.map(({ group }, i) => renderProductCard(group, i))}
-          </Carousel>
+          {loadingForYou ? (
+            <SectionSkeleton label="sugestões" />
+          ) : (
+            <Carousel ariaLabel={recentKey ? 'Produtos baseados nas suas buscas' : 'Sugestões de produtos'}>
+              {forYouShown.map(({ group }, i) => renderProductCard(group, i))}
+            </Carousel>
+          )}
         </section>
       )}
 
-      {!loadingTrending && trending.length > 0 && (
+      {(loadingTrending || trending.length > 0) && (
         <section className="home-section">
           <h2 className="home-section-title">🔥 Mais pesquisados</h2>
-          <Carousel ariaLabel="Produtos mais pesquisados">
-            {trending.map(({ group }, i) => renderProductCard(group, i))}
-          </Carousel>
+          {loadingTrending ? (
+            <SectionSkeleton label="mais pesquisados" />
+          ) : (
+            <Carousel ariaLabel="Produtos mais pesquisados">
+              {trending.map(({ group }, i) => renderProductCard(group, i))}
+            </Carousel>
+          )}
         </section>
       )}
 
       <section className="home-section">
         <h2 className="home-section-title">📱 Eletrônicos em destaque</h2>
         {loadingElectronics ? (
-          <p className="home-section-loading">Carregando…</p>
+          <SectionSkeleton label="eletrônicos" />
         ) : electronicsShown.length === 0 ? (
           <p className="home-section-loading">Não foi possível carregar sugestões agora.</p>
         ) : (
@@ -185,12 +222,16 @@ export default function Home({ onSearch, recentSearches, targetMargin, showMargi
         )}
       </section>
 
-      {!loadingElectronics && !loadingTrending && deals.length > 0 && (
+      {(loadingElectronics || deals.length > 0) && (
         <section className="home-section">
           <h2 className="home-section-title">💰 Maiores economias</h2>
-          <Carousel ariaLabel="Produtos com maior economia">
-            {deals.map(({ group }, i) => renderProductCard(group, i))}
-          </Carousel>
+          {loadingElectronics ? (
+            <SectionSkeleton label="maiores economias" />
+          ) : (
+            <Carousel ariaLabel="Produtos com maior economia">
+              {deals.map(({ group }, i) => renderProductCard(group, i))}
+            </Carousel>
+          )}
         </section>
       )}
     </div>
