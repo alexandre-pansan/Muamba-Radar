@@ -100,7 +100,11 @@
 
 [data-theme="dark"] {
   --header-bg: #0B0B0D;
+  /* controles nativos (campo com autopreenchimento, lista do select) no tema escuro —
+     sem isso o navegador desenhava o campo branco */
+  color-scheme: dark;
 }
+[data-theme="light"] { color-scheme: light; }
 :root:not([data-theme="light"]) {
   --header-bg: #0B0B0D;
 }
@@ -1654,8 +1658,8 @@ dialog.modal::backdrop {
 
 .toolbar-select {
   border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 5px 8px;
+  border-radius: 8px;
+  padding: 8px 12px;
   font-size: 0.8rem;
   font-family: inherit;
   color: var(--ink);
@@ -5356,6 +5360,11 @@ a.cart-item__price-br:hover { text-decoration: underline; }
 /* Escuro: o verde da marca (--accent) some no fundo escuro — preço e total usam o
    verde claro de --success. */
 [data-theme="dark"] .cart-item__price-py,
+[data-theme="dark"] .filter-checkbox:hover,
+[data-theme="dark"] .cart-dd-total-brl,
+[data-theme="dark"] .list-switcher__manage,
+[data-theme="dark"] .shared-list__copied a,
+[data-theme="dark"] .pref-store.is-on,
 [data-theme="dark"] .summary-row--total,
 :root:not([data-theme="light"]) .cart-item__price-py,
 :root:not([data-theme="light"]) .summary-row--total { color: var(--success); }
@@ -6525,9 +6534,6 @@ a.cart-item__price-br:hover { text-decoration: underline; }
 .filter-checkbox:hover { color: var(--accent); }
 .filter-checkbox.is-empty { opacity: 0.45; }
 .filter-checkbox input[type="checkbox"] {
-  width: 17px;
-  height: 17px;
-  accent-color: var(--accent);
   cursor: pointer;
   flex-shrink: 0;
   margin: 0;
@@ -8198,7 +8204,38 @@ a.cart-item__price-br:hover { text-decoration: underline; }
 }
 .pref-store:hover { background: var(--card-bg); }
 .pref-store.is-on { color: var(--accent); font-weight: 600; }
-.pref-store input { accent-color: var(--accent); }
 .pref-stores__footer { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .pref-stores__footer .btn-save { margin-top: 0; margin-left: auto; }
 .pref-stores__count { font-size: 0.8rem; color: var(--muted); }
+
+/* ── Checkbox no padrão do site (os interruptores .pref-toggle têm desenho próprio) ── */
+
+input[type="checkbox"]:not(.pref-toggle) {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  border: 1.5px solid var(--muted);
+  border-radius: 5px;
+  background: var(--card) center / 12px 12px no-repeat;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s, box-shadow 0.15s;
+  vertical-align: middle;
+}
+input[type="checkbox"]:not(.pref-toggle):hover { border-color: var(--accent); }
+input[type="checkbox"]:not(.pref-toggle):checked {
+  background-color: var(--accent);
+  border-color: var(--accent);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='white' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 8.5l3 3 6-7'/%3E%3C/svg%3E");
+}
+input[type="checkbox"]:not(.pref-toggle):focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(22, 101, 52, 0.3);
+}
+input[type="checkbox"]:not(.pref-toggle):disabled { opacity: 0.45; cursor: not-allowed; }
+[data-theme="dark"] input[type="checkbox"]:not(.pref-toggle):checked {
+  background-color: var(--success);
+  border-color: var(--success);
+}
+[data-theme="dark"] input[type="checkbox"]:not(.pref-toggle):hover { border-color: var(--success); }

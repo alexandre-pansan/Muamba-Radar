@@ -67,11 +67,11 @@ export default function ImportDutyCalculator({ open, onClose, initialUSD }) {
                 key={key}
                 type="button"
                 className={`cart-sort-chip${entryType === key ? ' is-active' : ''}`}
-                style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, padding: '8px 10px' }}
+                style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, padding: '10px 12px' }}
                 onClick={() => setEntryType(key)}
               >
-                <span>{label}</span>
-                <span style={{ fontSize: 10, opacity: 0.75 }}>até US$ {limit}</span>
+                <span style={{ fontSize: 14, fontWeight: 700 }}>{label}</span>
+                <span style={{ fontSize: 12, opacity: 0.75 }}>até US$ {limit}</span>
               </button>
             ))}
           </div>

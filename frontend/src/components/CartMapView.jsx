@@ -74,7 +74,7 @@ export default function CartMapView({ groups, pickedIds = new Set(), storeOrder 
       center={CDE}
       zoom={14}
       style={{ position: 'absolute', inset: 0 }}
-      scrollWheelZoom={false}
+      scrollWheelZoom
     >
       <TileLayer
         attribution={OSM_TILES.attribution}
