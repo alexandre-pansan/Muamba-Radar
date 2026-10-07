@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 from urllib.parse import quote_plus, urljoin, urlsplit, urlunsplit
 
@@ -283,6 +284,9 @@ def _is_perfume_context(query: str, model_url: str = "", model_title: str = "") 
     return any(token in combined for token in perfume_tokens)
 
 
+MODEL_PAGE_WORKERS = 6  # páginas de modelo do CP buscadas ao mesmo tempo
+
+
 def _single_store_offer(soup: BeautifulSoup) -> dict | None:
     """Página de produto vendido por UMA loja (sem #container-ofertas): a oferta só vem no
     JSON-LD (schema.org Product → offers.seller). Ex.: celimax-heart-pink-tone-up__5271870."""
@@ -536,25 +540,30 @@ class ComprasParaguaiAdapter(SourceAdapter):
             absolute = _normalize_product_url(urljoin("https://www.comprasparaguai.com.br", href))
             model_title_by_url[absolute] = title
 
+        # Páginas de modelo em paralelo: uma atrás da outra, 12 páginas levavam de 6s a
+        # mais de um minuto quando o site estava lento. A ordem do resultado é a da busca.
+        def fetch(model_url: str) -> list[RawOfferModel]:
+            try:
+                return self._extract_offers_from_model_page(
+                    query, model_url, model_title=model_title_by_url.get(model_url, ""),
+                )
+            except Exception:
+                return []
+
+        with ThreadPoolExecutor(max_workers=MODEL_PAGE_WORKERS) as pool:
+            pages = list(pool.map(fetch, model_urls))
+
         all_offers: list[RawOfferModel] = []
         seen: set[tuple[str, str, float]] = set()
-        for model_url in model_urls:
-            try:
-                for offer in self._extract_offers_from_model_page(
-                    query,
-                    model_url,
-                    model_title=model_title_by_url.get(model_url, ""),
-                ):
-                    key = (offer.store.lower(), offer.title.lower(), offer.price_amount)
-                    if key in seen:
-                        continue
-                    seen.add(key)
-                    all_offers.append(offer)
-                    if len(all_offers) >= 150:
-                        return all_offers
-            except Exception:
-                continue
-
+        for page in pages:
+            for offer in page:
+                key = (offer.store.lower(), offer.title.lower(), offer.price_amount)
+                if key in seen:
+                    continue
+                seen.add(key)
+                all_offers.append(offer)
+                if len(all_offers) >= 150:
+                    return all_offers
         return all_offers
 
     def fetch_raw(self, query: str) -> tuple[str, str]:

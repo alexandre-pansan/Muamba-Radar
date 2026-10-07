@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 
 from app.adapters.base import SourceAdapter
@@ -249,6 +250,9 @@ def _filter_br_by_py(br_offers: list[OfferModel], py_offers: list[OfferModel], q
     return [o for o in br_offers if required <= set(tokenize(o.title))]
 
 
+BR_WORKERS = 6
+
+
 def scrape_offers(query: str, country: CountryFilter) -> list[OfferModel]:
     """Scrape live offers from all adapters. Returns raw OfferModel list, no grouping."""
     normalized_query = normalize_text(query)
@@ -265,13 +269,12 @@ def scrape_offers(query: str, country: CountryFilter) -> list[OfferModel]:
         br_queries = _br_queries_from_py_offers(py_offers, normalized_query)
         log.info("BR queries derived from PY: %s", br_queries)
 
-        br_offers: list[OfferModel] = []
-        seen_queries: set[str] = set()
-        for br_q in br_queries:
-            if br_q in seen_queries:
-                continue
-            seen_queries.add(br_q)
-            br_offers.extend(_run_adapters(br_adapters, br_q))
+        # Todas as buscas BR (consulta × fonte) ao mesmo tempo — em sequência eram até
+        # 6 × 2 requisições, cada uma podendo esperar o timeout do site.
+        pairs = [(a, q) for q in dict.fromkeys(br_queries) for a in br_adapters]
+        with ThreadPoolExecutor(max_workers=max(1, min(BR_WORKERS, len(pairs)))) as pool:
+            results = list(pool.map(lambda pair: _run_adapters([pair[0]], pair[1]), pairs))
+        br_offers: list[OfferModel] = [o for chunk in results for o in chunk]
 
         return py_offers + _filter_br_by_py(br_offers, py_offers, normalized_query)
     else:
