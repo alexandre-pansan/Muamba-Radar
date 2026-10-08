@@ -12,6 +12,7 @@ import {
   apiShareList,
   apiUnshareList,
 } from '../api.js'
+import { Select } from './ui/index.js'
 
 // Listas de compras salvas. A lista ativa É o carrinho: trocar de lista grava o
 // carrinho na lista anterior e carrega a nova (backend /lists/{id}/activate).
@@ -88,20 +89,18 @@ export function ListSwitcher() {
 
   return (
     <div className="list-switcher">
-      <label className="list-switcher__field">
+      <div className="list-switcher__field">
         <span className="list-switcher__label">Lista</span>
-        <select
-          className="toolbar-select"
+        <Select
           value={active?.id ?? ''}
-          onChange={e => e.target.value && activate(Number(e.target.value))}
-          aria-label="Trocar de lista de compras"
-        >
-          {!active && <option value="">Carrinho (não salvo)</option>}
-          {lists.map(l => (
-            <option key={l.id} value={l.id}>{l.name} ({l.is_active ? items.length : l.item_count})</option>
-          ))}
-        </select>
-      </label>
+          options={[
+            ...(active ? [] : [{ value: '', label: 'Carrinho (não salvo)' }]),
+            ...lists.map(l => ({ value: l.id, label: `${l.name} (${l.is_active ? items.length : l.item_count})` })),
+          ]}
+          onChange={id => id !== '' && activate(Number(id))}
+          ariaLabel="Trocar de lista de compras"
+        />
+      </div>
 
       {saving ? (
         <form className="list-switcher__form" onSubmit={handleSave}>

@@ -1,7 +1,7 @@
 import React from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import ProductCard from './ProductCard.jsx'
-import { EmptyState, Button } from './ui/index.js'
+import { EmptyState, Button, Select } from './ui/index.js'
 import { buildConfigChip, cheapestByCountry, familyDisplayName, formatMoney } from '../utils.js'
 import { isRealImage, offerCountry, productUrls, storeRowsFrom, useProductGroup } from '../productGroup.js'
 
@@ -111,9 +111,7 @@ export default function StoreOffers({ targetMargin, showMargin, onNeedAuth, onRe
         <span className="so-toolbar__count">
           {rows.length} loja{rows.length !== 1 ? 's' : ''} vende{rows.length !== 1 ? 'm' : ''} este produto — clique numa loja para ver os detalhes
         </span>
-        <select className="toolbar-select" value={order} onChange={e => setOrder(e.target.value)} aria-label="Ordenar lojas">
-          {SORTS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-        </select>
+        <Select className="ui-select--align-right" value={order} options={SORTS} onChange={setOrder} ariaLabel="Ordenar lojas" />
       </div>
 
       {storeGroups.length === 0 ? (

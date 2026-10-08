@@ -5,7 +5,7 @@ import { useI18n } from '../i18n.jsx'
 import ResultsSkeleton from './ResultsSkeleton.jsx'
 import { detectCategory } from '../loadingTexts.js'
 import ProductCard from './ProductCard.jsx'
-import { Breadcrumb, FilterSidebar } from './ui/index.js'
+import { Breadcrumb, FilterSidebar, Select } from './ui/index.js'
 import VirtualGrid from './ui/VirtualGrid.jsx'
 import {
   sortGroups,
@@ -411,14 +411,13 @@ export default function ResultsArea({
               )}
             </div>
           )}
-          <select
-            className="toolbar-select results-toolbar__sort"
+          <Select
+            className="results-toolbar__sort ui-select--align-right"
             value={order}
-            onChange={e => setOrder(e.target.value)}
-            aria-label="Ordenar resultados"
-          >
-            {sortOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
+            options={sortOptions}
+            onChange={setOrder}
+            ariaLabel="Ordenar resultados"
+          />
           <div className="view-switch">
             <button
               type="button"
