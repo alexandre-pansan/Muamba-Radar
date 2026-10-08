@@ -188,6 +188,8 @@
   --danger-border:  rgba(239, 68, 68, 0.3);
   --info:           #5a9cf8;
   --warning:        #e5a244;
+  --warning-bg:     rgba(229, 162, 68, 0.12);
+  --warning-border: rgba(229, 162, 68, 0.35);
 
   --elevation-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
   --elevation-md: 0 4px 12px rgba(0, 0, 0, 0.6);
@@ -6177,6 +6179,16 @@ a.cart-item__price-br:hover { text-decoration: underline; }
 
 .ui-btn--secondary { background: transparent; color: var(--accent); border: 1.5px solid var(--line); }
 .ui-btn--secondary:hover { background: var(--card-bg); border-color: var(--accent); }
+
+.ui-btn:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; filter: none; transform: none; }
+
+/* Dark: verde da marca (--accent) some como TEXTO no fundo escuro — texto usa --success
+   (achado pelo Design System). Fundo de botão primário continua --accent. */
+[data-theme="dark"] .ui-btn--secondary,
+[data-theme="dark"] .btn-inline:not(.btn-muted) { color: var(--success); }
+[data-theme="dark"] .ui-btn--secondary:hover { border-color: var(--success); }
+/* vermelho claro do dark não segura texto branco: perigo usa o vermelho forte */
+[data-theme="dark"] .ui-btn--danger { background: #dc2626; color: #fff; }
 
 .ui-btn--ghost { background: transparent; color: var(--muted); }
 .ui-btn--ghost:hover { color: var(--ink); background: var(--card-bg); }
