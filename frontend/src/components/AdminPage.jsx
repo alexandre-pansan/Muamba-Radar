@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import DesignSystem from './DesignSystem.jsx'
 import {
   apiFetchSources,
   apiTestSearch,
@@ -1475,18 +1476,37 @@ function ReportsTab() {
 
 // ── Main AdminPage ────────────────────────────────────────────────────────────
 
-const TABS = [
-  { id: 'users',    label: 'Usuários'  },
-  { id: 'devtools', label: 'Dev Tools' },
-  { id: 'cache',    label: 'Cache'     },
-  { id: 'crawler',  label: 'Crawler'   },
-  { id: 'donate',   label: 'Doações'   },
-  { id: 'stores',   label: 'Lojas'     },
-  { id: 'reports',  label: 'Reportes'  },
+// Barra lateral agrupada por assunto (a barra de abas no topo não comportava mais)
+const TAB_GROUPS = [
+  { label: 'Gestão', tabs: [
+    { id: 'users',   label: 'Usuários', icon: '👥' },
+    { id: 'stores',  label: 'Lojas',    icon: '🏪' },
+    { id: 'reports', label: 'Reportes', icon: '🚩' },
+    { id: 'donate',  label: 'Doações',  icon: '💚' },
+  ] },
+  { label: 'Sistema', tabs: [
+    { id: 'crawler',  label: 'Crawler',   icon: '🕷️' },
+    { id: 'cache',    label: 'Cache',     icon: '🗄️' },
+    { id: 'devtools', label: 'Dev Tools', icon: '🛠️' },
+  ] },
+  { label: 'Interface', tabs: [
+    { id: 'design', label: 'Design System', icon: '🎨' },
+  ] },
 ]
+const TABS = TAB_GROUPS.flatMap(g => g.tabs)
 
 export default function AdminPage({ onBack }) {
-  const [tab, setTab] = useState('users')
+  // aba na URL (?aba=design): recarregar ou mandar o link abre na mesma aba
+  const [tab, setTabState] = useState(() => {
+    const fromUrl = new URLSearchParams(window.location.search).get('aba')
+    return TABS.some(t => t.id === fromUrl) ? fromUrl : 'users'
+  })
+  function setTab(id) {
+    setTabState(id)
+    const url = new URL(window.location.href)
+    url.searchParams.set('aba', id)
+    window.history.replaceState(window.history.state, '', url)
+  }
 
   return (
     <div className="admin-page">
@@ -1495,18 +1515,28 @@ export default function AdminPage({ onBack }) {
         <div className="admin-header-sep" />
         <span className="admin-header-title">Admin</span>
         <span className="admin-restricted-badge">restricted</span>
-        <nav className="admin-tabs">
-          {TABS.map(t => (
-            <button
-              key={t.id}
-              className={`admin-tab${tab === t.id ? ' is-active' : ''}`}
-              onClick={() => setTab(t.id)}
-            >
-              {t.label}
-            </button>
-          ))}
-        </nav>
       </div>
+
+      <div className="admin-layout">
+      <nav className="admin-sidebar" aria-label="Seções do admin">
+        {TAB_GROUPS.map(group => (
+          <div className="admin-sidebar__group" key={group.label}>
+            <span className="admin-sidebar__heading">{group.label}</span>
+            {group.tabs.map(t => (
+              <button
+                key={t.id}
+                type="button"
+                className={`admin-tab${tab === t.id ? ' is-active' : ''}`}
+                aria-current={tab === t.id ? 'page' : undefined}
+                onClick={() => setTab(t.id)}
+              >
+                <span className="admin-tab__icon" aria-hidden="true">{t.icon}</span>
+                {t.label}
+              </button>
+            ))}
+          </div>
+        ))}
+      </nav>
 
       <div className="admin-tab-content">
         {tab === 'users'    && <UsersTab />}
@@ -1516,6 +1546,8 @@ export default function AdminPage({ onBack }) {
         {tab === 'donate'   && <DonateTab />}
         {tab === 'stores'   && <StoresTab />}
         {tab === 'reports'  && <ReportsTab />}
+        {tab === 'design'   && <div className="admin-tab-body"><DesignSystem /></div>}
+      </div>
       </div>
     </div>
   )
