@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { apiCompare } from '../api.js'
-import { isRealImage, offerCountry as country, productUrls, pyStoreCount, storeRowsFrom, useProductGroup } from '../productGroup.js'
+import { backTarget, isRealImage, offerCountry as country, productOrigin, productUrls, pyStoreCount, storeRowsFrom, useProductGroup } from '../productGroup.js'
 import { useCart } from '../CartContext.jsx'
 import { useFavorites } from '../FavoritesContext.jsx'
 import { useFeatures } from '../features.js'
 import { familyDisplayName, buildConfigChip, formatMoney, sourceDomain, cheapestByCountry } from '../utils.js'
-import { Carousel, ProductCard, EmptyState, Button } from './ui/index.js'
+import { Breadcrumb, Carousel, ProductCard, EmptyState, Button } from './ui/index.js'
 
 // Cores que o adapter anota no fim do título ("... [preto]"); as lojas escrevem em
 // português, inglês ou espanhol, então normaliza para português antes de juntar.
@@ -154,25 +154,27 @@ export default function ProductDetail({ targetMargin, showMargin, onOpenOffers, 
   ].filter(Boolean)
 
   const searchQuery = searchParams.get('q')
+  const origin = productOrigin(searchParams)
   const info = activeRow?.info
-  const urls = productUrls(group, searchQuery)
+  const urls = productUrls(group, searchQuery, origin)
   const hasStoreList = pyStoreCount(group) > 1
+  const back = hasStoreList ? { url: urls.stores, label: 'Voltar para as lojas' } : backTarget(origin, searchQuery)
+  const toStores = () => navigate(urls.stores, { state: { group } })
 
   return (
     <div className="pd-page">
       <div className="pd-topbar">
-        <button
-          type="button"
-          className="pd-back"
-          onClick={() => navigate(hasStoreList ? urls.stores : searchQuery ? `/?q=${encodeURIComponent(searchQuery)}` : '/', { state: { group } })}
-        >
-          ← {hasStoreList ? 'Voltar para as lojas' : searchQuery ? 'Voltar para a busca' : 'Voltar para Home'}
+        <button type="button" className="pd-back" onClick={() => navigate(back.url, { state: { group } })}>
+          ← {back.label}
         </button>
-        <span className="pd-crumbs">
-          Home › {searchQuery ? `"${searchQuery}" › ` : ''}
-          {hasStoreList ? <a href={urls.stores} onClick={e => { e.preventDefault(); navigate(urls.stores, { state: { group } }) }}>{name}</a> : name}
-          {activeRow ? ` › ${activeRow.store}` : ''}
-        </span>
+        <Breadcrumb items={[
+          { label: 'Início', onClick: () => navigate('/') },
+          ...(origin === 'busca' && searchQuery
+            ? [{ label: `"${searchQuery}"`, onClick: () => navigate(`/?q=${encodeURIComponent(searchQuery)}`) }]
+            : []),
+          { label: name, onClick: hasStoreList ? toStores : undefined },
+          ...(activeRow ? [{ label: activeRow.store }] : []),
+        ]} />
       </div>
 
       <div className="pd-hero">

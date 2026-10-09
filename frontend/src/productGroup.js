@@ -65,17 +65,34 @@ export function useProductGroup(productKey) {
   return { group, loading, notFound }
 }
 
-/** URL da lista de lojas / do detalhe, sempre levando o termo da busca junto. */
-export function productUrls(group, query) {
-  const q = query ? `?q=${encodeURIComponent(query)}` : ''
-  return {
-    stores: `/product/${group.product_key}/lojas${q}`,
-    detail: (store) => {
-      const params = new URLSearchParams()
-      if (query) params.set('q', query)
-      if (store) params.set('loja', store)
-      const s = params.toString()
-      return `/product/${group.product_key}${s ? `?${s}` : ''}`
-    },
+/**
+ * De onde o usuário abriu o produto: 'home' ou 'busca'. O ?q= da URL NÃO diz isso —
+ * aberto pela home, o card põe o nome do produto em ?q= só pra o F5 conseguir refazer a
+ * busca e achar o grupo. Quem veio da home leva ?de=home.
+ */
+export function productOrigin(searchParams) {
+  return searchParams.get('de') === 'home' || !searchParams.get('q') ? 'home' : 'busca'
+}
+
+/** URL da lista de lojas / do detalhe, sempre levando o termo da busca e a origem junto. */
+export function productUrls(group, query, origin = 'busca') {
+  const build = (path, store) => {
+    const params = new URLSearchParams()
+    if (query) params.set('q', query)
+    if (origin === 'home') params.set('de', 'home')
+    if (store) params.set('loja', store)
+    const s = params.toString()
+    return `${path}${s ? `?${s}` : ''}`
   }
+  return {
+    stores: build(`/product/${group.product_key}/lojas`),
+    detail: store => build(`/product/${group.product_key}`, store),
+  }
+}
+
+/** Para onde "Voltar" leva quando não há lista de lojas no caminho. */
+export function backTarget(origin, query) {
+  return origin === 'busca' && query
+    ? { url: `/?q=${encodeURIComponent(query)}`, label: 'Voltar para a busca' }
+    : { url: '/', label: 'Voltar para Home' }
 }

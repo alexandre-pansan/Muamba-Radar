@@ -1,9 +1,9 @@
 import React from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import ProductCard from './ProductCard.jsx'
-import { EmptyState, Button, Select } from './ui/index.js'
+import { Breadcrumb, EmptyState, Button, Select } from './ui/index.js'
 import { buildConfigChip, cheapestByCountry, familyDisplayName, formatMoney } from '../utils.js'
-import { isRealImage, offerCountry, productUrls, storeRowsFrom, useProductGroup } from '../productGroup.js'
+import { backTarget, isRealImage, offerCountry, productOrigin, productUrls, storeRowsFrom, useProductGroup } from '../productGroup.js'
 
 const SORTS = [
   { value: 'menor', label: 'Menor preço' },
@@ -38,6 +38,8 @@ export default function StoreOffers({ targetMargin, showMargin, onNeedAuth, onRe
   }
 
   const query = params.get('q')
+  const origin = productOrigin(params)
+  const back = backTarget(origin, query)
   const order = params.get('ordem') || 'menor'
   const name = familyDisplayName(group)
   const config = buildConfigChip(group)
@@ -82,10 +84,14 @@ export default function StoreOffers({ targetMargin, showMargin, onNeedAuth, onRe
   return (
     <div className="so-page">
       <div className="pd-topbar">
-        <button type="button" className="pd-back" onClick={() => navigate(query ? `/?q=${encodeURIComponent(query)}` : '/')}>
-          ← {query ? 'Voltar para a busca' : 'Voltar para Home'}
+        <button type="button" className="pd-back" onClick={() => navigate(back.url)}>
+          ← {back.label}
         </button>
-        <span className="pd-crumbs">Home › {query ? `"${query}" › ` : ''}{name}</span>
+        <Breadcrumb items={[
+          { label: 'Início', onClick: () => navigate('/') },
+          ...(origin === 'busca' && query ? [{ label: `"${query}"`, onClick: () => navigate(back.url) }] : []),
+          { label: name },
+        ]} />
       </div>
 
       <header className="so-summary">
@@ -135,7 +141,7 @@ export default function StoreOffers({ targetMargin, showMargin, onNeedAuth, onRe
 
       <p className="pd-footnote">
         Ver todas as {offers.length} ofertas, inclusive as do Brasil, na{' '}
-        <a href={productUrls(group, query).detail(null)} onClick={e => { e.preventDefault(); navigate(productUrls(group, query).detail(null), { state: { group } }) }}>página do produto</a>.
+        <a href={productUrls(group, query, origin).detail(null)} onClick={e => { e.preventDefault(); navigate(productUrls(group, query, origin).detail(null), { state: { group } }) }}>página do produto</a>.
       </p>
     </div>
   )

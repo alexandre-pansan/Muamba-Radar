@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n.jsx'
 import { useCart } from '../CartContext.jsx'
 import { useFavorites } from '../FavoritesContext.jsx'
-import { offerCountry, productUrls, pyStoreCount } from '../productGroup.js'
+import { offerCountry, productOrigin, productUrls, pyStoreCount } from '../productGroup.js'
 import {
   cheapestByCountry,
   estimateSellingPrice,
@@ -109,8 +109,10 @@ export default function ProductCard({ group, marginPct, showMargin, idx, onNeedA
   // refaz a mesma busca e acha exatamente este produto pela chave.
   function handleViewDetails() {
     if (!group.product_key) return
+    // aberto pela home: o nome vai em ?q= só pra o F5 achar o produto; ?de=home guarda a origem
+    const origin = productOrigin(searchParams)
     const q = searchParams.get('q') || familyDisplayName(group)
-    const urls = productUrls(group, q)
+    const urls = productUrls(group, q, origin)
     const fullGroup = group.__fullGroup || group
     if (storeView) navigate(urls.detail(storeView), { state: { group: fullGroup } })
     else if (storeCount > 1) navigate(urls.stores, { state: { group } })
