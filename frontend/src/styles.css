@@ -5467,6 +5467,8 @@ a.cart-item__price-br:hover { text-decoration: underline; }
 /* Escuro: o verde da marca (--accent) some no fundo escuro — preço e total usam o
    verde claro de --success. */
 [data-theme="dark"] .cart-item__price-py,
+[data-theme="dark"] .pd-back,
+[data-theme="dark"] .ui-breadcrumb-link,
 [data-theme="dark"] .filter-checkbox:hover,
 [data-theme="dark"] .cart-dd-total-brl,
 [data-theme="dark"] .list-switcher__manage,
@@ -6413,6 +6415,8 @@ a.cart-item__price-br:hover { text-decoration: underline; }
   align-items: center;
 }
 
+/* Vidro escuro com seta branca: igual nos dois temas e sobre qualquer cor de banner
+   (antes era branco com a seta na cor do texto do tema — no escuro a seta sumia) */
 .ui-hero-nav {
   position: absolute;
   top: 50%;
@@ -6421,14 +6425,19 @@ a.cart-item__price-br:hover { text-decoration: underline; }
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  border: none;
-  background: rgba(255,255,255,0.85);
-  color: var(--ink);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(0, 0, 0, 0.22);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s;
 }
+.ui-hero-nav:hover { background: rgba(0, 0, 0, 0.38); border-color: rgba(255, 255, 255, 0.6); }
+.ui-hero-nav:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 
 .ui-hero-nav--prev { left: var(--space-md); }
 .ui-hero-nav--next { right: var(--space-md); }
@@ -6776,9 +6785,14 @@ a.cart-item__price-br:hover { text-decoration: underline; }
   z-index: 1;
 }
 
+/* CTA branco: o botão verde sumia sobre o degradê verde */
+.home-hero-cta { background: #fff; color: var(--accent); font-weight: 700; }
+.home-hero-cta:hover { box-shadow: var(--elevation-md); filter: brightness(0.96); }
+
 .home-hero-deco {
-  font-size: 120px;
-  line-height: 1;
+  width: 150px;
+  height: 90px;
+  border-radius: 6px;
   opacity: 0.35;
   flex-shrink: 0;
   margin-right: var(--space-xl);

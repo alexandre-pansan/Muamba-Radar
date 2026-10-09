@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import HeroSlide, { HERO_SLIDES } from './HeroSlide.jsx'
 import { apiFetchShowcase, apiFetchTrending, apiFetchHighlights } from '../api.js'
 import { HeroBanner, Carousel, ProductCard } from './ui/index.js'
 import { cheapestByCountry } from '../utils.js'
@@ -9,22 +10,6 @@ import { cheapestByCountry } from '../utils.js'
 // nem destaques de lojista, e a vitrine de eletrônicos segura a página sozinha.
 const FALLBACK_HERO_QUERY = 'iPhone 16'
 
-const HERO_SLIDES = [
-  {
-    key: 'compare',
-    bg: 'linear-gradient(135deg, var(--py-color) 0%, var(--accent) 50%, var(--br-color) 100%)',
-    title: 'Compare preços Paraguai × Brasil',
-    subtitle: 'Descubra quanto você pode economizar comprando em Ciudad del Este.',
-    cta: 'Ver ofertas',
-  },
-  {
-    key: 'save',
-    bg: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%)',
-    title: 'Economize na sua próxima viagem',
-    subtitle: 'Eletrônicos, perfumes e mais — tudo comparado automaticamente.',
-    cta: 'Buscar agora',
-  },
-]
 
 function economyPct(group) {
   const py = cheapestByCountry(group.offers, 'py')
@@ -134,20 +119,10 @@ export default function Home({ onSearch, recentSearches, targetMargin, showMargi
   const slides = HERO_SLIDES.map(slide => ({
     key: slide.key,
     render: () => (
-      <div className="home-hero-slide" style={{ background: slide.bg }}>
-        <div className="home-hero-text">
-          <h2 className="home-hero-title">{slide.title}</h2>
-          <p className="home-hero-subtitle">{slide.subtitle}</p>
-          <button
-            type="button"
-            className="ui-btn ui-btn--primary"
-            onClick={() => onSearch(trending[0]?.query || electronics[0]?.query || FALLBACK_HERO_QUERY)}
-          >
-            {slide.cta}
-          </button>
-        </div>
-        <span className="home-hero-deco" aria-hidden="true">🇵🇾</span>
-      </div>
+      <HeroSlide
+        slide={slide}
+        onCta={() => onSearch(trending[0]?.query || electronics[0]?.query || FALLBACK_HERO_QUERY)}
+      />
     ),
   }))
 

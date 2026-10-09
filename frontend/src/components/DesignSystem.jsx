@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import ProductCard from './ProductCard.jsx'
-import { Badge, Button, EmptyState, FormInput, Modal, Select, useModal, useToast } from './ui/index.js'
+import HeroSlide, { HERO_SLIDES } from './HeroSlide.jsx'
+import { Badge, Button, EmptyState, FormInput, HeroBanner, Modal, Select, useModal, useToast } from './ui/index.js'
 
 /**
  * Design System (aba do admin): os componentes REAIS do app, lado a lado no tema claro e
@@ -136,8 +137,10 @@ function Section({ id, title, hint, children }) {
 const SECTIONS = [
   ['cores', 'Cores'], ['tipografia', 'Tipografia'], ['botoes', 'Botões'], ['campos', 'Campos'],
   ['selecao', 'Seleção'], ['popovers', 'Popovers'], ['chips', 'Chips e selos'],
-  ['avisos', 'Avisos'], ['estados', 'Estados'], ['cards', 'Cards'],
+  ['avisos', 'Avisos'], ['estados', 'Estados'], ['banner', 'Banner'], ['cards', 'Cards'],
 ]
+
+const BANNER_SLIDES = HERO_SLIDES.map(slide => ({ key: slide.key, render: () => <HeroSlide slide={slide} onCta={() => {}} /> }))
 
 function SelectDemo() {
   const [value, setValue] = useState('relevancia')
@@ -368,6 +371,12 @@ export default function DesignSystem() {
               </div>
             </div>
           </Row>
+        </Themes>
+      </Section>
+
+      <Section id="banner" title="Banner" hint="HeroBanner da home com os slides reais (HeroSlide.jsx).">
+        <Themes>
+          <HeroBanner slides={BANNER_SLIDES} intervalMs={8000} />
         </Themes>
       </Section>
 
